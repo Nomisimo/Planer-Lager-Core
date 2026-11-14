@@ -186,3 +186,19 @@ export function packliste(positionen, artikel, zaehler = new Map()) {
 
 /** Positionen für Fassung/PDF anreichern: Summe je Position. */
 export const mitSummen = (positionen) => (positionen || []).map((p) => ({ ...p, summe: positionSumme(p) }));
+
+/**
+ * FA-45 Kalkulator: Position aus Artikel grob kalkulieren (ohne Angebot, ohne Reservierung).
+ * Leistung → Personal mit Zeitrechner je Tag; Verbrauch → Verkauf; sonst Miete mit Folgetag-Satz.
+ * @param {object} a Artikel @param {{menge:number, tage:number, stunden?:number|null}} w
+ * @param {{tag_stunden_standard:number, tag_stunden_erweitert:number, folgetag_prozent:number}} e
+ */
+export function kalkulatorPosition(a, w, e) {
+  const menge = Number(w.menge) || 0, tage = Math.max(1, Number(w.tage) || 1);
+  if (a.ist_leistung) {
+    const st = w.stunden == null || w.stunden === "" ? e.tag_stunden_standard : Number(w.stunden);
+    return { art: "frei", menge, tage, einzelpreis: zeitrechner(st, { tagessatz: a.preis_tag, erweitert: a.preis_erweitert, zeitmodell: a.zeitmodell }, e).summe };
+  }
+  if (a.verbrauch) return { art: "verkauf", menge, tage: 1, einzelpreis: a.verkaufspreis ?? a.preis_tag };
+  return { art: "miete", menge, tage, einzelpreis: a.preis_tag, folgetag_prozent: a.folgetag_prozent ?? e.folgetag_prozent };
+}

@@ -156,11 +156,22 @@ function pdfPuffer(baue, titel) {
 }
 const mengeText = (m) => String(Math.round(Number(m) * 100) / 100).replace(".", ",");
 
-export function angebotPdf(a, firma, { entwurf = false } = {}) {
+/** Firmenlogo (FA-41): <Datenordner>/firma/logo.png|jpg, wird in der Verwaltung hinterlegt (D-60). */
+export async function ladeLogo(ctx) {
+  for (const n of ["logo.png", "logo.jpg", "logo.jpeg"]) {
+    try { return await fsp.readFile(path.join(datenOrdner(ctx), "firma", n)); } catch (e) { if (e.code !== "ENOENT") throw e; }
+  }
+  return null;
+}
+
+export function angebotPdf(a, firma, { entwurf = false, logo = null } = {}) {
   return pdfPuffer((doc) => {
     const L = 20 * MM, B = doc.page.width - 40 * MM;
     const f = firma || {};
-    doc.font("Helvetica-Bold").fontSize(14).text(f.name || "Angebot", L, 20 * MM);
+    if (logo) {
+      try { doc.image(logo, L + B - 45 * MM, 15 * MM, { fit: [45 * MM, 18 * MM], align: "right" }); } catch { /* ungültiges Bild: ohne Logo weiter */ }
+    }
+    doc.font("Helvetica-Bold").fontSize(14).text(f.name || "Angebot", L, 20 * MM, { width: B - 50 * MM });
     doc.font("Helvetica").fontSize(8).fillColor("#555")
       .text([f.strasse, [f.plz, f.ort].filter(Boolean).join(" "), f.telefon, f.email, f.web].filter(Boolean).join(" · "));
     doc.fillColor("#000").moveDown(2);
@@ -368,7 +379,7 @@ export function angeboteModul(router) {
         await c.query("UPDATE angebot SET fassung = $1 WHERE id = $2", [fassung, id]);
         const a = await ladeAngebot(c, id);
         const e = await ladeEinstellungen(c);
-        const pdf = await angebotPdf(a, e.firma);
+        const pdf = await angebotPdf(a, e.firma, { logo: await ladeLogo(ctx) });
         const basis = datenOrdner(ctx);
         const ordner = a.ordner ? path.join(a.ordner, "Angebote") : path.join("angebote");
         pdfRel = path.join(ordner, `${a.nummer} Fassung ${fassung}.pdf`);
@@ -413,7 +424,7 @@ export function angeboteModul(router) {
       catch (e) { if (e.code !== "ENOENT") throw e; }
     }
     const e = await ladeEinstellungen(ctx.pool);
-    sendePdf(ctx, await angebotPdf(a, e.firma, { entwurf: a.status === "entwurf" }), name, ctx.query.download !== "1");
+    sendePdf(ctx, await angebotPdf(a, e.firma, { entwurf: a.status === "entwurf", logo: await ladeLogo(ctx) }), name, ctx.query.download !== "1");
   });
   router.get("/api/v1/angebote/:id/fassungen/:fassung/pdf", { ...A, stufe: "r" }, async (ctx) => {
     const id = idParam(ctx.params.id, "Dieses Angebot");

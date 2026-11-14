@@ -16,7 +16,8 @@ Gebaut: 3.11 Angebot/Position/Fassung (A-JJJJ-NNN), Zustand 4.2 mit Fassungsarch
 Geprüft: Unit+API alle grün (neu: domain/angebot.test.js 13, server/angebote.test.js 6 inkl. FA-41-Beispiel 50,00 €); E2E neu e2e/angebote.test.js (T-04, T-05, FA-41–45) grün. Screenshots: FA-41, FA-44, FA-45, T-05.
 Nicht geprüft: Inhalt/Optik der PDFs nur als gültiges PDF geprüft; Firmenlogo im PDF folgt mit Verwaltung (Phase 11).
 Bekannte Fehler/Grenzen: Einstellungen Kleinunternehmer/USt-Satz nur per API änderbar, bis die Verwaltungsseite Einstellungen (FA-48) kommt.
-Annahmen: D-55–D-59
+Annahmen: D-55–D-61
+spec-pruefer Phase 5: 18 OK, 0 Fehler, 3 Lücken; geschlossen: Firmenlogo im PDF (D-60, Test), Reihenfolge-Test, Kalkulator als Domain-Funktion mit Unit-Test, R-15 im Testnamen. ui-pruefer: Datumsfelder jetzt deutsch (D-61), Summen ohne Umbruch, Warnhinweis mit dunklem Text + Symbol, dunklere Status-Badges in der Packliste, klarer Tasche-Hinweis.
 
 ## Phase 4 – Projekte, Jobs, Aufgaben, Dateien, Kalender – 14.11.2026
 Gebaut: 3.2–3.4, Zustand 4.1, R-12, R-13 (Ladezone frei), R-14 (Hook für Verladen), R-20, Projektordner mit Unterordnern, FA-29 (Liste mit Filtern, Detail mit Kopfkennzahlen), FA-30 (Jobs, „Jobs nach Gewerk“), FA-31, FA-32 (auch globale Liste), FA-33 (Upload bis 50 MB, sichere Auslieferung), FA-34 Monatskalender.

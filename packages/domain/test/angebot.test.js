@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import {
   tagesfaktor, positionSumme, angebotSumme, mengenschrittFehler, pruefePosition, reservierungsArt, reservierungsZeitraum,
   ueberschneidet, bestandVon, verfuegbarkeit, ueberbuchungHinweis, zeitrechner, packliste, angebotWechselErlaubt,
-  angebotBearbeitbar, projektStatusNachAngebot, pruefeEinstellungen, mitStandard,
+  angebotBearbeitbar, projektStatusNachAngebot, pruefeEinstellungen, mitStandard, kalkulatorPosition,
 } from "../src/index.js";
 
 test("FA-41 R-28 Akzeptanz: 4 Tage, Folgetag 50 %, Menge 2, 10 € = 2 × (1 + 3 × 0,5) × 10 = 50,00 €", () => {
@@ -58,7 +58,7 @@ test("FA-41 Mengenschritt-Prüfung: nur Vielfache des Sets", () => {
   assert.match(pruefePosition({ art: "x" }), /Art/);
 });
 
-test("R-24 Reservierung: angenommen fest (außer Projekt abgeschlossen/storniert), versendet vorgemerkt bis gueltig_bis", () => {
+test("R-15 R-24 Reservierung: angenommen fest (außer Projekt abgeschlossen/storniert), versendet vorgemerkt bis gueltig_bis", () => {
   const heute = "2026-11-14";
   assert.equal(reservierungsArt({ status: "angenommen" }, { status: "bestaetigt" }, heute), "fest");
   assert.equal(reservierungsArt({ status: "angenommen" }, { status: "abgeschlossen" }, heute), null);
@@ -163,4 +163,16 @@ test("3.14 Einstellungen Kleinunternehmer/USt-Satz: Standard und Prüfung", () =
   assert.ok(pruefeEinstellungen({ ust_satz: 7 }, {}).ok);
   assert.ok(!pruefeEinstellungen({ ust_satz: 120 }, {}).ok);
   assert.ok(!pruefeEinstellungen({ kleinunternehmer: "ja" }, {}).ok);
+});
+
+test("FA-45 Kalkulator: Miete mit Folgetag, Verbrauch als Verkauf, Personal über Zeitrechner", () => {
+  const e = { tag_stunden_standard: 8, tag_stunden_erweitert: 10, folgetag_prozent: 50 };
+  const miete = kalkulatorPosition({ preis_tag: 1000, folgetag_prozent: null }, { menge: 2, tage: 4 }, e);
+  assert.equal(positionSumme(miete), 5000);
+  const verbrauch = kalkulatorPosition({ verbrauch: true, preis_tag: 100, verkaufspreis: 900 }, { menge: 3, tage: 4 }, e);
+  assert.equal(positionSumme(verbrauch), 2700);
+  const personal = kalkulatorPosition({ ist_leistung: true, preis_tag: 40000, preis_erweitert: 50000, zeitmodell: "tag" }, { menge: 2, tage: 3, stunden: 12 }, e);
+  assert.equal(positionSumme(personal), 2 * 3 * 60000);
+  assert.equal(positionSumme(kalkulatorPosition({ ist_leistung: true, preis_tag: 40000 }, { menge: 1, tage: 1, stunden: "" }, e)), 40000);
+  assert.equal(angebotSumme([miete, verbrauch], { ust_satz: 19 }).brutto, 9163);
 });

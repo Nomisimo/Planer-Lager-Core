@@ -2,6 +2,7 @@ import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
+import QRCode from "qrcode";
 import { starteTestServer } from "./helfer.js";
 
 let s, buero, lager, admin, kunde, jahr, kat, spot, gaffa, techniker, tasche, akku;
@@ -194,4 +195,21 @@ test("FA-43 PDF-Vorschau im Entwurf; Projekt mit Angebot nicht löschbar", async
   const l = (await buero("GET", `/api/v1/angebote?projekt_id=${p.id}`)).json;
   assert.equal(l.gesamt, 1);
   assert.equal((await buero("GET", "/api/v1/angebote?status=angenommen")).json.zeilen.every((x) => x.status === "angenommen"), true);
+});
+
+test("FA-41 PDF mit Firmenkopf und Logo; Reihenfolge der Positionen bleibt wie eingegeben", async () => {
+  fs.mkdirSync(path.join(s.dataDir, "firma"), { recursive: true });
+  fs.writeFileSync(path.join(s.dataDir, "firma", "logo.png"), await QRCode.toBuffer("Logo"));
+  await admin("PUT", "/api/v1/verwaltung/einstellungen", { firma: { name: "Eventtechnik Muster", ort: "Köln" } });
+  const p = await projekt({ name: "Logo" });
+  const a = await angebot(p);
+  const r = await buero("PUT", `/api/v1/angebote/${a.id}`, { positionen: [
+    pos({ art: "frei", bezeichnung: "Zweite" }), pos({ art: "frei", bezeichnung: "Erste" }), pos({ art: "frei", bezeichnung: "Dritte" })] });
+  assert.deepEqual(r.json.angebot.positionen.map((x) => [x.pos, x.bezeichnung]), [[1, "Zweite"], [2, "Erste"], [3, "Dritte"]]);
+  const neu = await buero("PUT", `/api/v1/angebote/${a.id}`, { positionen: [pos({ art: "frei", bezeichnung: "Erste" }), pos({ art: "frei", bezeichnung: "Zweite" })] });
+  assert.deepEqual(neu.json.angebot.positionen.map((x) => x.bezeichnung), ["Erste", "Zweite"]);
+  const pdf = await buero("GET", `/api/v1/angebote/${a.id}/pdf`);
+  assert.match(pdf.text, /\/Subtype \/Image/, "Logo eingebettet");
+  fs.rmSync(path.join(s.dataDir, "firma"), { recursive: true });
+  assert.doesNotMatch((await buero("GET", `/api/v1/angebote/${a.id}/pdf`)).text, /\/Subtype \/Image/, "ohne Logo geht es auch");
 });

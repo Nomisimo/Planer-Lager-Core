@@ -97,6 +97,8 @@ export function starteShell(cfg) {
     win.loadFile(path.join(cfg.root, "index.html"));
   };
 
+  // Datumsfelder und Zahlen im deutschen Format (TT.MM.JJJJ), unabhängig von der Systemsprache.
+  app.commandLine.appendSwitch("lang", "de-DE");
   app.whenReady().then(erstelleFenster);
   app.on("activate", () => { if (!win) erstelleFenster(); });
   app.on("window-all-closed", () => { if (process.platform !== "darwin" || test) app.quit(); });

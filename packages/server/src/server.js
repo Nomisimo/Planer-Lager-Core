@@ -8,8 +8,9 @@ import { Hub } from "./hub.js";
 import { statischModul } from "./statisch.js";
 import { stammdatenModul } from "./stammdaten.js";
 import { kundenModul } from "./kunden.js";
+import { etikettenModul } from "./etiketten.js";
 
-export const MODULE = [authModul, verwaltungModul, stammdatenModul, kundenModul, statischModul];
+export const MODULE = [authModul, verwaltungModul, stammdatenModul, etikettenModul, kundenModul, statischModul];
 
 /**
  * @param {{pool: import("pg").Pool, config?: object, migrieren?: boolean}} opt

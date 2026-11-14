@@ -1,4 +1,5 @@
 // Kabel (Spec 3.12, 5.4): Länge aus Name (R-29), feste Farbe je Länge (R-29a).
+import { rundeCent } from "./geld.js";
 
 /** 12 Farben in fester Reihenfolge (3.12). */
 export const KABELFARBEN = [
@@ -38,3 +39,6 @@ export const laengeText = (m) => (m == null ? "" : `${String(Number(m)).replace(
 export const STANDARD_LAENGEN = [0.5, 1, 2, 3, 5, 7.5, 10, 15, 20, 25, 30, 50];
 /** R-73: Name je Länge. */
 export const kabelName = (art, laenge) => `${String(art).trim()} ${String(laenge).replace(".", ",")} m`;
+
+/** R-73: Zeilenpreis = Länge × Meterpreis (Cent, kaufmännisch gerundet). */
+export const zeilenpreis = (laenge, meterpreisCent) => (meterpreisCent == null || meterpreisCent === "" ? null : rundeCent(Number(laenge) * Number(meterpreisCent)));

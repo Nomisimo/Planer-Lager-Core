@@ -1,8 +1,11 @@
 // Stammdaten: Kategorien (3.6), Artikel (3.7, FA-01/02/04/05, R-71/72), Geräte (3.8, FA-03, R-16–R-22), Bewegungen (3.9).
 import { transaktion } from "@lager/db";
-import { wendeArtAn, artVon, praefixVorschlag, praefixGueltig, naechsterGeraetecode, normalisiereCode, pruefeArtikel, artikeltyp,
+import { wendeArtAn, artVon, praefixVorschlag, praefixGueltig, normalisiereCode, pruefeArtikel, artikeltyp,
   bestandNiedrig, uebergangErlaubt, aktionText, loeschSperre, STATUS, MANUELLER_STATUS, pruefstatus } from "@lager/domain";
 import { fehler, nichtGefunden, seite, idParam, wer, bucheBewegung, dbFehler } from "./hilfen.js";
+import { vergibCodes, legeGeraeteAn } from "./geraetecodes.js";
+import { kabelFelder, bestelleEtiketten, offeneBestellung } from "./etiketten.js";
+export { vergibCodes, legeGeraeteAn };
 
 /** Prüfstatus in SQL (5.10), Stichtag Berlin. Erwartet Aliase a (artikel) und g (geraet). */
 export const PRUEF_SQL = `CASE WHEN NOT a.pruefpflichtig THEN 'keine' WHEN g.letzte_pruefung IS NULL THEN 'offen'
@@ -14,39 +17,6 @@ const NAECHSTE_SQL = `CASE WHEN a.pruefpflichtig AND g.letzte_pruefung IS NOT NU
 const ARTIKEL_FELDER = ["name", "kategorie_id", "hersteller", "beschreibung", "aktiv", "preis_tag", "folgetag_prozent", "verkaeuflich",
   "verkaufspreis", "mengenschritt", "ist_case", "inhalt_artikel_id", "verpackungseinheit", "ist_leistung", "zeitmodell", "preis_erweitert",
   "verbrauch", "bestand", "mindestbestand", "einheit", "pruefpflichtig", "pruef_intervall_monate", "plansymbol", "laenge_m", "farbcode"];
-
-/**
- * R-21: vergibt n neue Gerätecodes für eine Kategorie (in laufender Transaktion, Kategorie gesperrt).
- * Berücksichtigt vorhandene Geräte und reservierte Codes aus Etiketten-Bestellungen (falls Tabelle vorhanden).
- */
-export async function vergibCodes(c, kategorieId, anzahl) {
-  const { rows: [k] } = await c.query("SELECT id, praefix, letzte_nummer FROM kategorie WHERE id = $1 FOR UPDATE", [kategorieId]);
-  if (!k) throw nichtGefunden("Diese Kategorie");
-  // etikett_code (reservierte Codes aus Bestellungen) gibt es erst ab Phase 3 – ohne Fehler in der Transaktion prüfen.
-  const { rows: [t] } = await c.query("SELECT to_regclass('etikett_code') IS NOT NULL AS da");
-  const { rows: [m] } = await c.query(`SELECT coalesce(max(substring(code from '-([0-9]+)$')::int), 0) AS n FROM (
-      SELECT code FROM geraet WHERE code LIKE $1 || '-%' ${t.da ? "UNION ALL SELECT code FROM etikett_code WHERE code LIKE $1 || '-%'" : ""}) x`, [k.praefix]);
-  let letzte = Math.max(k.letzte_nummer, m.n);
-  const codes = [];
-  for (let i = 0; i < anzahl; i++) { const n = naechsterGeraetecode(k.praefix, letzte, []); codes.push(n.code); letzte = n.nummer; }
-  await c.query("UPDATE kategorie SET letzte_nummer = $1 WHERE id = $2", [letzte, k.id]);
-  return codes;
-}
-
-/** Legt n Geräte eines Artikels an (Codes nach R-21). */
-export async function legeGeraeteAn(c, artikelId, anzahl, w = {}) {
-  const { rows: [a] } = await c.query("SELECT id, kategorie_id, verbrauch, ist_leistung FROM artikel WHERE id = $1", [artikelId]);
-  if (!a) throw nichtGefunden("Dieser Artikel");
-  if (a.verbrauch || a.ist_leistung) throw fehler(400, "Verbrauchsmaterial und Leistungen haben keine Einzelgeräte. Ändere stattdessen den Bestand.");
-  if (!Number.isInteger(anzahl) || anzahl < 1 || anzahl > 500) throw fehler(400, "Anzahl muss zwischen 1 und 500 liegen.", { felder: { anzahl: "1 bis 500" } });
-  const codes = w.codes || await vergibCodes(c, a.kategorie_id, anzahl);
-  const ids = [];
-  for (const code of codes) {
-    const { rows } = await c.query("INSERT INTO geraet (code, artikel_id) VALUES ($1, $2) RETURNING id", [code, artikelId]);
-    ids.push(rows[0].id);
-  }
-  return { codes, ids };
-}
 
 const TEXT_PFLICHT = new Set(["hersteller", "beschreibung", "einheit", "plansymbol", "farbcode", "seriennummer", "alte_pruef_id", "notizen"]);
 /** Nimmt nur bekannte Felder; leere Eingaben werden NULL, bei Textfeldern ohne NULL leerer Text. */
@@ -137,6 +107,7 @@ export function stammdatenModul(router) {
     if (!Number.isInteger(anzahl) || anzahl < 0 || anzahl > 500) f.anzahl = "Anzahl muss zwischen 0 und 500 liegen.";
     if (!["qr", "bestellen", "keine"].includes(kennzeichnung)) f.kennzeichnung = "Wähle QR, Bestellen oder Keine.";
     if (Object.keys(f).length) throw fehler(400, "Bitte prüfe die markierten Felder.", { felder: f });
+    Object.assign(w, await kabelFelder(c, w, true)); // R-29, R-29a
     const spalten = Object.keys(w);
     let a;
     try {
@@ -147,8 +118,7 @@ export function stammdatenModul(router) {
     if (anzahl > 0 && !a.verbrauch && !a.ist_leistung) {
       if (kennzeichnung === "qr") geraete = await legeGeraeteAn(c, a.id, anzahl);
       else if (kennzeichnung === "bestellen") {
-        if (!ctx.etikettenBestellen) throw fehler(501, "Etiketten-Bestellungen sind noch nicht verfügbar. Wähle „QR“ oder „Keine“.");
-        bestellung = await ctx.etikettenBestellen(c, ctx, [{ artikelId: a.id, anzahl }]);
+        bestellung = await bestelleEtiketten(c, ctx, [{ artikel_id: a.id, menge: anzahl }]);
       }
     }
     ctx.hub?.sende({ typ: "artikel.geaendert", id: a.id, bereich: "material" });
@@ -165,6 +135,7 @@ export function stammdatenModul(router) {
     const f = pruefeArtikel(w);
     if (w.inhalt_artikel_id === id) f.inhalt_artikel_id = "Ein Case kann nicht sich selbst enthalten.";
     if (Object.keys(f).length) throw fehler(400, "Bitte prüfe die markierten Felder.", { felder: f });
+    Object.assign(w, await kabelFelder(c, w, false)); // R-29a
     const spalten = ARTIKEL_FELDER;
     try {
       const { rows: [a] } = await c.query(`UPDATE artikel SET ${spalten.map((k, i) => `${k} = $${i + 1}`).join(", ")}, version = version + 1, geaendert = now()
@@ -245,7 +216,12 @@ export function stammdatenModul(router) {
     const roh = ctx.params.code;
     const code = normalisiereCode(roh);
     const g = (await ladeGeraet(ctx.pool, "g.code = $1", code)) || (await ladeGeraet(ctx.pool, "g.alte_pruef_id = $1", roh.trim()));
-    if (!g) throw fehler(404, `Kein Gerät mit dem Code ${code} gefunden. Prüfe den Code oder scanne erneut.`);
+    if (!g) {
+      // R-70: bestellt, aber noch nicht geliefert → Bestellnummer melden
+      const b = await offeneBestellung(ctx.pool, code);
+      if (b) throw fehler(404, `Der Code ${code} ist bestellt (Bestellung ${b.nummer}), aber noch nicht geliefert. Buche zuerst die Lieferung.`, { bestellung: b.nummer, bestellung_id: b.id });
+      throw fehler(404, `Kein Gerät mit dem Code ${code} gefunden. Prüfe den Code oder scanne erneut.`);
+    }
     return geraetDetail(ctx.pool, g);
   });
   router.put("/api/v1/geraete/:id", G, async (ctx) => {

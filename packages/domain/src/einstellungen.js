@@ -11,7 +11,7 @@ export const EINSTELLUNGEN_STANDARD = Object.freeze({
   angebot_text_einleitung: "Vielen Dank für deine Anfrage. Gerne bieten wir dir folgende Leistungen an:",
   angebot_text_schluss: "Wir freuen uns auf die Zusammenarbeit.",
   etikett_format: "62x29",
-  etiketten_lieferant: "",
+  etiketten_lieferant: "Stromstoss",
   etiketten_hinweis: "",
   zeit_artikel: null,
   zeit_prozent_planung: 30,

@@ -55,3 +55,37 @@ test("NFA-02 FA-56 Netzbetrieb: nur erlaubte Hostnamen, HSTS + Secure-Cookie bei
     assert.equal((await mit("lager.example.de", "2.2.2.2")).status, 200, "andere Adresse hinter demselben Proxy nicht betroffen");
   } finally { await s.ende(); }
 });
+
+test("NFA-01 NFA-02 Sitzungs-Cookie im Netz: Secure, HttpOnly, SameSite; Cross-Origin-Opener-Policy gesetzt", async () => {
+  const { PW } = await import("./helfer.js");
+  const { legeBenutzerAn } = await import("../src/grunddaten.js");
+  const s = await starteTestServer({ config: { secureCookies: true } });
+  try {
+    await legeBenutzerAn(s.db.pool, { benutzername: "keks", passwort: PW, rolle: "Administrator" });
+    const r = await s.api("POST", "/api/v1/anmelden", { benutzername: "keks", passwort: PW, art: "web" });
+    assert.equal(r.status, 200);
+    const keks = r.headers.get("set-cookie");
+    for (const teil of ["HttpOnly", "SameSite=Lax", "Secure", "Path=/"]) assert.ok(keks.includes(teil), `Cookie ohne ${teil}: ${keks}`);
+    assert.equal(r.headers.get("cross-origin-opener-policy"), "same-origin");
+  } finally { await s.ende(); }
+  const lokal = await starteTestServer();
+  try {
+    await legeBenutzerAn(lokal.db.pool, { benutzername: "keks", passwort: PW, rolle: "Administrator" });
+    const r = await lokal.api("POST", "/api/v1/anmelden", { benutzername: "keks", passwort: PW, art: "web" });
+    assert.ok(!r.headers.get("set-cookie").includes("Secure"), "lokal ohne https kein Secure-Flag (sonst kein Login im Testbetrieb)");
+  } finally { await lokal.ende(); }
+});
+
+test("NFA-02 FA-56 Betrieb: Image mit NODE_ENV=production als Nicht-root, Server-Port nur intern, Neustart und Healthcheck", async () => {
+  const fs = await import("node:fs");
+  const root = new URL("../../../", import.meta.url);
+  const docker = fs.readFileSync(new URL("Dockerfile", root), "utf8");
+  const compose = fs.readFileSync(new URL("deploy/docker-compose.yml", root), "utf8");
+  assert.match(docker, /NODE_ENV=production/, "entspricht DEBUG=0");
+  assert.match(docker, /^USER node$/m);
+  assert.match(docker, /^HEALTHCHECK .*\/health/m);
+  const server = compose.slice(compose.indexOf("\n  server:"), compose.indexOf("\n  postgres:"));
+  assert.match(server, /restart: unless-stopped/);
+  assert.doesNotMatch(server, /ports:/, "Port 8080 nicht nach außen");
+  assert.match(compose, /443:443/);
+});

@@ -13,8 +13,8 @@ Annahmen: D-xx, D-yy
 
 ## Phase 11 – Cloud-Betrieb, Offline, Leistung – 14.11.2026
 Gebaut: Server-Image (Dockerfile) und deploy/ mit Caddy (HTTPS, Let's Encrypt), Server, PostgreSQL 16, Healthcheck, Betriebsanleitung deploy/BETRIEB.md (FA-56, NFA-01/02: HSTS, Secure-Cookies, erlaubte Hostnamen); verschlüsselte Sicherungen AES-256-GCM mit BACKUP_SCHLUESSEL (NFA-04); FA-22 Offline-Puffer für Scans (localStorage, Anzeige „n Scans warten“, Nachbuchen in Reihenfolge, Server bucht jede Offline-ID nur einmal); NFA-05 Testdaten groß (`npm run seed -- --gross`) und Leistungstest; NFA-06 Integritätstests auf Datenbankebene; NFA-07/08 Prüfung Fachcode-Trennung, Tests ohne Netz (Netzsperre in `npm test`); NFA-09 Browser-Ziele für das Arbeitsplatz-Web.
-Geprüft: Docker-Image gebaut und im Container gestartet (/health ok); Unit+API alle grün (neu: leistung, integritaet, testbarkeit, station-web browser, FA-22 im Scan-Test, NFA-02/NFA-04); E2E offline grün. Messwerte bei 5.000 Geräten / 500 Projekten (Server-Antwort, Test-Container): alle Haupt-Endpunkte 3–20 ms mit 2–16 Abfragen, Scan unter 40 ms.
-Nicht geprüft: echter VPS mit Domain und Let's-Encrypt-Zertifikat; Safari, Firefox und Edge selbst (nur Chromium vorhanden, Code ist für deren Versionen übersetzt); Seitenaufbau im Browser bei großem Bestand (nur Server-Antwort gemessen); Penetrationstest (FA-56, extern).
+Geprüft: Docker-Image gebaut und im Container gestartet (/health ok); Unit+API alle grün (neu: leistung, integritaet, testbarkeit, station-web browser, FA-22 im Scan-Test, NFA-02/NFA-04); E2E offline grün. Messwerte bei 5.000 Geräten / 500 Projekten (Server-Antwort, Test-Container): alle Haupt-Endpunkte 3–20 ms mit 2–16 Abfragen, Scan unter 40 ms; Seitenaufruf in der App (Klick bis Tabelle) 58–92 ms. Sitzungs-Cookie im Netz mit Secure/HttpOnly/SameSite geprüft.
+Nicht geprüft: echter VPS mit Domain und Let's-Encrypt-Zertifikat; Safari, Firefox und Edge selbst (nur Chromium vorhanden, Code ist für deren Versionen übersetzt); Penetrationstest (FA-56, extern).
 Annahmen: D-86–D-90
 
 ## Phase 10 – Suche, Startseite, Verwaltung, Sicherung – 14.11.2026

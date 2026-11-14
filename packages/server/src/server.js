@@ -1,5 +1,7 @@
 // Komplett verdrahteter Lager-Server: Module + Zugangsprüfung + Grunddaten.
 import { aenderungenModul } from "./aenderungen.js";
+import { lagerorteModul } from "./lagerorte.js";
+import { schaedenModul } from "./schaeden.js";
 import { migriere } from "@lager/db";
 import { erstelleApp } from "./app.js";
 import { authModul, pruefeZugang } from "./auth.js";
@@ -25,7 +27,7 @@ import { inventurModul } from "./inventur.js";
 import { durchgaengeModul } from "./durchgaenge.js";
 import { ressourcenModul } from "./ressourcen.js";
 
-export const MODULE = [authModul, verwaltungModul, stammdatenModul, etikettenModul, kundenModul, projekteModul, angeboteModul, scanModul, scannerModul, zonenModul, stationModul, zeitModul, uebersichtModul, systemModul, plansymboleModul, inventurModul, durchgaengeModul, ressourcenModul, aenderungenModul, statischModul];
+export const MODULE = [authModul, verwaltungModul, stammdatenModul, etikettenModul, kundenModul, projekteModul, angeboteModul, scanModul, scannerModul, zonenModul, stationModul, zeitModul, uebersichtModul, systemModul, plansymboleModul, inventurModul, durchgaengeModul, ressourcenModul, aenderungenModul, lagerorteModul, schaedenModul, statischModul];
 
 /**
  * @param {{pool: import("pg").Pool, config?: object, migrieren?: boolean}} opt

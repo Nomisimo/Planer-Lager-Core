@@ -16,7 +16,7 @@ const NAECHSTE_SQL = `CASE WHEN a.pruefpflichtig AND g.letzte_pruefung IS NOT NU
 
 const ARTIKEL_FELDER = ["name", "kategorie_id", "hersteller", "beschreibung", "aktiv", "preis_tag", "folgetag_prozent", "verkaeuflich",
   "verkaufspreis", "mengenschritt", "ist_case", "inhalt_artikel_id", "verpackungseinheit", "ist_leistung", "zeitmodell", "preis_erweitert",
-  "verbrauch", "bestand", "mindestbestand", "einheit", "pruefpflichtig", "pruef_intervall_monate", "plansymbol", "laenge_m", "farbcode", "wartung_intervall_monate", "wartung_text", "gewicht_kg"];
+  "verbrauch", "bestand", "mindestbestand", "einheit", "pruefpflichtig", "pruef_intervall_monate", "plansymbol", "laenge_m", "farbcode", "wartung_intervall_monate", "wartung_text", "gewicht_kg", "lagerort_id"];
 
 const TEXT_PFLICHT = new Set(["wartung_text", "hersteller", "beschreibung", "einheit", "plansymbol", "farbcode", "seriennummer", "alte_pruef_id", "notizen"]);
 /** Nimmt nur bekannte Felder; leere Eingaben werden NULL, bei Textfeldern ohne NULL leerer Text. */
@@ -93,8 +93,8 @@ export function stammdatenModul(router) {
   });
   router.get("/api/v1/artikel/:id", { ...M, stufe: "r" }, async (ctx) => {
     const id = idParam(ctx.params.id, "Dieser Artikel");
-    const { rows: [a] } = await ctx.pool.query(`SELECT a.*, k.name AS kategorie, k.praefix, i.name AS inhalt_artikel, i.mengenschritt AS inhalt_mengenschritt
-      FROM artikel a JOIN kategorie k ON k.id = a.kategorie_id LEFT JOIN artikel i ON i.id = a.inhalt_artikel_id WHERE a.id = $1`, [id]);
+    const { rows: [a] } = await ctx.pool.query(`SELECT a.*, k.name AS kategorie, k.praefix, i.name AS inhalt_artikel, i.mengenschritt AS inhalt_mengenschritt, lo.name AS lagerort
+      FROM artikel a JOIN kategorie k ON k.id = a.kategorie_id LEFT JOIN artikel i ON i.id = a.inhalt_artikel_id LEFT JOIN lagerort lo ON lo.id = a.lagerort_id WHERE a.id = $1`, [id]);
     if (!a) throw nichtGefunden("Dieser Artikel");
     const { rows: geraete } = await ctx.pool.query(`SELECT g.id, g.code, g.status, g.projekt_id, g.letzte_pruefung, ${PRUEF_SQL} AS pruefstatus
       FROM geraet g JOIN artikel a ON a.id = g.artikel_id WHERE g.artikel_id = $1 ORDER BY g.code`, [id]);
@@ -199,8 +199,10 @@ export function stammdatenModul(router) {
   });
   const ladeGeraet = async (db, where, wert) => {
     const { rows: [g] } = await db.query(`SELECT g.*, a.name AS artikel, a.pruefpflichtig, a.pruef_intervall_monate, a.wartung_intervall_monate, a.wartung_text, a.ist_case, a.verpackungseinheit,
-        a.inhalt_artikel_id, k.name AS kategorie, c.code AS case_code, ${PRUEF_SQL} AS pruefstatus, ${NAECHSTE_SQL} AS naechste_pruefung
-      FROM geraet g JOIN artikel a ON a.id = g.artikel_id JOIN kategorie k ON k.id = a.kategorie_id LEFT JOIN geraet c ON c.id = g.case_id WHERE ${where}`, [wert]);
+        a.inhalt_artikel_id, k.name AS kategorie, c.code AS case_code, ${PRUEF_SQL} AS pruefstatus, ${NAECHSTE_SQL} AS naechste_pruefung,
+        a.lagerort_id AS artikel_lagerort_id, gl.name AS eigener_lagerort, coalesce(gl.name, al.name) AS lagerort
+      FROM geraet g JOIN artikel a ON a.id = g.artikel_id JOIN kategorie k ON k.id = a.kategorie_id LEFT JOIN geraet c ON c.id = g.case_id
+      LEFT JOIN lagerort gl ON gl.id = g.lagerort_id LEFT JOIN lagerort al ON al.id = a.lagerort_id WHERE ${where}`, [wert]);
     return g;
   };
   const geraetDetail = async (db, g) => {
@@ -228,9 +230,15 @@ export function stammdatenModul(router) {
   });
   router.put("/api/v1/geraete/:id", G, async (ctx) => {
     const id = idParam(ctx.params.id, "Dieses Gerät");
-    const w = nurFelder(ctx.body, ["seriennummer", "alte_pruef_id", "notizen"]);
-    const { rows: [g] } = await ctx.pool.query(`UPDATE geraet SET seriennummer = coalesce($1, seriennummer), alte_pruef_id = coalesce($2, alte_pruef_id),
-      notizen = coalesce($3, notizen), version = version + 1 WHERE id = $4 RETURNING id, version`, [w.seriennummer ?? null, w.alte_pruef_id ?? null, w.notizen ?? null, id]);
+    const w = nurFelder(ctx.body, ["seriennummer", "alte_pruef_id", "notizen", "lagerort_id"]);
+    const ort = "lagerort_id" in w; // FA-08: eigener Platz, null = Platz des Artikels
+    if (ort && w.lagerort_id != null && !Number.isInteger(Number(w.lagerort_id))) throw fehler(400, "Wähle den Lagerort aus der Liste.", { felder: { lagerort_id: "Ungültiger Lagerort" } });
+    let g;
+    try {
+      ({ rows: [g] } = await ctx.pool.query(`UPDATE geraet SET seriennummer = coalesce($1, seriennummer), alte_pruef_id = coalesce($2, alte_pruef_id),
+        notizen = coalesce($3, notizen), lagerort_id = CASE WHEN $5 THEN $6::int ELSE lagerort_id END, version = version + 1 WHERE id = $4 RETURNING id, version`,
+      [w.seriennummer ?? null, w.alte_pruef_id ?? null, w.notizen ?? null, id, ort, ort && w.lagerort_id != null ? Number(w.lagerort_id) : null]));
+    } catch (e) { if (e.code === "23503") throw fehler(400, "Diesen Lagerort gibt es nicht mehr. Lade die Liste neu.", { felder: { lagerort_id: "Unbekannter Lagerort" } }); throw e; }
     if (!g) throw nichtGefunden("Dieses Gerät");
     ctx.hub?.sende({ typ: "geraet.geaendert", id, version: g.version, bereich: "geraete" });
     return { ok: true, level: "success", text: "Gespeichert." };

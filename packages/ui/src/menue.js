@@ -22,6 +22,7 @@ export const MENUE = [
     { titel: "Geräte", pfad: "/geraete", bereich: "geraete", app: "m", icon: "Boxes" },
     { titel: "Etiketten", pfad: "/etiketten", bereich: "material", app: "m", icon: "Tags" },
     { titel: "Plan-Symbole", pfad: "/plansymbole", bereich: "material", app: "m", icon: "Shapes" },
+    { titel: "Lagerorte", pfad: "/lagerorte", bereich: "material", app: "m", icon: "MapPin" },
     { titel: "Ladezonen", pfad: "/zonen", bereich: "zonen", app: "m", icon: "LayoutGrid" },
     { titel: "Code scannen", pfad: "/scan", bereich: "packen", app: "m", icon: "ScanLine", auch: [/^\/projekte\/\d+\/(packen|rueckgabe)$/] },
     { titel: "Inventur", pfad: "/inventur", bereich: "geraete", app: "m", icon: "ClipboardList" },

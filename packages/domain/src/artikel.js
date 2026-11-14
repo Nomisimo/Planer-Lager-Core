@@ -24,11 +24,11 @@ export const ART_TITEL = { geraet: "Gerät", case: "Case/Tasche", verbrauch: "Ve
 
 /** Felder, die je Art sichtbar sind (R-71). */
 export const ART_FELDER = {
-  geraet: ["name", "kategorie_id", "hersteller", "beschreibung", "preis_tag", "folgetag_prozent", "verkaeuflich", "verkaufspreis", "mengenschritt", "pruefpflichtig", "pruef_intervall_monate", "plansymbol", "wartung_intervall_monate", "wartung_text", "gewicht_kg", "aktiv"],
-  case: ["name", "kategorie_id", "hersteller", "beschreibung", "preis_tag", "folgetag_prozent", "inhalt_artikel_id", "verpackungseinheit", "pruefpflichtig", "pruef_intervall_monate", "plansymbol", "wartung_intervall_monate", "wartung_text", "gewicht_kg", "aktiv"],
-  verbrauch: ["name", "kategorie_id", "hersteller", "beschreibung", "preis_tag", "verkaeuflich", "verkaufspreis", "bestand", "mindestbestand", "einheit", "gewicht_kg", "aktiv"],
+  geraet: ["name", "kategorie_id", "hersteller", "beschreibung", "preis_tag", "folgetag_prozent", "verkaeuflich", "verkaufspreis", "mengenschritt", "pruefpflichtig", "pruef_intervall_monate", "plansymbol", "wartung_intervall_monate", "wartung_text", "gewicht_kg", "lagerort_id", "aktiv"],
+  case: ["name", "kategorie_id", "hersteller", "beschreibung", "preis_tag", "folgetag_prozent", "inhalt_artikel_id", "verpackungseinheit", "pruefpflichtig", "pruef_intervall_monate", "plansymbol", "wartung_intervall_monate", "wartung_text", "gewicht_kg", "lagerort_id", "aktiv"],
+  verbrauch: ["name", "kategorie_id", "hersteller", "beschreibung", "preis_tag", "verkaeuflich", "verkaufspreis", "bestand", "mindestbestand", "einheit", "gewicht_kg", "lagerort_id", "aktiv"],
   leistung: ["name", "kategorie_id", "beschreibung", "preis_tag", "zeitmodell", "preis_erweitert", "aktiv"],
-  kabel: ["name", "kategorie_id", "hersteller", "beschreibung", "preis_tag", "folgetag_prozent", "laenge_m", "pruefpflichtig", "pruef_intervall_monate", "wartung_intervall_monate", "wartung_text", "gewicht_kg", "aktiv"],
+  kabel: ["name", "kategorie_id", "hersteller", "beschreibung", "preis_tag", "folgetag_prozent", "laenge_m", "pruefpflichtig", "pruef_intervall_monate", "wartung_intervall_monate", "wartung_text", "gewicht_kg", "lagerort_id", "aktiv"],
 };
 
 /** Art aus vorhandenem Artikel ableiten. */

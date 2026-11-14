@@ -34,7 +34,9 @@ const ERLAUBT = [
   { m: "*", p: /^\/api\/v1\/(abmelden|ich|einstellungen\/basis)$/, sperrfrei: true },
   { m: "GET", p: /^\/api\/v1\/anzeige\/zonen$/, sperrfrei: "anzeige" }, // nur der Anzeige-Bildschirm ohne Entsperren
   { m: "POST", p: /^\/api\/v1\/(scan|vermisst|pruefung)$/ },
-  { m: "GET", p: /^\/api\/v1\/projekte\/\d+\/(packstatus|rueckgabe)$/ },
+  { m: "GET", p: /^\/api\/v1\/projekte\/\d+\/(packstatus|rueckgabe|schaeden)$/ },
+  { m: "POST", p: /^\/api\/v1\/(schaeden|projekte\/\d+\/schaeden|schaeden\/\d+\/foto)$/ }, // FA-09 Schaden bei Rückgabe
+  { m: "GET", p: /^\/api\/v1\/schaeden\/\d+\/foto\/\d+$/ },
   { m: "POST", p: /^\/api\/v1\/projekte\/\d+\/(verladen|packen-oeffnen)$/ },
   { m: "GET", p: /^\/api\/v1\/geraete\/(\d+|code\/[^/]+)$/ },
   { m: "GET", p: /^\/api\/v1\/angebote\/\d+\/(packliste|packliste\.pdf)$/ },

@@ -1,4 +1,5 @@
 // Angebote (3.11, 4.2, FA-41–FA-44), Verfügbarkeit (R-24–R-27), Packliste (R-51–R-54). Geld in Cent.
+import { lagerorteFuer } from "./lagerorte.js";
 import fsp from "node:fs/promises";
 import path from "node:path";
 import PDFDocument from "pdfkit";
@@ -264,6 +265,9 @@ export async function ladePackliste(db, angebotId) {
       ORDER BY t.code LIMIT $3`, [zl.artikel_id, zl.set.groesse, zl.set.anzahl]);
     zl.set.vorschlag = t;
   }
+  // FA-08: Lagerort je Zeile (Anzeige beim Packen)
+  const orte = await lagerorteFuer(db, zeilen.map((zl) => zl.artikel_id).filter(Boolean));
+  for (const zl of zeilen) { const o = orte.get(zl.artikel_id); zl.lagerort = o?.lagerort || null; zl.lagerorte_weitere = o?.weitere || []; }
   return { angebot: a, zeilen };
 }
 
@@ -291,7 +295,7 @@ function packlistePdf(pl) {
       if (z.kategorie !== kat) { kat = z.kategorie; doc.font("Helvetica-Bold").fontSize(9).fillColor("#333").text(kat, L, doc.y + 3).fillColor("#000"); doc.y += 2; }
       const y = doc.y; let x = L;
       doc.rect(L + 1, y + 1, 7, 7).strokeColor("#000").stroke();
-      const w = [null, z.artikel, `${mengeText(z.soll)} ${z.einheit}`, z.ist ?? "–", z.gepackt ?? "–", z.fertig == null ? "–" : z.fertig ? "ja" : "nein"];
+      const w = [null, z.artikel + (z.lagerort ? ` · ${z.lagerort}` : ""), `${mengeText(z.soll)} ${z.einheit}`, z.ist ?? "–", z.gepackt ?? "–", z.fertig == null ? "–" : z.fertig ? "ja" : "nein"];
       sp.forEach((s, j) => { if (j) doc.font("Helvetica").fontSize(9).text(String(w[j]), x, y, { width: s.w * MM, align: s.r ? "right" : "left" }); x += s.w * MM; });
       if (extra) doc.fontSize(7.5).fillColor("#555").text(extra, L + 8 * MM, y + 11, { width: 160 * MM }).fillColor("#000");
       doc.y = y + (extra ? 22 : 13);

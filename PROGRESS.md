@@ -117,7 +117,7 @@ Hinter `[x]` kurz notieren: Datum, Repo(s), Testdatei(en). Max. 1 Zeile.
 - [x] FA-55 Änderungsprotokoll (C, 14.11.) · [x] R-19 SOLL + T-23 Teil 2 (14.11., mit Phase 2) · [x] FA-49 SOLL Wiederherstellung in der Oberfläche (Phase 10, geprüft 14.11.)
 
 ## Phase 14 – SOLL P3 + Rest
-- [ ] FA-08 Lagerorte · [ ] FA-09 Schadensdoku · [~] FA-14 Direktdruck Etikettendrucker (Druckdialog mit Maßen aus Vorlage gebaut, D-46; Test mit echtem Gerät braucht Hardware)
+- [x] FA-08 Lagerorte (C+M, 14.11.) · [x] FA-09 Schadensdoku (C+M+P, 14.11.) · [~] FA-14 Direktdruck Etikettendrucker (Druckdialog mit Maßen aus Vorlage gebaut, D-46; Test mit echtem Gerät braucht Hardware)
 - [x] FA-26 SOLL Dublettenwarnung manuell (14.11., mit Phase 2) · [ ] FA-28 Ansprechpartner + Historie
 - [ ] FA-39 Projektvorlagen · [ ] FA-40 Wiederkehrende Aufgaben + Benachrichtigungen (E-5: Standard = In-App + E-Mail per SMTP-Env)
 - [ ] Kamera-Scan (FA-15-Teil, html5-qrcode lokal, nur Arbeitsplatz-Web)

@@ -1,5 +1,6 @@
 // Arbeitsplatz-Web (Spec 2.4, R-11a–g, FA-18, FA-25) und Ladezonen-Anzeige (R-59, FA-24).
 // Läuft im Browser am Lager-Arbeitsplatz bzw. am Anzeige-Bildschirm. Anmeldung einmalig per Einrichtungscode (Geräte-Sitzung).
+import { SchadenDialog } from "@lager/ui/schaeden.jsx";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { erstelleApi, Live } from "@lager/client";
@@ -118,15 +119,18 @@ function RueckgabePlatz({ zustand }) {
   const [tasche, setTasche] = useState(null);
   const [test, setTest] = useState(null);
   const [meldung, setMeldung] = useState(null);
+  const [schaden, setSchaden] = useState(null);
+  const [letzter, setLetzter] = useState("");
   return (
     <>
-      <Section titel="Rückgabe" icon="ScanLine">
+      <Section titel="Rückgabe" icon="ScanLine" aktionen={<Knopf icon="Camera" onClick={() => setSchaden({ code: letzter })}>Schaden dokumentieren</Knopf>}>
         <ScanPanel gross modus="rueckgabe" tasche={tasche?.code || null} arbeitsplatzId={zustand.arbeitsplatz.id}
-          onErgebnis={(r) => { if (r.tasche) setTasche(r.tasche); if (zustand.arbeitsplatz.funktionstest && r.gebucht) setTest(r.code); }} />
+          onErgebnis={(r) => { if (r.tasche) setTasche(r.tasche); if (r.gebucht) setLetzter(r.code); if (zustand.arbeitsplatz.funktionstest && r.gebucht) setTest(r.code); }} />
       </Section>
       {meldung && <Meldung {...meldung} onSchliessen={() => setMeldung(null)} />}
       {test && <FunktionstestKarte key={test} code={test} onFertig={(m) => { setTest(null); setMeldung(m); }} />}
       {tasche && <TaschenKarte tasche={tasche} onNeu={(t) => t && setTasche(t)} onEnde={() => setTasche(null)} />}
+      {schaden && <SchadenDialog code={schaden.code} onSchliessen={() => setSchaden(null)} onFertig={(r) => { setSchaden(null); setMeldung({ level: r.level, text: r.text }); }} />}
     </>
   );
 }

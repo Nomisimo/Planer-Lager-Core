@@ -103,6 +103,12 @@ export async function pruefeZugang(ctx) {
     const h = ctx.req.headers["x-csrf-token"];
     if (!h || !s.zeile.csrf || !gleich(h, s.zeile.csrf)) throw new HttpFehler(403, TEXT.csrf, { ok: false, level: "error", text: TEXT.csrf });
   }
+  // FA-51 Wartung: nur Administratoren arbeiten weiter
+  const w = ctx.config?.wartung;
+  if (w?.aktiv && !n.admin && !route.nurAngemeldet) {
+    const text = w.text || "Das System wird gerade gewartet. Versuche es in ein paar Minuten noch einmal.";
+    throw new HttpFehler(503, text, { ok: false, level: "warning", text, wartung: true });
+  }
   if (n.sitzungArt === "geraet") await pruefeStation(ctx); // R-11a–d
   if (ctx.arbeitsplatz && route.auchArbeitsplatz) return; // R-11d: im ERLAUBT-Muster, unabhängig von den Rollenrechten
   if (route.nurAngemeldet) return;

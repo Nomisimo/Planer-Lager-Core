@@ -18,7 +18,8 @@
     "migrate": "node packages/db/src/cli.js migrate",
     "e2e": "xvfb-run -a node --test --test-concurrency=1 \"e2e/**/*.test.js\"",
     "dev:server": "node packages/server/src/start.js --port 8080",
-    "seed": "node scripts/seed.js"
+    "seed": "node scripts/seed.js",
+    "lager": "node packages/server/src/cli.js"
   },
   "devDependencies": {
     "esbuild": "^0.28.2"

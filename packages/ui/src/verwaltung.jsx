@@ -8,6 +8,12 @@ import { fehlerText } from "./texte.js";
 import { zeitpunktAnzeige } from "@lager/domain/zeit.js";
 
 const BEREICHE = [
+  { pfad: "/verwaltung/benutzer", titel: "Benutzer", text: "Konten anlegen, Rolle zuweisen, deaktivieren, Passwort setzen.", icon: "Users" },
+  { pfad: "/verwaltung/rollen", titel: "Rollen", text: "Rechte je Bereich: kein Zugriff, ansehen oder ändern.", icon: "UserCog" },
+  { pfad: "/verwaltung/einstellungen", titel: "Einstellungen", text: "Firma, Angebote, Etiketten, Zeiterfassung, Ladezonen, Sicherung.", icon: "Settings" },
+  { pfad: "/verwaltung/sicherung", titel: "Datensicherung", text: "Jetzt sichern, Liste, Download, Prüfung, Wiederherstellung.", icon: "Database" },
+  { pfad: "/verwaltung/sicherheit", titel: "Sicherheit", text: "Sicherheits-Check, Dateirechte, Sicherheitsprotokoll (30 Tage).", icon: "ShieldCheck" },
+  { pfad: "/verwaltung/system", titel: "System", text: "Ping, Wartung, Neustart des Servers.", icon: "Server" },
   { pfad: "/verwaltung/arbeitsplaetze", titel: "Arbeitsplätze", text: "Lager-Arbeitsplätze und Anzeige-Bildschirme einrichten, Mitarbeiter mit PIN, Sperrzeit, Funktionstest.", icon: "Monitor" },
   { pfad: "/verwaltung/scanner", titel: "Scanner", text: "Netzwerk-Scanner anlegen, Token, Zuordnung zum Arbeitsplatz, letzter Kontakt.", icon: "ScanLine" },
 ];

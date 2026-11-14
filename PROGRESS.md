@@ -88,8 +88,8 @@ Hinter `[x]` kurz notieren: Datum, Repo(s), Testdatei(en). Max. 1 Zeile.
 - [x] E2E: T-20
 
 ## Phase 10 – Suche, Startseite, Verwaltung, Sicherung
-- [ ] C+M+P: FA-36 Suche (nur was die Rolle sehen darf)
-- [ ] M+P: FA-35 Startseite (je App passende Kacheln)
+- [x] C+M+P: FA-36 Suche (nur was die Rolle sehen darf)
+- [x] M+P: FA-35 Startseite (je App passende Kacheln)
 - [ ] C+M+P: FA-47 Benutzer/Rollen, FA-48 Einstellungen komplett, FA-50 Sicherheit, FA-51 System
 - [ ] C: FA-49 Sicherung (pg_dump + Dateien, Prüfung, Aufbewahrung, Zweitort, Auto beim Start), `lager restore`
 - [ ] C+M: FA-53 Plan-Symbole yEd (graphml + SVG-zip)

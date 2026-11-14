@@ -17,8 +17,10 @@ import { zonenModul } from "./zonen.js";
 import { stationModul } from "./station.js";
 import { zeitModul } from "./zeit.js";
 import { uebersichtModul } from "./uebersicht.js";
+import { systemModul, beimStart } from "./system.js";
+import { autoSicherung } from "./sicherung.js";
 
-export const MODULE = [authModul, verwaltungModul, stammdatenModul, etikettenModul, kundenModul, projekteModul, angeboteModul, scanModul, scannerModul, zonenModul, stationModul, zeitModul, uebersichtModul, statischModul];
+export const MODULE = [authModul, verwaltungModul, stammdatenModul, etikettenModul, kundenModul, projekteModul, angeboteModul, scanModul, scannerModul, zonenModul, stationModul, zeitModul, uebersichtModul, systemModul, statischModul];
 
 /**
  * @param {{pool: import("pg").Pool, config?: object, migrieren?: boolean}} opt
@@ -26,12 +28,15 @@ export const MODULE = [authModul, verwaltungModul, stammdatenModul, etikettenMod
 export async function erstelleLagerServer({ pool, config = {}, migrieren = true }) {
   if (migrieren) await migriere(pool);
   await sichereGrunddaten(pool, { adminBenutzer: config.adminBenutzer, adminPasswort: config.adminPasswort });
+  await beimStart(pool, config); // FA-50/FA-51
   const hub = new Hub(pool);
   const app = erstelleApp({ pool, config, hub, module: MODULE, pruefeZugang });
   hub.binde(app.server);
   // Netzwerk-Scanner per TCP startet mit dem HTTP-Server und endet mit ihm.
   const gateway = { server: null, port: null };
   app.server.on("listening", () => {
+    // FA-49: automatisch sichern, wenn die letzte Sicherung älter als 20 Stunden ist
+    if (config.autoSicherung) autoSicherung(pool, config).then((r) => r && console.log(`Automatische Sicherung: ${r.name} – ${r.pruefung.text}`), (e) => console.error(`Automatische Sicherung fehlgeschlagen: ${e.message}`));
     gateway.server = starteTcpGateway({ pool, hub }, { port: config.scannerTcpPort, host: config.scannerTcpHost });
     gateway.server?.on("listening", () => { gateway.port = gateway.server.address().port; });
     gateway.server?.on("error", (e) => console.error(`Scanner-Gateway (TCP) nicht gestartet: ${e.message}`));

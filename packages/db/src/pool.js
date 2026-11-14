@@ -16,12 +16,9 @@ export const standardUrl = () =>
  * @returns {import("pg").Pool}
  */
 export function erstellePool(opt = {}) {
-  const pool = new pg.Pool({ connectionString: opt.url || standardUrl(), max: opt.max || 10 });
-  if (opt.schema) {
-    if (!/^[a-z_][a-z0-9_]*$/.test(opt.schema)) throw new Error(`Ungültiger Schemaname: ${opt.schema}`);
-    pool.on("connect", (c) => c.query(`SET search_path TO ${opt.schema}, public`));
-  }
-  return pool;
+  if (opt.schema && !/^[a-z_][a-z0-9_]*$/.test(opt.schema)) throw new Error(`Ungültiger Schemaname: ${opt.schema}`);
+  // search_path als Verbindungsoption: gilt schon für die erste Abfrage jeder Verbindung
+  return new pg.Pool({ connectionString: opt.url || standardUrl(), max: opt.max || 10, ...(opt.schema ? { options: `-c search_path=${opt.schema},public` } : {}) });
 }
 
 /**

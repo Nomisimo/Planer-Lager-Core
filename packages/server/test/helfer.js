@@ -32,5 +32,5 @@ export async function starteTestServer({ config = {} } = {}) {
     f.token = r.json.token;
     return f;
   };
-  return { ...app, db, url, api, als, async ende() { app.server.closeAllConnections?.(); await new Promise((r) => app.server.close(r)); await db.ende(); if (!config.behalteDaten) fs.rmSync(dataDir, { recursive: true, force: true }); } , dataDir };
+  return { ...app, db, url, api, als, config, async ende() { app.server.closeAllConnections?.(); await new Promise((r) => app.server.close(r)); await db.ende(); if (!config.behalteDaten) fs.rmSync(dataDir, { recursive: true, force: true }); } , dataDir };
 }

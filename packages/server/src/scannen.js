@@ -217,6 +217,7 @@ export function scanModul(router) {
     if (ergebnis === "mangel" && !notiz) throw fehler(400, "Beschreibe den Mangel kurz, damit die Werkstatt weiß, was zu tun ist.", { felder: { notiz: "Pflicht bei Mangel" } });
     const { rows: [g] } = await c.query("SELECT id, code, status, projekt_id, notizen FROM geraet WHERE code = $1 FOR UPDATE", [code]);
     if (!g) throw fehler(404, `Kein Gerät mit dem Code ${code} gefunden. Prüfe den Code oder scanne erneut.`);
+    if (["ausgemustert", "verkauft"].includes(g.status)) throw fehler(409, `${g.code} ist ${g.status === "verkauft" ? "verkauft" : "ausgemustert"} und braucht keinen Funktionstest.`);
     if (ergebnis === "ok") {
       await bucheBewegung(c, { geraetId: g.id, projektId: g.projekt_id, aktion: "Funktionstest bestanden", ...wer(ctx) });
       ctx.hub?.sende({ typ: "geraet.geaendert", id: g.id, bereich: "geraete" });

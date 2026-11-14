@@ -16,6 +16,7 @@ Gebaut: FA-18 Rückgabeansicht je Projekt (Stand noch draußen/zurück/vermisst,
 Geprüft: Unit+API alle grün (neu: R-49/R-50-Test in stammdaten.test.js, FA-18 im Rückgabe-Test); E2E neu e2e/rueckgabe.test.js (T-12–T-15) grün. Screenshots: FA-18-rueckgabe, R-47-funktionstest.
 Nicht geprüft: Rückgabe am Arbeitsplatz-Browser (station-web kommt in Phase 8).
 Annahmen: D-67, D-68
+Abnahme (spec-pruefer): 8 OK, 2 Testlücken (R-46 Text „nicht zugeordnet“, R-50 Bewegung/409-Text) geschlossen; zusätzlich: Funktionstest an ausgemusterten/verkauften Geräten → 409.
 
 ## Phase 6 – Scannen, Packen, Verladen, Scanner – 14.11.2026
 Gebaut: Scan-Kern 5.5 (Schritte 1–9 in einer Transaktion, inkl. Rückgabe, vermisst → wieder aufgetaucht, aktive Tasche R-46), R-23 Projektcode → Packansicht, R-70 im Scan, Scan-API 7.2 (scan, pruefung = Funktionstest R-47, vermisst R-48/R-49), FA-19 Packstatus, R-60/R-61 Verladen/Wieder öffnen mit R-14, HID-Erkennung global (UI-3), Netzwerk-Scanner-Gateway TCP + HTTP mit Token, Verwaltung „Scanner“, FA-15 Scan-Seite (Modus, Projekt, Verlauf, Farbe, Ton), FA-17 Packansicht live mit Fortschritt und Verladen, FA-16 Sprung PP → Packansicht.

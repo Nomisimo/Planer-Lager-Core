@@ -201,7 +201,8 @@ test("FA-18 5.5 Rückgabe: zurück im Lager, vermisst → wieder aufgetaucht (T-
   // passt nicht
   const [ak] = await codes(akku.id);
   await scan(ak, "packen", p.id);
-  assert.match((await scan(ak, "rueckgabe", null, { tasche: t1 })).json.meldungen[0].text, /passt nicht in/);
+  assert.match((await scan(ak, "rueckgabe", null, { tasche: t1 })).json.meldungen[0].text, new RegExp(`${ak} passt nicht in ${t1} \\(Lampen-Tasche\\), nicht zugeordnet\\.`));
+  assert.equal((await q("SELECT case_id FROM geraet WHERE code = $1", [ak])).rows[0].case_id, null, "nicht zugeordnet");
   // T-13/R-48/R-49: Offene als vermisst
   const v = (await lager("POST", "/api/v1/vermisst", { codes: rt.tasche.offen.slice(1), tasche: t1 })).json;
   assert.equal(v.gemeldet.length, 3);
@@ -237,5 +238,9 @@ test("T-15 R-47 Funktionstest: bestanden → Bewegung; Mangel → Defekt, Notiz 
   const p = await projekt("Defekt");
   assert.equal((await scan(c, "packen", p.id)).json.level, "error");
   assert.equal((await lager("POST", "/api/v1/pruefung", { code: "XX-0001", ergebnis: "ok" })).status, 404);
+  const bw = (await q("SELECT b.aktion FROM bewegung b JOIN geraet g ON g.id = b.geraet_id WHERE g.code = $1 ORDER BY b.id DESC LIMIT 1", [c])).rows[0].aktion;
+  assert.equal(bw, "Mangel bei Rückgabe: Kabel lose");
+  await q("UPDATE geraet SET status = 'ausgemustert' WHERE code = $1", [c]);
+  assert.equal((await lager("POST", "/api/v1/pruefung", { code: c, ergebnis: "mangel", notiz: "x" })).status, 409, "ausgemustert bleibt ausgemustert");
   await q("UPDATE geraet SET status = 'lager', notizen = '' WHERE code = $1", [c]);
 });

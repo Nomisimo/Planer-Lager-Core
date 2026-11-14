@@ -11,10 +11,10 @@ Bekannte Fehler/Grenzen: <…>
 Annahmen: D-xx, D-yy
 ```
 
-## Phase 8 – Ladezonen, Arbeitsplätze, Anzeige – 14.11.2026 (ohne Kiosk-Fenster)
+## Phase 8 – Ladezonen, Arbeitsplätze, Anzeige – 14.11.2026
 Gebaut: Ladezonen 3.10 mit Verwaltung, Zuweisen/Freigeben, Prioritätsliste, automatischer Verteilung per Knopf und beim Anmelden (R-55–R-58), Seite „Ladezonen“ im Materialplaner; Arbeitsplätze und Mitarbeiter (Verwaltung → Arbeitsplätze) mit Einrichtungscode; Arbeitsplatz-Web unter /station: Sperrbildschirm mit Namen + PIN, 5 falsche PINs → 30 s, Sperrzeit, ERLAUBT-Muster, Packplatz mit Projekt der Zone, Rückgabeplatz mit Tasche und Funktionstest (Tasten 1/2), Mitarbeiter an jeder Buchung; Anzeige-Bildschirm mit QR, live. Netzwerk-Scanner jetzt mit echtem Fremdschlüssel auf den Arbeitsplatz.
 Geprüft: Unit+API alle grün (neu: domain zonen/station, server zonen/station); E2E neu e2e/ladezonen.test.js (T-06, T-21), e2e/arbeitsplatz.test.js (T-16 im echten Browser) grün. Screenshots: FA-23-ladezonen, FA-25-arbeitsplaetze, T-16-sperrbildschirm, R-11g-funktionstest, FA-24-anzeige.
-Nicht geprüft: Kiosk-Fenster im Materialplaner (offen), echter Fernseher/Touchscreen.
+Kiosk: `materialplaner --arbeitsplatz` (E2E e2e/kiosk.test.js). Nicht geprüft: echter Fernseher/Touchscreen, Kiosk-Vollbild unter Windows/macOS.
 Annahmen: D-69–D-74
 
 ## Phase 7 – Rückgabe – 14.11.2026

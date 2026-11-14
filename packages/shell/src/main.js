@@ -81,7 +81,26 @@ export function starteShell(cfg) {
     return true;
   });
 
+  // Arbeitsplatz-Modus (nur Materialplaner, cfg.kiosk): Vollbild-Kiosk lädt station-web vom Server (R-11a–g, R-59).
+  // Start: `materialplaner --arbeitsplatz` (Verknüpfung am Lagerrechner). Beenden: Strg+Umschalt+Q.
+  const kioskModus = !!cfg.kiosk && (process.argv.includes("--arbeitsplatz") || process.env.LAGER_ARBEITSPLATZ === "1");
+  const erstelleKiosk = () => {
+    const ziel = `${String(serverUrl).replace(/\/+$/, "")}/station`;
+    win = new BrowserWindow({ kiosk: !test, fullscreen: !test, width: 1280, height: 800, title: `${cfg.titel} – Arbeitsplatz`, autoHideMenuBar: true, backgroundColor: "#15191e",
+      webPreferences: { contextIsolation: true, nodeIntegration: false, sandbox: true } });
+    const erlaubt = (url) => { try { const u = new URL(url); return u.origin === new URL(ziel).origin && u.pathname === "/station"; } catch { return false; } };
+    win.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
+    win.webContents.on("will-navigate", (e, url) => { if (!erlaubt(url)) e.preventDefault(); });
+    win.webContents.on("before-input-event", (e, i) => { if (i.type === "keyDown" && i.control && i.shift && i.key.toLowerCase() === "q") { e.preventDefault(); app.quit(); } });
+    // Server kurz nicht erreichbar → nach 10 s neu laden, Arbeitsplatz bleibt stehen
+    win.webContents.on("did-fail-load", () => setTimeout(() => { if (win && !win.isDestroyed()) win.loadURL(ziel); }, 10_000));
+    win.on("closed", () => { win = null; });
+    if (test) process.stdout.write(`[shell-kiosk] ${ziel}\n`);
+    win.loadURL(ziel);
+  };
+
   const erstelleFenster = () => {
+    if (kioskModus) return erstelleKiosk();
     const splash = test ? null : new BrowserWindow({ width: 380, height: 220, frame: false, resizable: false, center: true,
       alwaysOnTop: true, skipTaskbar: true, backgroundColor: "#1c2127", webPreferences: { contextIsolation: true } });
     splash?.loadURL(SPLASH(cfg.titel, cfg.akzent || "#b3483f"));

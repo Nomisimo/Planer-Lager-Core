@@ -79,7 +79,7 @@ Hinter `[x]` kurz notieren: Datum, Repo(s), Testdatei(en). Max. 1 Zeile.
 - [x] W: FA-24 Anzeige-Bildschirm in station-web (Arbeitsplatz der Art „anzeige“, QR, live + jede Minute)
 - [x] C: station-web: R-11a, R-11b, R-11c, R-11d, R-11e, R-11f, R-11g, HTTP 423
 - [x] M: FA-25 Arbeitsplätze + Mitarbeiter verwalten (Verwaltung → Arbeitsplätze, Einrichtungscode)
-- [ ] M: Kiosk-Modus (Electron-Vollbildfenster lädt /station)
+- [x] M: Kiosk-Modus (`materialplaner --arbeitsplatz`: Vollbild-Kiosk lädt /station, Strg+Umschalt+Q beendet)
 - [x] E2E: T-06 (aus Phase 6 verschoben), T-16, T-21 (e2e/ladezonen.test.js, e2e/arbeitsplatz.test.js)
 
 ## Phase 9 – Planungszeit

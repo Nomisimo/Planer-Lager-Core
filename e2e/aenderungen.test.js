@@ -12,8 +12,12 @@ test("FA-55 Kunde ändern: Verlauf zeigt wer, alt → neu; Verwaltung listet die
       const w = p.win;
       await anmelden(w, "chef");
       await w.evaluate((id) => { location.hash = `#/kunden/${id}/bearbeiten`; }, k.id);
-      await w.getByLabel("Telefon").fill("030 222");
+      // Erst warten, bis das Formular die alten Werte geladen hat, sonst überschreibt das Laden die Eingabe (kalter CI-Start).
+      const tel = w.getByLabel("Telefon");
+      await w.waitForFunction(() => [...document.querySelectorAll("input")].some((i) => i.value === "030 111"));
+      await tel.fill("030 222");
       await w.getByRole("button", { name: "Speichern" }).click();
+      await w.waitForFunction((id) => location.hash === `#/kunden/${id}`, k.id);
       const verlauf = w.locator(".lp-section").filter({ hasText: "Änderungsverlauf" });
       await verlauf.getByRole("button", { name: "Anzeigen" }).click();
       await verlauf.getByText("Telefon: 030 111 → 030 222").waitFor();

@@ -1,0 +1,58 @@
+# Planer-Lager in der Cloud (FA-56, NFA-02): Caddy (HTTPS automatisch) → Server → PostgreSQL.
+# Start: cd deploy && cp .env.beispiel .env && (Werte eintragen) && docker compose up -d
+name: planer-lager
+services:
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports: ["80:80", "443:443"]
+    environment:
+      DOMAIN: ${DOMAIN}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_daten:/data
+      - caddy_config:/config
+    depends_on:
+      server: { condition: service_healthy }
+
+  server:
+    image: ${SERVER_IMAGE:-ghcr.io/nomisimo/planer-lager-server:latest}
+    build: { context: .., dockerfile: Dockerfile }
+    restart: unless-stopped   # FA-51: „Neustart“ in der Verwaltung beendet den Prozess, Docker startet ihn neu
+    environment:
+      DATABASE_URL: postgres://lager:${POSTGRES_PASSWORT}@postgres:5432/lager
+      PUBLIC_URL: https://${DOMAIN}
+      LAGER_HINTER_PROXY: "1"
+      LAGER_ADMIN_BENUTZER: ${ADMIN_BENUTZER}
+      LAGER_ADMIN_PASSWORT: ${ADMIN_PASSWORT}
+      BACKUP_SCHLUESSEL: ${BACKUP_SCHLUESSEL}
+      GEOAPIFY_KEY: ${GEOAPIFY_KEY:-}
+      LAGER_HOSTS: ${DOMAIN}
+      SCANNER_TCP_PORT: ${SCANNER_TCP_PORT:-0}
+    volumes:
+      - server_daten:/data
+      - ${ZWEITORT:-./zweitort}:/zweitort
+    expose: ["8080"]
+    depends_on:
+      postgres: { condition: service_healthy }
+
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: lager
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORT}
+      POSTGRES_DB: lager
+    volumes:
+      - pg_daten:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lager -d lager"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  caddy_daten:
+  caddy_config:
+  server_daten:
+  pg_daten:

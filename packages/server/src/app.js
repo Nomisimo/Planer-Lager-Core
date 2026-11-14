@@ -61,7 +61,15 @@ export function erstelleApp(deps) {
     const url = new URL(req.url || "/", "http://x");
     setzeSchutzHeader(res, deps.config);
     try {
-      if (!limit(req.socket.remoteAddress || "")) throw new HttpFehler(429, "Zu viele Anfragen in kurzer Zeit. Warte eine Minute und versuche es erneut.");
+      // NFA-02 ALLOWED_HOSTS: nur bekannte Hostnamen (Schutz vor Host-Header-Tricks); localhost für Healthcheck
+      const hosts = deps.config?.erlaubteHosts;
+      if (hosts?.length) {
+        const h = String(req.headers.host || "").replace(/:\d+$/, "").toLowerCase();
+        if (!["localhost", "127.0.0.1", ...hosts].includes(h)) throw new HttpFehler(400, "Unbekannter Hostname. Rufe den Server über seine eingetragene Adresse auf.");
+      }
+      // Rate-Limit je echter Absender-Adresse (hinter Caddy aus X-Forwarded-For)
+      const absender = (deps.config?.vertraueProxy && String(req.headers["x-forwarded-for"] || "").split(",")[0].trim()) || req.socket.remoteAddress || "";
+      if (!limit(absender)) throw new HttpFehler(429, "Zu viele Anfragen in kurzer Zeit. Warte eine Minute und versuche es erneut.");
       const fund = router.finde(req.method || "GET", url.pathname);
       if (!("route" in fund)) {
         throw new HttpFehler(fund.pfadBekannt ? 405 : 404, fund.pfadBekannt

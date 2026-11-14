@@ -85,12 +85,12 @@ export function systemModul(router) {
   router.get("/api/v1/verwaltung/sicherungen/:name", V, async (ctx) => {
     const d = datei(ctx);
     const st = fs.statSync(d);
-    ctx.res.writeHead(200, { "Content-Type": "application/zip", "Content-Length": st.size, "Content-Disposition": `attachment; filename="${ctx.params.name}"`, "Cache-Control": "no-store" });
+    ctx.res.writeHead(200, { "Content-Type": ctx.params.name.endsWith(".enc") ? "application/octet-stream" : "application/zip", "Content-Length": st.size, "Content-Disposition": `attachment; filename="${ctx.params.name}"`, "Cache-Control": "no-store" });
     fs.createReadStream(d).pipe(ctx.res);
     await new Promise((r) => ctx.res.on("close", r));
   });
   router.post("/api/v1/verwaltung/sicherungen/:name/pruefen", V, async (ctx) => {
-    const p = pruefeSicherung(datei(ctx));
+    const p = pruefeSicherung(datei(ctx), ctx.config);
     return { ok: p.ok, level: p.ok ? "success" : "error", text: p.text };
   });
   // SOLL P2: Wiederherstellung über die Oberfläche, mit Sicherheitsabfrage

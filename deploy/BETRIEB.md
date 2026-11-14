@@ -1,0 +1,58 @@
+# Betrieb des Lager-Servers (Cloud)
+
+Ein zentraler Server für beide Apps und die Arbeitsplatz-Browser. Bestandteile (docker-compose.yml):
+
+| Dienst | Aufgabe |
+|---|---|
+| `caddy` | HTTPS mit automatischem Zertifikat (Let's Encrypt), leitet an den Server weiter |
+| `server` | Lager-Server (Node 22), läuft als Benutzer `node`, Daten in Volume `/data` |
+| `postgres` | PostgreSQL 16, Daten in Volume `pg_daten` |
+
+## Einrichten (einmalig)
+
+1. VPS in DE/EU mit Docker (z. B. 2 CPU, 4 GB RAM). Domain auf die Server-IP zeigen lassen (DNS A-Eintrag).
+2. Repository auf den Server holen, dann:
+   ```sh
+   cd deploy
+   cp .env.beispiel .env     # Werte eintragen: DOMAIN, Passwörter, BACKUP_SCHLUESSEL
+   chmod 600 .env
+   docker compose up -d --build
+   ```
+3. `https://<DOMAIN>/health` muss `{"ok":true,…}` liefern. In den Apps die Server-Adresse `https://<DOMAIN>` eintragen.
+4. Mit `ADMIN_BENUTZER`/`ADMIN_PASSWORT` anmelden, Zwei-Faktor einrichten (Pflicht für Administratoren im Netz, FA-54), danach `ADMIN_PASSWORT` aus `.env` entfernen.
+
+## Sicherheit (NFA-01, NFA-02, FA-56)
+
+- Nur HTTPS. Der Server setzt HSTS und Secure-Cookies, sobald `PUBLIC_URL` mit `https://` beginnt.
+- `LAGER_HOSTS` (= `DOMAIN`) entspricht ALLOWED_HOSTS: Anfragen mit anderem Hostnamen werden abgewiesen. Weitere Namen kommagetrennt eintragen.
+- Der Server-Port 8080 ist nicht nach außen offen, nur Caddy (80/443).
+- `NODE_ENV=production` ist im Image gesetzt (entspricht DEBUG=0).
+- Dateirechte im Datenordner werden bei jedem Start abgesichert (Ordner 700, Dateien 600).
+- Netzwerk-Scanner per TCP nur im VPN freigeben (`SCANNER_TCP_PORT`, Standard aus). HTTP-Scanner nutzen `https://<DOMAIN>/api/v1/scanner/eingang`.
+- Vor dem Echtbetrieb: unabhängige Sicherheitsprüfung (Penetrationstest), siehe Spec FA-56.
+
+## Sicherungen (FA-49, NFA-04)
+
+- Automatisch beim Start, wenn die letzte älter als 20 Stunden ist, und jederzeit in der Verwaltung („Jetzt sichern“).
+- Mit `BACKUP_SCHLUESSEL` verschlüsselt (AES-256-GCM, Dateiendung `.zip.enc`). **Schlüssel getrennt aufbewahren** (z. B. Passwort-Manager). Ohne ihn ist keine Sicherung lesbar.
+- Zweitort: `ZWEITORT` in `.env` (Host-Ordner, z. B. eingebundenes NAS), dem Container-Benutzer geben (`sudo chown 1000:1000 <Ordner>`) und in der Verwaltung → Einstellungen → Sicherung `/zweitort` eintragen.
+- Täglich sichern ohne Neustart: Cron auf dem Host
+  ```sh
+  0 3 * * * cd /pfad/deploy && docker compose exec -T server node packages/server/src/cli.js sicherung
+  ```
+- Wiederherstellen (vorher wird automatisch der aktuelle Stand gesichert):
+  ```sh
+  docker compose exec server node packages/server/src/cli.js restore lager-JJJJ-MM-TT_HHMMSS.zip.enc
+  ```
+  Oder in der Verwaltung → Datensicherung → Wiederherstellen (mit Bestätigung).
+- Wiederherstellungstest einmal im Quartal: Sicherung auf einem Zweitsystem einspielen, `pruefen` ausführen:
+  ```sh
+  docker compose exec server node packages/server/src/cli.js pruefen <Datei>
+  ```
+
+## Wartung und Neustart (FA-51)
+
+- Verwaltung → System: Wartung an/aus (nur Admins arbeiten weiter), Server neu starten (Docker startet ihn neu).
+- Update: `git pull && docker compose up -d --build`. Migrationen laufen beim Start automatisch.
+- Logs: `docker compose logs -f server`.
+- Sicherheits-Check auch auf der Kommandozeile: `docker compose exec server node packages/server/src/cli.js sicherheitscheck`.

@@ -26,7 +26,7 @@ async function main() {
     try { const r = await stelleWiederHer(p, config, datei(arg)); console.log(`Wiederhergestellt. Vorab-Sicherung: ${r.vorab}. ${r.pruefung.text}`); return 0; }
     catch (e) { console.error(e.message); return 1; } finally { await p.end(); }
   }
-  if (befehl === "pruefen") { const r = pruefeSicherung(datei(arg)); console.log(r.text); return r.ok ? 0 : 1; }
+  if (befehl === "pruefen") { const r = pruefeSicherung(datei(arg), config); console.log(r.text); return r.ok ? 0 : 1; }
   if (befehl === "sicherheitscheck") {
     if (process.argv.includes("--absichern")) console.log(`Dateirechte abgesichert: ${sichereDateirechte(config)} geändert.`);
     const p = pool();

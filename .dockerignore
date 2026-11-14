@@ -1,0 +1,11 @@
+node_modules
+**/node_modules
+**/dist
+**/dist-app
+e2e
+data
+lokal
+.git
+*.log
+.env
+setup/umgebung

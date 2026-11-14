@@ -10,12 +10,16 @@ export function configAusEnv(env = process.env) {
     hsts: https,
     vertraueProxy: env.LAGER_HINTER_PROXY === "1",
     dataDir: env.DATA_DIR || "./data",
+    // NFA-02 ALLOWED_HOSTS: aus LAGER_HOSTS (kommagetrennt), sonst Host aus PUBLIC_URL; leer = keine Prüfung (lokal)
+    erlaubteHosts: (env.LAGER_HOSTS || (publicUrl ? new URL(publicUrl).hostname : "")).split(",").map((h) => h.trim().toLowerCase()).filter(Boolean),
     adminBenutzer: env.LAGER_ADMIN_BENUTZER || "",
     adminPasswort: env.LAGER_ADMIN_PASSWORT || "",
     // Netzwerk-Scanner-Gateway (ARCHITEKTUR §5): TCP-Port, leer/0 = aus. Nur im LAN/VPN freigeben.
     scannerTcpPort: env.SCANNER_TCP_PORT === undefined ? 9101 : Number(env.SCANNER_TCP_PORT) || 0,
     scannerTcpHost: env.SCANNER_TCP_HOST || "0.0.0.0",
     // FA-49/FA-50/FA-51: Sicherung beim Start, Dateirechte absichern, Neustart aus der Oberfläche (Docker startet neu)
+    // NFA-04: Sicherungen verschlüsseln (Cloud), Schlüssel außerhalb des Codes
+    backupSchluessel: env.BACKUP_SCHLUESSEL || "",
     autoSicherung: env.LAGER_AUTO_SICHERUNG !== "0",
     absichernBeimStart: env.LAGER_ABSICHERN !== "0",
     neustartErlaubt: env.LAGER_NEUSTART !== "0",

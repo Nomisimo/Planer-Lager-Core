@@ -1,6 +1,7 @@
 // Datensicherung (FA-49, NFA-04): Datenbank (alle Tabellen als JSON) + Dateien im Datenordner in einer ZIP-Datei,
 // Prüfung jeder Sicherung, Aufbewahrung, Zweitort, automatisch beim Start, Wiederherstellung mit Vorab-Sicherung.
 import fs from "node:fs";
+import crypto from "node:crypto";
 import path from "node:path";
 import { transaktion } from "@lager/db";
 import { schreibeZip, leseZip } from "./zip.js";
@@ -11,13 +12,37 @@ export const AUTO_STUNDEN = 20;
 export const VORAB = "vor-wiederherstellung";
 /** Sitzungen gehören nicht zur Sicherung (nach einer Wiederherstellung melden sich alle neu an). */
 const OHNE = new Set(["sitzung"]);
-const NAME_RE = /^lager-\d{4}-\d{2}-\d{2}_\d{6}(-[a-z0-9-]+)?\.zip$/;
+const NAME_RE = /^lager-\d{4}-\d{2}-\d{2}_\d{6}(-[a-z0-9-]+)?\.zip(\.enc)?$/;
 
 export const datenOrdner = (config) => path.resolve(config?.dataDir || "./data");
 export const sicherungsOrdner = (config) => path.join(datenOrdner(config), SICHERUNG_ORDNER);
 
 /** Prüft einen Dateinamen aus einer Anfrage (kein Pfad, nur echte Sicherungsnamen). */
 export const gueltigerName = (n) => typeof n === "string" && NAME_RE.test(n);
+
+/*
+ * NFA-04 Verschlüsselung (Cloud): AES-256-GCM, Schlüssel per scrypt aus BACKUP_SCHLUESSEL.
+ * Format: "LAGERENC1" | salt (16) | iv (12) | tag (16) | Daten. Ohne Schlüssel bleibt die ZIP unverschlüsselt (lokaler Betrieb).
+ */
+const KOPF = Buffer.from("LAGERENC1");
+export function verschluessele(daten, passwort) {
+  const salt = crypto.randomBytes(16), iv = crypto.randomBytes(12);
+  const c = crypto.createCipheriv("aes-256-gcm", crypto.scryptSync(passwort, salt, 32), iv);
+  const enc = Buffer.concat([c.update(daten), c.final()]);
+  return Buffer.concat([KOPF, salt, iv, c.getAuthTag(), enc]);
+}
+export function entschluessele(buf, passwort) {
+  if (!buf.subarray(0, KOPF.length).equals(KOPF)) return buf; // unverschlüsselte Sicherung
+  if (!passwort) throw new Error("Die Sicherung ist verschlüsselt. Setze BACKUP_SCHLUESSEL auf den Schlüssel, mit dem sie erstellt wurde.");
+  let o = KOPF.length;
+  const salt = buf.subarray(o, o += 16), iv = buf.subarray(o, o += 12), tag = buf.subarray(o, o += 16);
+  const d = crypto.createDecipheriv("aes-256-gcm", crypto.scryptSync(passwort, salt, 32), iv);
+  d.setAuthTag(tag);
+  try { return Buffer.concat([d.update(buf.subarray(o)), d.final()]); }
+  catch { throw new Error("Entschlüsseln fehlgeschlagen: falscher Schlüssel oder beschädigte Datei."); }
+}
+/** Liest eine Sicherung (entschlüsselt bei Bedarf) als ZIP-Puffer. */
+export const leseSicherungsdatei = (datei, config) => entschluessele(fs.readFileSync(datei), config?.backupSchluessel);
 
 function zeitstempel(d = new Date()) {
   const t = new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Berlin", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23" }).format(d);
@@ -75,9 +100,9 @@ export function listeSicherungen(config) {
  * FA-49 Prüfung: ZIP lesbar (Prüfsummen), Inhaltsverzeichnis vorhanden, Datenbank-Teil lesbar und vollständig.
  * @returns {{ok: boolean, text: string, tabellen?: number, zeilen?: number, dateien?: number}}
  */
-export function pruefeSicherung(datei) {
+export function pruefeSicherung(datei, config) {
   try {
-    const eintraege = leseZip(fs.readFileSync(datei));
+    const eintraege = leseZip(leseSicherungsdatei(datei, config));
     const finde = (n) => eintraege.find((e) => e.name === n);
     const m = JSON.parse(finde("manifest.json")?.daten.toString("utf8") || "null");
     if (!m) return { ok: false, text: "Inhaltsverzeichnis (manifest.json) fehlt." };
@@ -125,11 +150,13 @@ export async function erstelleSicherung(pool, config, { art = "" } = {}) {
   const ordner = sicherungsOrdner(config);
   fs.mkdirSync(ordner, { recursive: true, mode: 0o700 });
   const stamm = `lager-${zeitstempel()}${art && art !== "auto" ? `-${art}` : ""}`;
-  let name = `${stamm}.zip`;
-  for (let i = 2; fs.existsSync(path.join(ordner, name)); i++) name = `${stamm}-${i}.zip`;
+  const endung = config.backupSchluessel ? ".zip.enc" : ".zip";
+  let name = `${stamm}${endung}`;
+  for (let i = 2; fs.existsSync(path.join(ordner, name)); i++) name = `${stamm}-${i}${endung}`;
   const datei = path.join(ordner, name);
-  fs.writeFileSync(datei, zip, { mode: 0o600 });
-  const pruefung = pruefeSicherung(datei);
+  const inhalt = config.backupSchluessel ? verschluessele(zip, config.backupSchluessel) : zip;
+  fs.writeFileSync(datei, inhalt, { mode: 0o600 });
+  const pruefung = pruefeSicherung(datei, config);
   const e = await ladeEinstellungen(pool);
   let zweitkopie = null;
   if (e.backup_zweitordner) {
@@ -142,7 +169,7 @@ export async function erstelleSicherung(pool, config, { art = "" } = {}) {
     }
   }
   const geloescht = raeumeAuf(config, e.backup_behalten);
-  return { name, datei, groesse: zip.length, pruefung, zweitkopie, geloescht };
+  return { name, datei, groesse: inhalt.length, verschluesselt: !!config.backupSchluessel, pruefung, zweitkopie, geloescht };
 }
 
 /** FA-49: beim Start sichern, wenn die letzte Sicherung älter als 20 Stunden ist (oder keine da). */
@@ -157,9 +184,9 @@ export async function autoSicherung(pool, config, jetzt = Date.now()) {
  * @returns {Promise<{vorab: string, pruefung: object}>}
  */
 export async function stelleWiederHer(pool, config, datei) {
-  const p = pruefeSicherung(datei);
+  const p = pruefeSicherung(datei, config);
   if (!p.ok) throw Object.assign(new Error(`Diese Sicherung ist nicht in Ordnung: ${p.text}`), { status: 409 });
-  const eintraege = leseZip(fs.readFileSync(datei));
+  const eintraege = leseZip(leseSicherungsdatei(datei, config));
   const { tabellen: daten } = JSON.parse(eintraege.find((e) => e.name === "datenbank.json").daten.toString("utf8"));
   const m = JSON.parse(eintraege.find((e) => e.name === "manifest.json").daten.toString("utf8"));
   const { rows: [st] } = await pool.query("SELECT coalesce(max(nr), 0)::int AS n FROM schema_migration");

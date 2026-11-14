@@ -133,3 +133,26 @@ test("FA-50 Sicherheits-Check und Dateirechte absichern; FA-51 Ping, Wartung, Ne
   await new Promise((r) => setTimeout(r, 700));
   assert.equal(neustarts, 1);
 });
+
+test("NFA-04 verschlüsselte Sicherung (AES-256-GCM): Inhalt unlesbar ohne Schlüssel, Prüfung + Wiederherstellung mit Schlüssel", async () => {
+  s.config.backupSchluessel = "Geheimer-Sicherungsschluessel-1";
+  try {
+    const r = (await admin("POST", "/api/v1/verwaltung/sicherungen")).json;
+    assert.equal(r.ok, true, r.text);
+    assert.match(r.name, /\.zip\.enc$/);
+    const d = path.join(sicherungsOrdner(s.config), r.name);
+    const roh = fs.readFileSync(d);
+    assert.equal(roh.subarray(0, 9).toString(), "LAGERENC1");
+    assert.throws(() => leseZip(roh), "ohne Entschlüsseln keine ZIP");
+    assert.ok(!roh.includes(Buffer.from("benutzername")), "kein Klartext");
+    assert.equal((await admin("POST", `/api/v1/verwaltung/sicherungen/${r.name}/pruefen`)).json.ok, true);
+    const env = { ...process.env, DATABASE_URL_DEV: standardUrl(), DATA_DIR: s.dataDir, LAGER_DB_SCHEMA: s.db.schema, LAGER_ABSICHERN: "0" };
+    const falsch = await promisify(execFile)(process.execPath, [CLI, "pruefen", r.name], { env: { ...env, BACKUP_SCHLUESSEL: "falsch" } }).catch((e) => e);
+    assert.match(falsch.stdout, /falscher Schlüssel/);
+    const ohne = await promisify(execFile)(process.execPath, [CLI, "pruefen", r.name], { env }).catch((e) => e);
+    assert.match(ohne.stdout, /verschlüsselt/);
+    const { stdout } = await promisify(execFile)(process.execPath, [CLI, "restore", r.name], { env: { ...env, BACKUP_SCHLUESSEL: "Geheimer-Sicherungsschluessel-1" } });
+    assert.match(stdout, /Wiederhergestellt/);
+    admin = await s.als("admin8", "Administrator");
+  } finally { s.config.backupSchluessel = ""; }
+});

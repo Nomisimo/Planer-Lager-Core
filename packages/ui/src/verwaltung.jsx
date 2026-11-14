@@ -13,6 +13,7 @@ const BEREICHE = [
   { pfad: "/verwaltung/einstellungen", titel: "Einstellungen", text: "Firma, Angebote, Etiketten, Zeiterfassung, Ladezonen, Sicherung.", icon: "Settings" },
   { pfad: "/verwaltung/sicherung", titel: "Datensicherung", text: "Jetzt sichern, Liste, Download, Prüfung, Wiederherstellung.", icon: "Database" },
   { pfad: "/verwaltung/sicherheit", titel: "Sicherheit", text: "Sicherheits-Check, Dateirechte, Sicherheitsprotokoll (30 Tage).", icon: "ShieldCheck" },
+  { pfad: "/verwaltung/aenderungen", titel: "Änderungsprotokoll", text: "Wer hat wann was an Artikeln, Kunden, Projekten und Rechten geändert.", icon: "History" },
   { pfad: "/verwaltung/system", titel: "System", text: "Ping, Wartung, Neustart des Servers.", icon: "Server" },
   { pfad: "/verwaltung/arbeitsplaetze", titel: "Arbeitsplätze", text: "Lager-Arbeitsplätze und Anzeige-Bildschirme einrichten, Mitarbeiter mit PIN, Sperrzeit, Funktionstest.", icon: "Monitor" },
   { pfad: "/verwaltung/scanner", titel: "Scanner", text: "Netzwerk-Scanner anlegen, Token, Zuordnung zum Arbeitsplatz, letzter Kontakt.", icon: "ScanLine" },

@@ -1,6 +1,7 @@
 // HTTP-Server (node:http, kein Framework). Baut Router, Kontext und Fehlerbehandlung zusammen.
 import http from "node:http";
 import { Router, HttpFehler } from "./router.js";
+import { mitWer, werText } from "./aenderungen.js";
 
 export const PROTOKOLL_VERSION = 1;
 const MAX_BODY = 25 * 1024 * 1024;
@@ -87,6 +88,7 @@ export function erstelleApp(deps) {
       }
       const ctx = { ...kontext, req, res, url, params, query: Object.fromEntries(url.searchParams), body, route, nutzer: null };
       if (deps.pruefeZugang) await deps.pruefeZugang(ctx);
+      if (ctx.nutzer) ctx.pool = mitWer(deps.pool, () => werText(ctx)); // FA-55: wer im Änderungsprotokoll
       const erg = await route.handler(ctx);
       if (res.writableEnded || res.headersSent) return;
       if (erg === undefined) { res.writeHead(204); res.end(); return; }

@@ -1,0 +1,26 @@
+{
+  "name": "planer-lager-core",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Planer-Lager: Fachlogik, Datenbank, Cloud-Server, gemeinsame UI, Arbeitsplatz-Web",
+  "author": "Momo",
+  "license": "UNLICENSED",
+  "workspaces": [
+    "packages/*"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test": "node scripts/test.js",
+    "lint": "eslint --no-error-on-unmatched-pattern packages scripts e2e",
+    "spec:abdeckung": "node scripts/spec-abdeckung.js",
+    "migrate": "node packages/db/src/cli.js migrate",
+    "e2e": "xvfb-run -a node --test --test-concurrency=1 e2e/",
+    "dev:server": "node packages/server/src/start.js --port 8080",
+    "seed": "node scripts/seed.js"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2"
+  }
+}

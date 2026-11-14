@@ -31,3 +31,6 @@ Sam prüft diese Liste. Claude ändert getroffene Einträge von Sam nie, sondern
 - D-20 | FA-48 Zweitordner „per Ordner-Auswahl“ | In der Cloud: Zweitort = zweites Volume oder S3-kompatibles Ziel (Env), Auswahl in der Verwaltung. | Claude
 
 ## Während der Umsetzung (Claude ergänzt hier)
+- D-21 | 14.11. | Tests je Datei | API-/DB-Tests laufen je Testdatei in einem frischen PostgreSQL-Schema (`neueTestDb()`), nicht in einer eigenen Datenbank. Schneller, parallel möglich. | Laufzeit | NFA-08 | Claude
+- D-22 | 14.11. | E2E-Runner | E2E-Tests nutzen `node --test` + `_electron` aus dem vorinstallierten Playwright (kein `@playwright/test`, kein Browser-Download). Aufruf `npm run e2e`. | CLAUDE.md „Keine Playwright-Browser laden“ | T-01…T-24 | Claude
+- D-23 | 14.11. | Root-Paket | Root-package.json ohne `"type": "module"` (Kit-Skripte sind CommonJS), alle `packages/*` sind ESM. | Kit-Kompatibilität | – | Claude

@@ -5,7 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import { starteServer, starteApp, screenshot, anmelden } from "./helfer.js";
 
-test("FA-29 FA-30 FA-31 FA-32 FA-33 FA-34 T-19 T-24 Productionplaner: Projekt, Jobs, Aufgaben, Dateien, Kalender", async () => {
+test("FA-16 FA-29 FA-30 FA-31 FA-32 FA-33 FA-34 T-19 T-24 Productionplaner: Projekt, Jobs, Aufgaben, Dateien, Kalender", async () => {
   const s = await starteServer();
   await s.benutzer("buero", "Büro / Disposition", "Berta Büro");
   await s.db.pool.query("INSERT INTO kunde (name, firma) VALUES ('Anna Müller', 'Stadtwerke Köln'), ('Bernd Beispiel', '')");

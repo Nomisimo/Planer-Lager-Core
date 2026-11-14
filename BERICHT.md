@@ -16,7 +16,8 @@ Gebaut: Scan-Kern 5.5 (Schritte 1–9 in einer Transaktion, inkl. Rückgabe, ver
 Geprüft: Unit+API alle grün (neu: server/scannen.test.js 9, server/scanner.test.js, domain/scannen.test.js 5); E2E neu e2e/scannen.test.js (T-07–T-11, Handscanner, Netzwerk-Scanner) grün. Screenshots: FA-15, FA-17.
 Nicht geprüft: echter Handscanner/Netzwerk-Scanner-Hardware (simuliert per Tastatur, TCP-Client und HTTP), Kamera-Scan (kommt zuletzt).
 Bekannte Fehler/Grenzen: T-06 braucht Ladezonen (Phase 8). Arbeitsplatz-Zuordnung der Scanner ist eine Nummer ohne Fremdschlüssel bis Phase 8. Rückgabeansicht/Funktionstest-Oberfläche folgt in Phase 7 (API fertig).
-Annahmen: D-62–D-65
+Annahmen: D-62–D-66
+Abnahme (spec-pruefer + ui-pruefer): 0 Fehler. Geschlossen: Handscanner-Einstellungen je Gerät (Schwellwert, Mindestlänge, Präfix/Suffix), Vibration mit Ton, FA-15-Antwortzeit < 2 s im E2E geprüft, FA-16 in Testnamen, Case-Inhalt defekt/fremdes Projekt getestet, Rückgabetext Mehrzahl, größere Rückmeldung, 44-px-Ziele, Verlauf mit Symbolen, Leerzustand, Menü-Markierung in der Packansicht. Offen: Kamera-Scan (Phase 14).
 
 ## Phase 5 – Angebote, Verfügbarkeit, Packliste – 14.11.2026
 Gebaut: 3.11 Angebot/Position/Fassung (A-JJJJ-NNN), Zustand 4.2 mit Fassungsarchiv (PDF im Projektordner/Angebote), R-24–R-27 Reservierung/Verfügbarkeit (SQL-Sicht `reservierung`, Domain-Formeln), R-28–R-28c Preise und Zeitrechner, FA-41 Editor (Material, Verkauf, Personal mit Zeitrechner, freie Positionen, Reihenfolge, Rabatt, Texte, Gültigkeit), FA-42 Live-Überbuchungshinweis + Reservierungen je Artikel (Materialplaner), FA-43 Statuswechsel mit Projektstatus-Folge (D-55), FA-44 Packliste Bildschirm + PDF mit Set-Vorschlag, FA-45 Kalkulator + Zeitrechner, Kopfkennzahl Angebotswert.

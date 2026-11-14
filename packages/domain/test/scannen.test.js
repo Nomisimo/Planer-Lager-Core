@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { hoeher, scanText, pruefHinweis, casePruefung, packlistenHinweis, packFortschritt, hidErkenner, levelUebersprungen } from "../src/index.js";
+import { pruefeHid, hoeher, scanText, pruefHinweis, casePruefung, packlistenHinweis, packFortschritt, hidErkenner, levelUebersprungen } from "../src/index.js";
 
 test("R-SCAN Level: ok < warn < error; übersprungen error nur beim gescannten Gerät", () => {
   assert.equal(hoeher("ok", "warn"), "warn");
@@ -14,7 +14,7 @@ test("R-SCAN Schritt 8 Texte: Gepackt inkl. Inhalte, Rückgabe-Case mit Hinweis,
   assert.equal(scanText({ code: "LI-0001", artikel: "Spot", modus: "packen", gebucht: 1, inhalte: 0 }), "LI-0001 Spot – Gepackt");
   assert.equal(scanText({ code: "TA-0001", artikel: "Tasche", modus: "hinzufuegen", gebucht: 5, inhalte: 4 }), "TA-0001 Tasche – Zum Projekt hinzugefügt (inkl. 4 Inhalte)");
   assert.equal(scanText({ code: "TA-0001", artikel: "Tasche", modus: "rueckgabe", gebucht: 1, inhalte: 0, istCase: true, inhaltOffen: 4, inhaltName: "Lampen" }),
-    "TA-0001 Tasche – Zurück im Lager – jetzt die 4 Lampen darin scannen");
+    "TA-0001 Tasche – Zurück im Lager – jetzt die 4 Teile (Lampen) darin scannen");
   assert.equal(scanText({ code: "LI-0001", artikel: "Spot", modus: "packen", gebucht: 0 }), "LI-0001 Spot – nicht gebucht");
 });
 
@@ -48,4 +48,11 @@ test("UI-3 HID-Scanner-Erkennung: schnelle Folge + Enter = Scan, Tippen = kein S
   for (const k of "]C1LI-0002#") p.taste(k, (t += 5));
   assert.equal(p.taste("Enter", (t += 5)), "LI-0002");
   assert.equal(e.taste("Shift", t), null);
+});
+
+test("ARCHITEKTUR §5 Handscanner-Einstellungen: Schwellwert, Mindestlänge, Präfix/Suffix mit Grenzen", () => {
+  assert.deepEqual(pruefeHid({}), { schwelleMs: 35, minZeichen: 4, praefix: "", suffix: "" });
+  assert.deepEqual(pruefeHid({ schwelleMs: 50, minZeichen: 6, praefix: "]C1", suffix: "#" }), { schwelleMs: 50, minZeichen: 6, praefix: "]C1", suffix: "#" });
+  assert.equal(pruefeHid({ schwelleMs: 5000 }).schwelleMs, 35);
+  assert.equal(pruefeHid({ minZeichen: 1 }).minZeichen, 4);
 });

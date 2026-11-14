@@ -54,7 +54,7 @@ export function ScanPanel({ modus, projektId = null, angebotId = null, tasche = 
       r.dauer = Math.round(performance.now() - start);
       r.zeit = new Date();
       setVerlauf((v) => [r, ...v].slice(0, 50));
-      if (z.ton) piep(r.level);
+      if (z.ton) { piep(r.level); try { navigator.vibrate?.(r.level === "ok" ? 60 : r.level === "warn" ? [60, 60, 60] : 400); } catch { /* ohne Vibration */ } }
       setLaeuft(false);
       z.onErgebnis?.(r);
     });
@@ -66,36 +66,39 @@ export function ScanPanel({ modus, projektId = null, angebotId = null, tasche = 
   const letzte = verlauf[0];
   return (
     <div className={"lp-scan" + (gross ? " lp-scan-gross" : "")}>
+      <label className="lp-label" htmlFor="lp-scanfeld">Code</label>
       <form className="lp-zeile" style={{ alignItems: "stretch" }} onSubmit={(e) => { e.preventDefault(); buche(code); setCode(""); feld.current?.focus(); }}>
-        <input ref={feld} className="lp-input lp-scanfeld" data-scanfeld="1" data-testid="scanfeld" aria-label="Code scannen oder eingeben" placeholder={deaktiviert || "Code scannen oder eintippen, Enter bucht"}
+        <input ref={feld} id="lp-scanfeld" className="lp-input lp-scanfeld" data-scanfeld="1" data-testid="scanfeld" aria-label="Code scannen oder eingeben" placeholder={deaktiviert || "Code scannen oder eintippen, Enter bucht"}
           value={code} disabled={!!deaktiviert} onChange={(e) => setCode(e.target.value)} autoComplete="off" autoFocus
           onBlur={() => { if (!deaktiviert) setTimeout(() => { if (!document.activeElement || document.activeElement === document.body) feld.current?.focus(); }, 0); }} />
         <Knopf art="primaer" type="submit" icon="ScanLine" disabled={!!deaktiviert || !code.trim()}>Buchen</Knopf>
       </form>
       <div className="lp-zeile" style={{ marginTop: 8, alignItems: "center" }}>
-        <label className="lp-meta" style={{ display: "inline-flex", gap: 6, alignItems: "center" }}>
-          <input type="checkbox" checked={ton} onChange={(e) => { setTon(e.target.checked); try { localStorage.setItem(TON_KEY, e.target.checked ? "1" : "0"); } catch { /* privat */ } }} /> Ton
+        <label className="lp-scan-ton">
+          <input type="checkbox" checked={ton} onChange={(e) => { setTon(e.target.checked); try { localStorage.setItem(TON_KEY, e.target.checked ? "1" : "0"); } catch { /* privat */ } }} /> Ton &amp; Vibration
         </label>
         {scannerListe.length > 0 && <div style={{ width: 230 }}><Auswahl aria-label="Netzwerk-Scanner" leer="Kein Netzwerk-Scanner" value={netzScanner} onChange={(e) => setNetzScanner(e.target.value)}
           optionen={scannerListe.map((s) => ({ wert: String(s.id), titel: s.name }))} /></div>}
         {laeuft && <span className="lp-meta"><Icon name="Loader2" size={14} /> bucht …</span>}
       </div>
       {letzte && (
-        <div className="lp-scan-ergebnis" data-testid="scan-ergebnis" data-level={letzte.level} role="status" aria-live="assertive" style={{ borderColor: FARBE[letzte.level] }}>
+        <div className="lp-scan-ergebnis" data-testid="scan-ergebnis" data-level={letzte.level} data-dauer={letzte.dauer} role="status" aria-live="assertive" style={{ borderColor: FARBE[letzte.level] }}>
           <div className="lp-scan-balken" style={{ background: FARBE[letzte.level] }}>
             <Icon name={letzte.level === "ok" ? "CheckCircle2" : letzte.level === "warn" ? "AlertTriangle" : "XCircle"} size={gross ? 28 : 20} />
             <span>{LEVEL_TEXT[letzte.level]}</span>
           </div>
           <div className="lp-scan-text">
-            <strong>{letzte.text}</strong>
+            <strong className="lp-scan-haupt">{letzte.text}</strong>
+            <span className="lp-meta"> · {letzte.zeit.toLocaleTimeString("de-DE")}</span>
             {letzte.meldungen?.length > 0 && <ul>{letzte.meldungen.map((m, i) => <li key={i} data-level={m.level}>{m.text}</li>)}</ul>}
           </div>
         </div>
       )}
+      {!letzte && <p className="lp-hinweis" data-testid="scan-leer">Noch nichts gescannt. Scanne einen Code oder tippe ihn ein und drücke Enter.</p>}
       {verlauf.length > 1 && (
         <ol className="lp-scan-verlauf" aria-label="Verlauf">
           {verlauf.slice(1).map((r, i) => (
-            <li key={i}><span className="lp-punkt" style={{ background: FARBE[r.level] }} role="img" aria-label={LEVEL_TEXT[r.level]} />
+            <li key={i}><Icon name={r.level === "ok" ? "CheckCircle2" : r.level === "warn" ? "AlertTriangle" : "XCircle"} size={16} style={{ color: FARBE[r.level], flex: "none" }} aria-hidden={false} role="img" aria-label={LEVEL_TEXT[r.level]} />
               <span className="lp-meta">{r.zeit.toLocaleTimeString("de-DE")}</span> {r.text}</li>
           ))}
         </ol>

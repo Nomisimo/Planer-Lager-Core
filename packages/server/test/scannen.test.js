@@ -110,6 +110,18 @@ test("T-08 Case voll → grün inkl. Inhalte; zu wenig/falsch → Gelb", async (
   const t = halb.meldungen.map((m) => m.text).join(" ");
   assert.match(t, /Case unvollständig: 3 von 4 Teilen eingetragen/);
   assert.match(t, new RegExp(`Falscher Inhalt in ${t2}: ${a6} \\(Akku\\)`));
+  // Inhalt gesperrt oder in anderem Projekt → nur Gelb, Rest wird gebucht
+  await q("UPDATE geraet SET projekt_id = NULL, status = 'lager' WHERE case_id = $1 OR id = $1", [await id(t1)]);
+  await q("UPDATE geraet SET status = 'defekt' WHERE code = $1", [lampen[0]]);
+  await q("UPDATE geraet SET projekt_id = $1, status = 'zugeordnet' WHERE code = $2", [p2.id, lampen[1]]);
+  const p3 = await projekt("Case4");
+  const teil = (await scan(t1, "packen", p3.id)).json;
+  assert.equal(teil.level, "warn");
+  const tt = teil.meldungen.map((m) => m.text).join(" ");
+  assert.match(tt, new RegExp(`${lampen[0]} nicht verfügbar \\(Defekt\\), übersprungen`));
+  assert.match(tt, new RegExp(`${lampen[1]} ist bereits in Projekt ${p2.nummer}`));
+  assert.match(teil.text, /inkl\. 2 Inhalte/);
+  await q("UPDATE geraet SET status = 'lager' WHERE code = $1", [lampen[0]]);
 });
 
 test("T-09 Gerät aus anderem Projekt scannen: Rot, nicht gebucht, Meldung nennt das andere Projekt", async () => {
@@ -175,7 +187,7 @@ test("5.5 Rückgabe: zurück im Lager, vermisst → wieder aufgetaucht (T-14); T
   await scan(t1, "packen", p.id);
   await scan(lampen[4], "packen", p.id);
   const rt = (await scan(t1, "rueckgabe", null)).json;
-  assert.match(rt.text, new RegExp(`${t1} Lampen-Tasche – Zurück im Lager – jetzt die 4 Lampe darin scannen`));
+  assert.match(rt.text, new RegExp(`${t1} Lampen-Tasche – Zurück im Lager – jetzt die 4 Teile \\(Lampe\\) darin scannen`));
   assert.deepEqual([rt.tasche.code, rt.tasche.anzahl, rt.tasche.soll, rt.tasche.offen.length], [t1, 4, 4, 4]);
   const r1 = (await scan(lampen[0], "rueckgabe", null, { tasche: t1 })).json;
   assert.equal(r1.level, "ok");

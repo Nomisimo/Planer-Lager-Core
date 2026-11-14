@@ -44,6 +44,7 @@ test("T-07 T-08 T-09 T-10 T-11 FA-15 FA-17 R-23 UI-3 Materialplaner: Scannen, Pa
       await scanne("li1");
       await ergebnis.getByText("LI-0001 Akku – Gepackt").waitFor();
       assert.equal(await ergebnis.getAttribute("data-level"), "ok");
+      assert.ok(Number(await ergebnis.getAttribute("data-dauer")) < 2000, "FA-15: Rückmeldung unter 2 s");
       await screenshot(w, "FA-15-scan");
       // R-23 Projektcode öffnet die Packansicht
       await scanne(`p ${jahr} 1`);

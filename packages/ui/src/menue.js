@@ -23,7 +23,7 @@ export const MENUE = [
     { titel: "Etiketten", pfad: "/etiketten", bereich: "material", app: "m", icon: "Tags" },
     { titel: "Plan-Symbole", pfad: "/plansymbole", bereich: "material", app: "m", icon: "Shapes" },
     { titel: "Ladezonen", pfad: "/zonen", bereich: "zonen", app: "m", icon: "LayoutGrid" },
-    { titel: "Code scannen", pfad: "/scan", bereich: "packen", app: "m", icon: "ScanLine" },
+    { titel: "Code scannen", pfad: "/scan", bereich: "packen", app: "m", icon: "ScanLine", auch: [/^\/projekte\/\d+\/(packen|rueckgabe)$/] },
     { titel: "Inventur", pfad: "/inventur", bereich: "material", app: "m", icon: "ClipboardList" },
     { titel: "Reparatur", pfad: "/reparatur", bereich: "geraete", app: "m", icon: "Wrench" },
   ] },
@@ -52,6 +52,8 @@ export function menueFuer(rechte, app) {
 export function aktiverEintrag(pfad, eintraege) {
   let best = null;
   for (const e of eintraege) {
+    // Zusatzmuster (z. B. Packansicht gehört zu „Code scannen“) schlagen jeden Präfix.
+    if (e.auch?.some((r) => r.test(pfad))) return e;
     const passt = e.pfad === "/" ? pfad === "/" : pfad === e.pfad || pfad.startsWith(e.pfad.endsWith("/") ? e.pfad : e.pfad + "/");
     if (passt && (!best || e.pfad.length > best.pfad.length)) best = e;
   }

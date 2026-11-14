@@ -1,7 +1,8 @@
 // Verwaltung (nur Admin, R-03): gemeinsame Seiten für beide Apps. Hier: Übersicht und Netzwerk-Scanner (ARCHITEKTUR §5).
 import React, { useState } from "react";
 import { Seite, Section, Knopf, Tabelle, Eingabe, Feld, Meldung, Modal, Toggle, useDaten, useFormular, useBestaetigung } from "./bausteine.jsx";
-import { useLager } from "./huelle.jsx";
+import { useLager, HID_KEY, hidEinstellungen } from "./huelle.jsx";
+import { pruefeHid } from "@lager/domain/scannen.js";
 import { fehlerText } from "./texte.js";
 import { zeitpunktAnzeige } from "@lager/domain/zeit.js";
 
@@ -67,6 +68,7 @@ export function ScannerVerwaltung() {
           </div> },
         ]} />
       </Section>
+      <HandscannerEinstellungen />
       {form && <Modal titel={form.id ? "Scanner bearbeiten" : "Scanner anlegen"} onSchliessen={() => setForm(null)}
         fuss={<><Knopf onClick={() => setForm(null)}>Abbrechen</Knopf><Knopf art="primaer" icon="Save" onClick={speichern}>Speichern</Knopf></>}>
         {f.meldung && <Meldung {...f.meldung} />}
@@ -81,5 +83,30 @@ export function ScannerVerwaltung() {
         <pre className="lp-code" data-testid="scanner-token" style={{ userSelect: "all", whiteSpace: "pre-wrap", wordBreak: "break-all" }}>{token.token}</pre>
       </Modal>}
     </Seite>
+  );
+}
+
+/** ARCHITEKTUR §5: Handscanner (USB/Bluetooth, Tastatur) je Gerät einstellen – Schwellwert, Mindestlänge, Präfix/Suffix. */
+export function HandscannerEinstellungen() {
+  const [w, setW] = useState(() => hidEinstellungen());
+  const [ok, setOk] = useState(null);
+  const setze = (k) => (e) => setW({ ...w, [k]: e.target.value });
+  const speichern = () => {
+    const x = pruefeHid({ ...w, schwelleMs: Number(w.schwelleMs), minZeichen: Number(w.minZeichen) });
+    try { localStorage.setItem(HID_KEY, JSON.stringify(x)); } catch { /* privat */ }
+    setW(x); setOk("Handscanner-Einstellungen gespeichert. Sie gelten auf diesem Gerät.");
+    window.dispatchEvent(new Event("lager-hid"));
+  };
+  return (
+    <Section titel="Handscanner (dieses Gerät)" icon="ScanLine">
+      {ok && <Meldung level="success" text={ok} onSchliessen={() => setOk(null)} />}
+      <div className="lp-raster">
+        <Feld label="Zeichenabstand (ms)" hinweis="Schneller als dieser Abstand gilt als Scanner (10–200)"><Eingabe type="number" min="10" max="200" value={w.schwelleMs} onChange={setze("schwelleMs")} /></Feld>
+        <Feld label="Mindestlänge" hinweis="Kürzere Folgen sind kein Scan (2–20)"><Eingabe type="number" min="2" max="20" value={w.minZeichen} onChange={setze("minZeichen")} /></Feld>
+        <Feld label="Präfix" hinweis="Vom Scanner vorangestellt, wird entfernt"><Eingabe value={w.praefix} onChange={setze("praefix")} /></Feld>
+        <Feld label="Suffix" hinweis="Vom Scanner angehängt, wird entfernt"><Eingabe value={w.suffix} onChange={setze("suffix")} /></Feld>
+      </div>
+      <Knopf art="primaer" icon="Save" onClick={speichern}>Handscanner speichern</Knopf>
+    </Section>
   );
 }

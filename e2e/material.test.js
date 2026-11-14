@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { starteServer, starteApp, screenshot, anmelden } from "./helfer.js";
 
-test("FA-01 FA-02 FA-03 FA-04 Materialplaner: Kategorie + Artikel anlegen, Warnzeichen Mindestbestand, Gerät vermisst/gefunden mit Verlauf", async () => {
+test("FA-01 FA-02 FA-03 FA-04 FA-16 Materialplaner: Kategorie + Artikel anlegen, Warnzeichen Mindestbestand, Gerät vermisst/gefunden mit Verlauf", async () => {
   const s = await starteServer();
   await s.benutzer("leitung", "Lagerleitung", "Lars Leitung");
   try {

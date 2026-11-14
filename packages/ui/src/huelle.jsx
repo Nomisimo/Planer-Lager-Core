@@ -7,7 +7,11 @@ import { passeMuster, zerlegeHash, deepLinkZuPfad } from "./router.js";
 import { fehlerText } from "./texte.js";
 import { Icon, Knopf, Feld, Eingabe, Meldung, Modal, Section, Auswahl, Seite } from "./bausteine.jsx";
 import STIL from "./stil.css";
-import { hidErkenner } from "@lager/domain/scannen.js";
+import { hidErkenner, pruefeHid } from "@lager/domain/scannen.js";
+
+/** Handscanner-Einstellungen dieses Geräts (ARCHITEKTUR §5), localStorage. */
+export const HID_KEY = "lager-hid";
+export function hidEinstellungen() { try { return pruefeHid(JSON.parse(localStorage.getItem(HID_KEY) || "{}")); } catch { return pruefeHid({}); } }
 
 export const PROTOKOLL_ERWARTET = 1;
 const APPS = { m: { id: "materialplaner", titel: "Materialplaner" }, p: { id: "productionplaner", titel: "Productionplaner" } };
@@ -217,7 +221,8 @@ export function AppHuelle({ app, seiten, onCode }) {
 
   // UI-3 / ARCHITEKTUR §5: Handscanner (Tastatur) global erkennen, auch ohne Fokus; an die Scan-Seite oder das Codefeld.
   useEffect(() => {
-    const e = hidErkenner();
+    let e = hidErkenner(hidEinstellungen());
+    const neu = () => { e = hidErkenner(hidEinstellungen()); };
     const k = (ev) => {
       const el = document.activeElement;
       if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.tagName === "SELECT" || el.isContentEditable)) return; // Feld nimmt die Eingabe selbst
@@ -228,7 +233,8 @@ export function AppHuelle({ app, seiten, onCode }) {
       else if (kontextRef.current) onCode?.(code, kontextRef.current);
     };
     window.addEventListener("keydown", k, true);
-    return () => window.removeEventListener("keydown", k, true);
+    window.addEventListener("lager-hid", neu);
+    return () => { window.removeEventListener("keydown", k, true); window.removeEventListener("lager-hid", neu); };
   }, [onCode]);
 
   const abmelden = async () => { try { await api.post("/api/v1/abmelden"); } catch { /* egal */ } setzeToken(null); };

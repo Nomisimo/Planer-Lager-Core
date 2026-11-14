@@ -24,7 +24,7 @@ export function scanText(x) {
   if (!x.gebucht) return `${x.code} ${x.artikel} – nicht gebucht`;
   let t = `${x.code} ${x.artikel} – ${ZIEL[x.modus].text}`;
   if (x.modus !== "rueckgabe" && x.inhalte > 0) t += ` (inkl. ${x.inhalte} Inhalte)`;
-  if (x.modus === "rueckgabe" && x.istCase && x.inhaltOffen > 0) t += ` – jetzt die ${x.inhaltOffen} ${x.inhaltName || "Teile"} darin scannen`;
+  if (x.modus === "rueckgabe" && x.istCase && x.inhaltOffen > 0) t += ` – jetzt die ${x.inhaltOffen} Teile${x.inhaltName ? ` (${x.inhaltName})` : ""} darin scannen`;
   return t;
 }
 
@@ -90,4 +90,13 @@ export function hidErkenner({ schwelleMs = 35, minZeichen = 4, praefix = "", suf
     },
     get puffer() { return puffer; },
   };
+}
+
+/** Einstellungen der Handscanner-Erkennung je Gerät (ARCHITEKTUR §5: Präfix/Suffix und Schwellwerte einstellbar). */
+export const HID_STANDARD = Object.freeze({ schwelleMs: 35, minZeichen: 4, praefix: "", suffix: "" });
+export function pruefeHid(w) {
+  const x = { ...HID_STANDARD, ...(w || {}) };
+  const ms = Number(x.schwelleMs), mz = Number(x.minZeichen);
+  return { schwelleMs: Number.isInteger(ms) && ms >= 10 && ms <= 200 ? ms : 35, minZeichen: Number.isInteger(mz) && mz >= 2 && mz <= 20 ? mz : 4,
+    praefix: String(x.praefix || "").slice(0, 10), suffix: String(x.suffix || "").slice(0, 10) };
 }

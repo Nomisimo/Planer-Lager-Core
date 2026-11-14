@@ -139,7 +139,7 @@ Hinter `[x]` kurz notieren: Datum, Repo(s), Testdatei(en). Max. 1 Zeile.
 - [x] C: „Im Browser öffnen“ / „In Desktop-App öffnen“ per Handoff (WEB-13)
 - [x] C: Docker-Stufe baut beide Web-Apps, Image-Build in der Core-CI, BETRIEB.md
 - [x] E2E: Chromium ohne Electron-Brücke als Browser (D-114): WEB-01–10, WEB-03 Browser → Desktop live, WEB-05 keine CSP-Fehler; INT-07 (INT-01–06 Browser + Desktop)
-- [ ] Erste Erkundungsrunde `nutzer-tester` (max. 3 Personas), Funde als BUG-n
+- [x] Erste Erkundungsrunde `nutzer-tester` (max. 3 Personas), Funde als BUG-n
 - [ ] Phasenende: Suiten, CI grün, Abnahme, Beta-Release
 
 ## Phase 17 N – Nutzertests + gleichzeitiges Arbeiten (ZUSATZ.md, ARCHITEKTUR §12)

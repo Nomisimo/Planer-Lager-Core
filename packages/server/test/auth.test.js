@@ -196,3 +196,25 @@ test("BUG-2 Sitzungsprüfung im Browser ohne 401: /api/v1/sitzung antwortet 200 
     assert.equal(mit.json.angemeldet, true);
   } finally { await s.ende(); }
 });
+
+test("WEB-01 Browser-Login mit 2FA und Sperre: zweiter Faktor endet im Cookie, Sperre nach 5 Fehlversuchen gilt auch für art web", async () => {
+  const n = await starteTestServer({ config: { imNetz: true } });
+  try {
+    const admin = await n.als("webchef");
+    const e = await admin("POST", "/api/v1/ich/totp/einrichten", {});
+    await admin("POST", "/api/v1/ich/totp/bestaetigen", { code: totpCode(e.json.geheimnis) });
+    const l = await n.api("POST", "/api/v1/anmelden", { benutzername: "webchef", passwort: PW, art: "web" });
+    assert.equal(l.json.zweiterFaktor, true);
+    const ok = await n.api("POST", "/api/v1/anmelden/totp", { zwischenToken: l.json.zwischenToken, code: totpCode(e.json.geheimnis), art: "web" });
+    assert.equal(ok.status, 200);
+    assert.equal(ok.json.token, undefined, "Browser bekommt kein Token");
+    assert.match(ok.headers.get("set-cookie"), /lager_sitzung=.*HttpOnly.*SameSite=Lax/);
+    assert.ok(ok.json.csrf);
+    // R-08: 5 Fehlversuche sperren, auch im Browser
+    await legeBenutzerAn(n.db.pool, { benutzername: "websperre", passwort: PW, rolle: "Lager / Techniker" });
+    for (let i = 0; i < 5; i++) await n.api("POST", "/api/v1/anmelden", { benutzername: "websperre", passwort: "falsch-falsch-1", art: "web" });
+    const gesperrt = await n.api("POST", "/api/v1/anmelden", { benutzername: "websperre", passwort: PW, art: "web" });
+    assert.notEqual(gesperrt.status, 200);
+    assert.equal(gesperrt.headers.get("set-cookie"), null);
+  } finally { await n.ende(); }
+});

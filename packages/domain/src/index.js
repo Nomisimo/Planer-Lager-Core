@@ -22,3 +22,5 @@ export * from "./station.js";
 export * from "./planung.js";
 export * from "./plansymbole.js";
 export * from "./datenschutz.js";
+export * from "./inventur.js";
+export * from "./reparatur.js";

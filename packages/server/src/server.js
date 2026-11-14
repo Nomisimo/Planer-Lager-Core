@@ -20,8 +20,9 @@ import { uebersichtModul } from "./uebersicht.js";
 import { systemModul, beimStart } from "./system.js";
 import { autoSicherung } from "./sicherung.js";
 import { plansymboleModul, beobachteArtikel } from "./plansymbole.js";
+import { inventurModul } from "./inventur.js";
 
-export const MODULE = [authModul, verwaltungModul, stammdatenModul, etikettenModul, kundenModul, projekteModul, angeboteModul, scanModul, scannerModul, zonenModul, stationModul, zeitModul, uebersichtModul, systemModul, plansymboleModul, statischModul];
+export const MODULE = [authModul, verwaltungModul, stammdatenModul, etikettenModul, kundenModul, projekteModul, angeboteModul, scanModul, scannerModul, zonenModul, stationModul, zeitModul, uebersichtModul, systemModul, plansymboleModul, inventurModul, statischModul];
 
 /**
  * @param {{pool: import("pg").Pool, config?: object, migrieren?: boolean}} opt

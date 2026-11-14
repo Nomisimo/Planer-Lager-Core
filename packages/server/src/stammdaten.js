@@ -16,9 +16,9 @@ const NAECHSTE_SQL = `CASE WHEN a.pruefpflichtig AND g.letzte_pruefung IS NOT NU
 
 const ARTIKEL_FELDER = ["name", "kategorie_id", "hersteller", "beschreibung", "aktiv", "preis_tag", "folgetag_prozent", "verkaeuflich",
   "verkaufspreis", "mengenschritt", "ist_case", "inhalt_artikel_id", "verpackungseinheit", "ist_leistung", "zeitmodell", "preis_erweitert",
-  "verbrauch", "bestand", "mindestbestand", "einheit", "pruefpflichtig", "pruef_intervall_monate", "plansymbol", "laenge_m", "farbcode"];
+  "verbrauch", "bestand", "mindestbestand", "einheit", "pruefpflichtig", "pruef_intervall_monate", "plansymbol", "laenge_m", "farbcode", "wartung_intervall_monate", "wartung_text"];
 
-const TEXT_PFLICHT = new Set(["hersteller", "beschreibung", "einheit", "plansymbol", "farbcode", "seriennummer", "alte_pruef_id", "notizen"]);
+const TEXT_PFLICHT = new Set(["wartung_text", "hersteller", "beschreibung", "einheit", "plansymbol", "farbcode", "seriennummer", "alte_pruef_id", "notizen"]);
 /** Nimmt nur bekannte Felder; leere Eingaben werden NULL, bei Textfeldern ohne NULL leerer Text. */
 const nurFelder = (body, felder) => Object.fromEntries(felder.filter((f) => body && f in body)
   .map((f) => [f, body[f] === "" || body[f] == null ? (TEXT_PFLICHT.has(f) ? "" : null) : body[f]]));
@@ -198,7 +198,7 @@ export function stammdatenModul(router) {
     return { zeilen: rows };
   });
   const ladeGeraet = async (db, where, wert) => {
-    const { rows: [g] } = await db.query(`SELECT g.*, a.name AS artikel, a.pruefpflichtig, a.pruef_intervall_monate, a.ist_case, a.verpackungseinheit,
+    const { rows: [g] } = await db.query(`SELECT g.*, a.name AS artikel, a.pruefpflichtig, a.pruef_intervall_monate, a.wartung_intervall_monate, a.wartung_text, a.ist_case, a.verpackungseinheit,
         a.inhalt_artikel_id, k.name AS kategorie, c.code AS case_code, ${PRUEF_SQL} AS pruefstatus, ${NAECHSTE_SQL} AS naechste_pruefung
       FROM geraet g JOIN artikel a ON a.id = g.artikel_id JOIN kategorie k ON k.id = a.kategorie_id LEFT JOIN geraet c ON c.id = g.case_id WHERE ${where}`, [wert]);
     return g;

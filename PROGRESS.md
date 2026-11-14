@@ -112,7 +112,7 @@ Hinter `[x]` kurz notieren: Datum, Repo(s), Testdatei(en). Max. 1 Zeile.
 - [x] INT-06 Offline: Verbindung trennen, 5 Scans, wiederverbinden → alle gebucht, Reihenfolge stimmt — 14.11., e2e/nahtlos.test.js
 
 ## Phase 13 – SOLL P2
-- [ ] FA-06 Inventur (M) · [ ] FA-07 Reparatur/Wartung (M) · [ ] FA-20 Teilrückgabe/Nachpacken (M)
+- [x] FA-06 Inventur (M, 14.11.) · [x] FA-07 Reparatur/Wartung (M, 14.11.) · [ ] FA-20 Teilrückgabe/Nachpacken (M)
 - [ ] FA-21 Lieferschein + Rückgabeprotokoll PDF (C+M) · [ ] FA-37 Personalplanung (P) · [ ] FA-38 Fahrzeuge (P)
 - [ ] FA-55 Änderungsprotokoll (C) · [x] R-19 SOLL + T-23 Teil 2 (14.11., mit Phase 2) · [ ] FA-49 SOLL Wiederherstellung in der Oberfläche
 

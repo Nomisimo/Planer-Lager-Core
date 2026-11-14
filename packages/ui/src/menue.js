@@ -24,7 +24,7 @@ export const MENUE = [
     { titel: "Plan-Symbole", pfad: "/plansymbole", bereich: "material", app: "m", icon: "Shapes" },
     { titel: "Ladezonen", pfad: "/zonen", bereich: "zonen", app: "m", icon: "LayoutGrid" },
     { titel: "Code scannen", pfad: "/scan", bereich: "packen", app: "m", icon: "ScanLine", auch: [/^\/projekte\/\d+\/(packen|rueckgabe)$/] },
-    { titel: "Inventur", pfad: "/inventur", bereich: "material", app: "m", icon: "ClipboardList" },
+    { titel: "Inventur", pfad: "/inventur", bereich: "geraete", app: "m", icon: "ClipboardList" },
     { titel: "Reparatur", pfad: "/reparatur", bereich: "geraete", app: "m", icon: "Wrench" },
   ] },
   { gruppe: "Kalkulation", eintraege: [

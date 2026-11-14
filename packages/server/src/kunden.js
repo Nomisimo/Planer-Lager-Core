@@ -103,7 +103,10 @@ export function kundenModul(router) {
       ? (await ctx.pool.query("SELECT id, nummer, name, status, beginn, ende FROM projekt WHERE kunde_id = $1 ORDER BY nummer DESC", [id])).rows : [];
     const angebote = await tabelleDa(ctx.pool, "angebot")
       ? (await ctx.pool.query("SELECT a.id, a.nummer, a.status, a.summe_netto AS summe, p.nummer AS projekt_nummer FROM angebot a JOIN projekt p ON p.id = a.projekt_id WHERE p.kunde_id = $1 ORDER BY a.id DESC", [id])).rows : [];
-    return { ...k, projekte, angebote };
+    const kontakte = (await ctx.pool.query("SELECT * FROM kunde_kontakt WHERE kunde_id = $1 ORDER BY haupt DESC, name", [id])).rows; // FA-28
+    const historie = (await ctx.pool.query(`SELECT h.id, h.art, h.text, h.zeit, h.von, h.von_id, h.kontakt_id, kk.name AS kontakt FROM kunde_historie h
+      LEFT JOIN kunde_kontakt kk ON kk.id = h.kontakt_id WHERE h.kunde_id = $1 ORDER BY h.zeit DESC, h.id DESC LIMIT 200`, [id])).rows;
+    return { ...k, projekte, angebote, kontakte, historie };
   });
   router.post("/api/v1/kunden", K, async (ctx) => {
     const w = sauber(ctx.body);
@@ -161,7 +164,9 @@ export function kundenModul(router) {
     const projekte = (await ctx.pool.query("SELECT id, nummer, name, ort, status, beginn::text, ende::text, notizen FROM projekt WHERE kunde_id = $1 ORDER BY id", [id])).rows;
     const angebote = (await ctx.pool.query("SELECT a.nummer, a.datum::text, a.status, a.betreff, a.summe_netto FROM angebot a JOIN projekt p ON p.id = a.projekt_id WHERE p.kunde_id = $1 ORDER BY a.id", [id])).rows;
     await protokolliere(ctx.pool, "aktion", { benutzer: ctx.nutzer.benutzername, ip: clientIp(ctx), text: `Datenauskunft Kunde ${id}` });
-    const body = JSON.stringify({ erstellt: new Date().toISOString(), kunde: k, projekte, angebote }, null, 2);
+    const ansprechpartner = (await ctx.pool.query("SELECT name, funktion, telefon, email, notiz, haupt FROM kunde_kontakt WHERE kunde_id = $1 ORDER BY id", [id])).rows;
+    const historie = (await ctx.pool.query("SELECT art, text, zeit, von FROM kunde_historie WHERE kunde_id = $1 ORDER BY zeit", [id])).rows;
+    const body = JSON.stringify({ erstellt: new Date().toISOString(), kunde: k, ansprechpartner, historie, projekte, angebote }, null, 2);
     ctx.res.writeHead(200, { "Content-Type": "application/json; charset=utf-8", "Content-Disposition": `attachment; filename="Datenauskunft-Kunde-${id}.json"`, "Cache-Control": "no-store" });
     ctx.res.end(body);
   });
@@ -175,6 +180,8 @@ export function kundenModul(router) {
     const a = anonymisiert(id);
     const sp = Object.keys(a);
     await c.query(`UPDATE kunde SET ${sp.map((k, i) => `${k} = $${i + 1}`).join(", ")}, anonymisiert = now(), version = version + 1 WHERE id = $${sp.length + 1}`, [...sp.map((k) => a[k]), id]);
+    await c.query("DELETE FROM kunde_historie WHERE kunde_id = $1", [id]); // FA-28: Kommunikation und Ansprechpartner sind Personendaten
+    await c.query("DELETE FROM kunde_kontakt WHERE kunde_id = $1", [id]);
     await protokolliere(c, "aktion", { benutzer: ctx.nutzer.benutzername, ip: clientIp(ctx), text: `Kunde ${id} anonymisiert (NFA-03)` });
     ctx.hub?.sende({ typ: "kunde.geaendert", id, bereich: "kunden" });
     return { ok: true, level: "success", text: "Personenbezogene Daten gelöscht. Projekte und Belege bleiben mit der Kundennummer erhalten." };

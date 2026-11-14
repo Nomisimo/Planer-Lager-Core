@@ -12,7 +12,7 @@ after(() => db?.ende());
 // Jede neue CASCADE-Beziehung muss hier bewusst eingetragen werden.
 const ERLAUBTE_KASKADEN = [
   "angebot_fassung.angebot_id", "angebot_position.angebot_id", "aufgabe.projekt_id", "etikett_code.bestellung_id",
-  "handoff.benutzer_id", "inventur_scan.inventur_id", "projekt_datei.projekt_id", "rechnung_position.rechnung_id", "rechnung_position.zeiteintrag_id", "sitzung.benutzer_id",
+  "handoff.benutzer_id", "inventur_scan.inventur_id", "fahrt_ladung.fahrt_id", "personal_abwesenheit.personal_id", "projekt_datei.projekt_id", "rechnung_position.rechnung_id", "rechnung_position.zeiteintrag_id", "sitzung.benutzer_id",
 ];
 
 test("NFA-06 Fremdschlüssel auf Nachweise sind RESTRICT/SET NULL, Kaskaden nur für Unterteile", async () => {

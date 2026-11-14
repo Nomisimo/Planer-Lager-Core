@@ -113,7 +113,7 @@ Hinter `[x]` kurz notieren: Datum, Repo(s), Testdatei(en). Max. 1 Zeile.
 
 ## Phase 13 – SOLL P2
 - [x] FA-06 Inventur (M, 14.11.) · [x] FA-07 Reparatur/Wartung (M, 14.11.) · [x] FA-20 Teilrückgabe/Nachpacken (M, 14.11.)
-- [x] FA-21 Lieferschein + Rückgabeprotokoll PDF (C+M, 14.11.) · [ ] FA-37 Personalplanung (P) · [ ] FA-38 Fahrzeuge (P)
+- [x] FA-21 Lieferschein + Rückgabeprotokoll PDF (C+M, 14.11.) · [x] FA-37 Personalplanung (C+P, 14.11.) · [x] FA-38 Fahrzeuge (C+P, 14.11.)
 - [ ] FA-55 Änderungsprotokoll (C) · [x] R-19 SOLL + T-23 Teil 2 (14.11., mit Phase 2) · [ ] FA-49 SOLL Wiederherstellung in der Oberfläche
 
 ## Phase 14 – SOLL P3 + Rest

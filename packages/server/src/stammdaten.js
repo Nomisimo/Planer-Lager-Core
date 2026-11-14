@@ -16,7 +16,7 @@ const NAECHSTE_SQL = `CASE WHEN a.pruefpflichtig AND g.letzte_pruefung IS NOT NU
 
 const ARTIKEL_FELDER = ["name", "kategorie_id", "hersteller", "beschreibung", "aktiv", "preis_tag", "folgetag_prozent", "verkaeuflich",
   "verkaufspreis", "mengenschritt", "ist_case", "inhalt_artikel_id", "verpackungseinheit", "ist_leistung", "zeitmodell", "preis_erweitert",
-  "verbrauch", "bestand", "mindestbestand", "einheit", "pruefpflichtig", "pruef_intervall_monate", "plansymbol", "laenge_m", "farbcode", "wartung_intervall_monate", "wartung_text"];
+  "verbrauch", "bestand", "mindestbestand", "einheit", "pruefpflichtig", "pruef_intervall_monate", "plansymbol", "laenge_m", "farbcode", "wartung_intervall_monate", "wartung_text", "gewicht_kg"];
 
 const TEXT_PFLICHT = new Set(["wartung_text", "hersteller", "beschreibung", "einheit", "plansymbol", "farbcode", "seriennummer", "alte_pruef_id", "notizen"]);
 /** Nimmt nur bekannte Felder; leere Eingaben werden NULL, bei Textfeldern ohne NULL leerer Text. */

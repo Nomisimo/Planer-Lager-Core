@@ -24,11 +24,11 @@ export const ART_TITEL = { geraet: "Gerät", case: "Case/Tasche", verbrauch: "Ve
 
 /** Felder, die je Art sichtbar sind (R-71). */
 export const ART_FELDER = {
-  geraet: ["name", "kategorie_id", "hersteller", "beschreibung", "preis_tag", "folgetag_prozent", "verkaeuflich", "verkaufspreis", "mengenschritt", "pruefpflichtig", "pruef_intervall_monate", "plansymbol", "wartung_intervall_monate", "wartung_text", "aktiv"],
-  case: ["name", "kategorie_id", "hersteller", "beschreibung", "preis_tag", "folgetag_prozent", "inhalt_artikel_id", "verpackungseinheit", "pruefpflichtig", "pruef_intervall_monate", "plansymbol", "wartung_intervall_monate", "wartung_text", "aktiv"],
-  verbrauch: ["name", "kategorie_id", "hersteller", "beschreibung", "preis_tag", "verkaeuflich", "verkaufspreis", "bestand", "mindestbestand", "einheit", "aktiv"],
+  geraet: ["name", "kategorie_id", "hersteller", "beschreibung", "preis_tag", "folgetag_prozent", "verkaeuflich", "verkaufspreis", "mengenschritt", "pruefpflichtig", "pruef_intervall_monate", "plansymbol", "wartung_intervall_monate", "wartung_text", "gewicht_kg", "aktiv"],
+  case: ["name", "kategorie_id", "hersteller", "beschreibung", "preis_tag", "folgetag_prozent", "inhalt_artikel_id", "verpackungseinheit", "pruefpflichtig", "pruef_intervall_monate", "plansymbol", "wartung_intervall_monate", "wartung_text", "gewicht_kg", "aktiv"],
+  verbrauch: ["name", "kategorie_id", "hersteller", "beschreibung", "preis_tag", "verkaeuflich", "verkaufspreis", "bestand", "mindestbestand", "einheit", "gewicht_kg", "aktiv"],
   leistung: ["name", "kategorie_id", "beschreibung", "preis_tag", "zeitmodell", "preis_erweitert", "aktiv"],
-  kabel: ["name", "kategorie_id", "hersteller", "beschreibung", "preis_tag", "folgetag_prozent", "laenge_m", "pruefpflichtig", "pruef_intervall_monate", "wartung_intervall_monate", "wartung_text", "aktiv"],
+  kabel: ["name", "kategorie_id", "hersteller", "beschreibung", "preis_tag", "folgetag_prozent", "laenge_m", "pruefpflichtig", "pruef_intervall_monate", "wartung_intervall_monate", "wartung_text", "gewicht_kg", "aktiv"],
 };
 
 /** Art aus vorhandenem Artikel ableiten. */
@@ -66,6 +66,7 @@ export function pruefeArtikel(w) {
   if (w.folgetag_prozent != null && (!Number.isInteger(w.folgetag_prozent) || w.folgetag_prozent < 0 || w.folgetag_prozent > 100)) f.folgetag_prozent = "Folgetag-Prozent muss zwischen 0 und 100 liegen.";
   if (w.pruef_intervall_monate != null && (!Number.isInteger(w.pruef_intervall_monate) || w.pruef_intervall_monate < 1 || w.pruef_intervall_monate > 120)) f.pruef_intervall_monate = "Prüfintervall: 1 bis 120 Monate.";
   if (w.wartung_intervall_monate != null && (!Number.isInteger(w.wartung_intervall_monate) || w.wartung_intervall_monate < 1 || w.wartung_intervall_monate > 120)) f.wartung_intervall_monate = "Wartungsintervall: 1 bis 120 Monate oder leer.";
+  if (w.gewicht_kg != null && w.gewicht_kg !== "" && !(Number(w.gewicht_kg) >= 0)) f.gewicht_kg = "Gewicht in kg ab 0 oder leer.";
   if (w.laenge_m != null && w.laenge_m !== "" && !(Number(w.laenge_m) > 0)) f.laenge_m = "Länge muss größer als 0 m sein.";
   if (w.ist_case && w.inhalt_artikel_id == null && !(w.verpackungseinheit > 0)) f.verpackungseinheit = "Gib an, wie viele Teile in das Case gehören, oder wähle einen Inhalt-Artikel.";
   if (!plansymbolGueltig(w.plansymbol)) f.plansymbol = "Wähle ein Plan-Symbol aus der Liste (oder leer = automatisch).";

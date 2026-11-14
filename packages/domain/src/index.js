@@ -24,3 +24,4 @@ export * from "./plansymbole.js";
 export * from "./datenschutz.js";
 export * from "./inventur.js";
 export * from "./reparatur.js";
+export * from "./ressourcen.js";

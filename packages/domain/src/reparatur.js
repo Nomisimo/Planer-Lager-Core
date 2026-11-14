@@ -21,13 +21,18 @@ export function reparaturWechselFehler(von, nach, { pruefungOk } = {}) {
   return null;
 }
 
+export const WARTUNG_VORLAUF_TAGE = 30;
+
 /**
  * Wartung fällig? Nur für Artikel mit Wartungsintervall.
- * @returns {{status: "keine"|"offen"|"faellig"|"ok", naechste: string|null}}
+ * @returns {{status: "keine"|"offen"|"faellig"|"bald"|"ok", naechste: string|null}}
  */
 export function wartungStatus(artikel, letzteWartung, heute = heuteIso()) {
   if (!artikel?.wartung_intervall_monate) return { status: "keine", naechste: null };
   if (!letzteWartung) return { status: "offen", naechste: null };
   const naechste = plusMonate(letzteWartung, artikel.wartung_intervall_monate);
-  return { status: naechste <= heute ? "faellig" : "ok", naechste };
+  if (naechste <= heute) return { status: "faellig", naechste };
+  // D-93: in den nächsten 30 Tagen fällig = „bald“ (steht schon in der Wartungsliste)
+  const grenze = new Date(`${heute}T12:00:00Z`); grenze.setUTCDate(grenze.getUTCDate() + WARTUNG_VORLAUF_TAGE);
+  return { status: naechste <= grenze.toISOString().slice(0, 10) ? "bald" : "ok", naechste };
 }

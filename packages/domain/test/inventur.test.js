@@ -28,5 +28,7 @@ test("FA-07 Wartungsintervall: fällig nach Ablauf, ohne Intervall keine Wartung
   assert.deepEqual(wartungStatus({}, "2026-01-01", "2026-11-14"), { status: "keine", naechste: null });
   assert.equal(wartungStatus(a, null, "2026-11-14").status, "offen");
   assert.deepEqual(wartungStatus(a, "2026-05-14", "2026-11-14"), { status: "faellig", naechste: "2026-11-14" });
-  assert.equal(wartungStatus(a, "2026-06-01", "2026-11-14").status, "ok");
+  assert.equal(wartungStatus(a, "2026-06-01", "2026-11-14").status, "bald", "in 30 Tagen fällig");
+  assert.equal(wartungStatus(a, "2026-06-14", "2026-11-14").status, "bald", "genau 30 Tage");
+  assert.equal(wartungStatus(a, "2026-06-15", "2026-11-14").status, "ok", "31 Tage");
 });

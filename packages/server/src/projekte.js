@@ -12,9 +12,9 @@ const P = { bereich: "projekte" };
 const FELDER = ["art", "uebergeordnet_id", "gewerk", "name", "kunde_id", "status", "beginn", "ende", "ort", "notizen"];
 const ISO = /^\d{4}-\d{2}-\d{2}$/;
 
-const datenOrdner = (ctx) => path.resolve(ctx.config?.dataDir || "./data");
+export const datenOrdner = (ctx) => path.resolve(ctx.config?.dataDir || "./data");
 /** Pfad innerhalb des Datenordners; alles andere wird abgewiesen (FA-33 „nur aus dem Projektbereich“). */
-function sichererPfad(basis, rel) {
+export function sichererPfad(basis, rel) {
   const voll = path.resolve(basis, rel);
   if (voll !== basis && !voll.startsWith(basis + path.sep)) throw fehler(400, "Ungültiger Pfad. Lade die Seite neu.");
   return voll;
@@ -94,22 +94,24 @@ const LISTE_SQL = `SELECT p.id, p.nummer, p.art, p.name, p.status, p.beginn, p.e
   FROM projekt p JOIN kunde k ON k.id = p.kunde_id LEFT JOIN projekt e ON e.id = p.uebergeordnet_id`;
 
 async function detail(db, p) {
-  const [jobs, aufgaben, dateien, geraete, eltern] = await Promise.all([
+  const [jobs, aufgaben, dateien, geraete, eltern, angebote] = await Promise.all([
     db.query(`${LISTE_SQL} WHERE p.uebergeordnet_id = $1 ORDER BY p.nummer`, [p.id]),
     db.query(`SELECT a.*, b.name AS zugewiesen_name, b.benutzername AS zugewiesen_benutzer FROM aufgabe a LEFT JOIN benutzer b ON b.id = a.zugewiesen_id
       WHERE a.projekt_id = $1 ORDER BY a.erledigt, a.faellig NULLS LAST, a.id`, [p.id]),
     db.query("SELECT id, name, kategorie, beschreibung, groesse, hochgeladen, von FROM projekt_datei WHERE projekt_id = $1 ORDER BY hochgeladen DESC, id DESC", [p.id]),
     db.query("SELECT count(*)::int AS gesamt, count(*) FILTER (WHERE status = 'gepackt')::int AS gepackt FROM geraet WHERE projekt_id = $1", [p.id]),
     p.uebergeordnet_id ? db.query("SELECT id, nummer, name FROM projekt WHERE id = $1", [p.uebergeordnet_id]) : { rows: [] },
+    db.query("SELECT id, nummer, status, datum, gueltig_bis, betreff, fassung, summe_netto FROM angebot WHERE projekt_id = $1 ORDER BY id DESC", [p.id]),
   ]);
   const heute = heuteIso();
   const offen = aufgaben.rows.filter((a) => !a.erledigt);
   return {
     ...p, status_text: PROJEKT_STATUS[p.status], eltern: eltern.rows[0] || null,
-    // FA-29 Kopfkennzahlen. Angebotswert kommt mit den Angeboten (Phase 5).
-    kennzahlen: { beginn: p.beginn, ende: p.ende, angebotswert_netto: 0, geraete: geraete.rows[0].gesamt, gepackt: geraete.rows[0].gepackt,
+    // FA-29 Kopfkennzahlen. Angebotswert netto = versendete + angenommene Angebote (D-54).
+    kennzahlen: { beginn: p.beginn, ende: p.ende,
+      angebotswert_netto: angebote.rows.filter((a) => ["versendet", "angenommen"].includes(a.status)).reduce((s, a) => s + a.summe_netto, 0), geraete: geraete.rows[0].gesamt, gepackt: geraete.rows[0].gepackt,
       aufgaben_offen: offen.length, aufgaben_ueberfaellig: offen.filter((a) => a.faellig && a.faellig < heute).length },
-    jobs: jobs.rows, aufgaben: aufgaben.rows, dateien: dateien.rows, angebote: [], zeiten: [],
+    jobs: jobs.rows, aufgaben: aufgaben.rows, dateien: dateien.rows, angebote: angebote.rows, zeiten: [],
   };
 }
 const ladeProjekt = async (db, where, wert) => (await db.query(`SELECT p.*, k.name AS kunde, k.firma AS kunde_firma FROM projekt p JOIN kunde k ON k.id = p.kunde_id WHERE ${where}`, [wert])).rows[0];
@@ -229,7 +231,7 @@ export function projekteModul(router) {
     const { rows: [p] } = await ctx.pool.query("SELECT nummer, ordner FROM projekt WHERE id = $1", [id]);
     if (!p) throw nichtGefunden("Dieses Projekt");
     try { await ctx.pool.query("DELETE FROM projekt WHERE id = $1", [id]); }
-    catch (e) { throw dbFehler(e, { verknuepft: `${p.nummer} hat noch Jobs, Material oder Verlauf und kann nicht gelöscht werden. Setze es stattdessen auf „Storniert“.` }); }
+    catch (e) { throw dbFehler(e, { verknuepft: `${p.nummer} hat noch Jobs, Angebote, Material oder Verlauf und kann nicht gelöscht werden. Setze es stattdessen auf „Storniert“.` }); }
     if (p.ordner) await fsp.rm(sichererPfad(datenOrdner(ctx), p.ordner), { recursive: true, force: true });
     ctx.hub?.sende({ typ: "projekt.geaendert", id, bereich: "projekte" });
     return { ok: true, level: "success", text: `${p.nummer} gelöscht.` };

@@ -100,7 +100,7 @@ export function kundenModul(router) {
     const projekte = await tabelleDa(ctx.pool, "projekt")
       ? (await ctx.pool.query("SELECT id, nummer, name, status, beginn, ende FROM projekt WHERE kunde_id = $1 ORDER BY nummer DESC", [id])).rows : [];
     const angebote = await tabelleDa(ctx.pool, "angebot")
-      ? (await ctx.pool.query("SELECT a.id, a.nummer, a.status, a.summe, p.nummer AS projekt_nummer FROM angebot a JOIN projekt p ON p.id = a.projekt_id WHERE p.kunde_id = $1 ORDER BY a.id DESC", [id])).rows : [];
+      ? (await ctx.pool.query("SELECT a.id, a.nummer, a.status, a.summe_netto AS summe, p.nummer AS projekt_nummer FROM angebot a JOIN projekt p ON p.id = a.projekt_id WHERE p.kunde_id = $1 ORDER BY a.id DESC", [id])).rows : [];
     return { ...k, projekte, angebote };
   });
   router.post("/api/v1/kunden", K, async (ctx) => {

@@ -10,8 +10,9 @@ import { stammdatenModul } from "./stammdaten.js";
 import { kundenModul } from "./kunden.js";
 import { etikettenModul } from "./etiketten.js";
 import { projekteModul } from "./projekte.js";
+import { angeboteModul } from "./angebote.js";
 
-export const MODULE = [authModul, verwaltungModul, stammdatenModul, etikettenModul, kundenModul, projekteModul, statischModul];
+export const MODULE = [authModul, verwaltungModul, stammdatenModul, etikettenModul, kundenModul, projekteModul, angeboteModul, statischModul];
 
 /**
  * @param {{pool: import("pg").Pool, config?: object, migrieren?: boolean}} opt

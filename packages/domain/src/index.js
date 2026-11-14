@@ -15,3 +15,4 @@ export * from "./projekt.js";
 export * from "./barcode.js";
 export * from "./kabel.js";
 export * from "./etiketten.js";
+export * from "./angebot.js";

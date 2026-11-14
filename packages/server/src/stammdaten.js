@@ -81,6 +81,8 @@ export function stammdatenModul(router) {
     const { rows } = await ctx.pool.query(`SELECT a.*, k.name AS kategorie, k.praefix,
         count(g.id) FILTER (WHERE g.status NOT IN ('ausgemustert','verkauft'))::int AS geraete,
         count(g.id) FILTER (WHERE g.status IN ('lager','zugeordnet','gepackt'))::int AS einsatzfaehig,
+        (SELECT coalesce(sum(r.menge), 0)::float8 FROM reservierung r WHERE r.artikel_id = a.id
+          AND (r.bis IS NULL OR r.bis >= (now() AT TIME ZONE 'Europe/Berlin')::date)) AS reserviert,
         count(*) OVER()::int AS gesamt
       FROM artikel a JOIN kategorie k ON k.id = a.kategorie_id LEFT JOIN geraet g ON g.artikel_id = a.id
       WHERE ($1::text IS NULL OR a.name ILIKE '%' || $1 || '%' OR a.hersteller ILIKE '%' || $1 || '%' OR k.name ILIKE '%' || $1 || '%')

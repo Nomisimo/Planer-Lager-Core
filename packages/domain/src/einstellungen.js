@@ -4,6 +4,8 @@
 export const EINSTELLUNGEN_STANDARD = Object.freeze({
   firma: { name: "", strasse: "", plz: "", ort: "", telefon: "", email: "", web: "", ust_id: "", iban: "", bic: "", bank: "" },
   folgetag_prozent: 50,
+  kleinunternehmer: false,
+  ust_satz: 19,
   tag_stunden_standard: 8,
   tag_stunden_erweitert: 10,
   zonen_auto: true,
@@ -27,6 +29,8 @@ const PRUEFUNG = {
   tag_stunden_standard: [ZAHL(1, 24), "Stunden pro Tag (Standard) müssen zwischen 1 und 24 liegen."],
   tag_stunden_erweitert: [ZAHL(1, 24), "Stunden pro Tag (erweitert) müssen zwischen 1 und 24 liegen."],
   zonen_auto: [(v) => typeof v === "boolean", "Automatische Zonen ist ein Ja/Nein-Wert."],
+  kleinunternehmer: [(v) => typeof v === "boolean", "Kleinunternehmer ist ein Ja/Nein-Wert."],
+  ust_satz: [(v) => typeof v === "number" && v >= 0 && v <= 99 && Math.round(v * 100) === v * 100, "Umsatzsteuer bitte als Prozent von 0 bis 99 angeben, z. B. 19."],
   angebot_gueltig_tage: [ZAHL(1, 365), "Angebote müssen 1 bis 365 Tage gültig sein."],
   zeit_prozent_planung: [ZAHL(0, 100), "Planungsanteil muss zwischen 0 und 100 % liegen."],
   zeit_basis_stundensatz: [ZAHL(0, 10_000_000), "Stundensatz muss ein Betrag ab 0 sein."],

@@ -1,0 +1,9 @@
+{
+  "name": "@lager/shell",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Gemeinsamer Electron-Hauptprozess und Preload beider Apps (Fenster, Splash, Deep-Links, Single-Instance)",
+  "main": "src/main.js",
+  "exports": { ".": "./src/main.js", "./*": "./src/*" }
+}

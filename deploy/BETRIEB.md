@@ -56,3 +56,8 @@ Ein zentraler Server für beide Apps und die Arbeitsplatz-Browser. Bestandteile 
 - Update: `git pull && docker compose up -d --build`. Migrationen laufen beim Start automatisch.
 - Logs: `docker compose logs -f server`.
 - Sicherheits-Check auch auf der Kommandozeile: `docker compose exec server node packages/server/src/cli.js sicherheitscheck`.
+
+## Benachrichtigungen per E-Mail (FA-40)
+Ohne Einstellung erscheinen Fristen, Prüfungen, Wartung und Überbuchungen nur in der App (Glocke oben rechts).
+Für E-Mails in `.env` `SMTP_HOST`, `SMTP_PORT`, `SMTP_TLS` (`direkt` für Port 465, `starttls` für 587), `SMTP_BENUTZER`, `SMTP_PASSWORT` und `SMTP_VON` eintragen und `docker compose up -d` ausführen.
+E-Mails gehen an die Adresse im Benutzerkonto; jeder kann sie in der Glocke ausschalten. Der Lauf ist stündlich (`LAGER_HINTERGRUND_MINUTEN`, 0 = aus).

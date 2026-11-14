@@ -12,6 +12,7 @@ export const MENUE = [
     { titel: "Projekte", pfad: "/projekte", bereich: "projekte", app: "p", icon: "FolderKanban" },
     { titel: "Kalender", pfad: "/kalender", bereich: "projekte", app: "p", icon: "CalendarDays" },
     { titel: "Aufgaben", pfad: "/aufgaben", bereich: "projekte", app: "p", icon: "ListChecks" },
+    { titel: "Projektvorlagen", pfad: "/vorlagen", bereich: "projekte", app: "p", icon: "Copy" },
     { titel: "Angebote", pfad: "/angebote", bereich: "angebote", app: "p", icon: "FileText" },
     { titel: "Planungszeit", pfad: "/zeiterfassung", bereich: "zeiten", app: "p", icon: "Timer" },
     { titel: "Personal", pfad: "/personal", bereich: "projekte", app: "p", icon: "UserCog" },

@@ -1,4 +1,6 @@
 // Angebote (3.11, 4.2, FA-41–FA-44), Verfügbarkeit (R-24–R-27), Packliste (R-51–R-54). Geld in Cent.
+import { createHash } from "node:crypto";
+import { benachrichtige, benutzerMitRecht } from "./benachrichtigungen.js";
 import { lagerorteFuer } from "./lagerorte.js";
 import fsp from "node:fs/promises";
 import path from "node:path";
@@ -310,6 +312,29 @@ const sendePdf = (ctx, puffer, name, inline = true) => {
   ctx.res.end(puffer);
 };
 
+/** Neues Angebot zum Projekt; optional mit Positionen (FA-39 Vorlage). */
+export async function legeAngebotAn(ctx, c, projektId, { betreff = "", positionen = null } = {}) {
+  const { rows: [p] } = Number.isInteger(projektId) && projektId > 0 ? await c.query("SELECT id, nummer, name, beginn, ende, status FROM projekt WHERE id = $1", [projektId]) : { rows: [] };
+  if (!p) throw fehler(400, "Wähle ein Projekt für das Angebot.", { felder: { projekt_id: "Projekt wählen" } });
+  if (["abgeschlossen", "storniert"].includes(p.status)) throw fehler(409, `${p.nummer} ist „${PROJEKT_STATUS[p.status]}“. Setze das Projekt zuerst zurück, um ein Angebot zu schreiben.`);
+  const e = await ladeEinstellungen(c);
+  const nummer = await neueNummer(c);
+  const { rows: [{ heute, bis }] } = await c.query("SELECT (now() AT TIME ZONE 'Europe/Berlin')::date AS heute, ((now() AT TIME ZONE 'Europe/Berlin')::date + $1::int) AS bis", [e.angebot_gueltig_tage]);
+  const { rows: [a] } = await c.query(`INSERT INTO angebot (nummer, projekt_id, datum, gueltig_bis, betreff, einleitung, schlusstext, tage, folgetag_prozent, kleinunternehmer, ust_satz, erstellt_von)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING id, nummer`,
+  [nummer, p.id, heute, bis, String(betreff || `${p.name}`).trim(), e.angebot_text_einleitung, e.angebot_text_schluss, projektTage(p),
+    e.folgetag_prozent, e.kleinunternehmer, e.ust_satz, ctx.nutzer?.benutzername || ""]);
+  const pos = await pruefePositionen(c, positionen);
+  if (pos?.length) {
+    await schreibePositionen(c, a.id, pos);
+    const { rows: [k] } = await c.query("SELECT *, rabatt_prozent::float8 AS rabatt_prozent, ust_satz::float8 AS ust_satz FROM angebot WHERE id = $1", [a.id]);
+    const { rows: alle } = await c.query("SELECT art, menge::float8 AS menge, tage, einzelpreis, folgetag_prozent FROM angebot_position WHERE angebot_id = $1", [a.id]);
+    await c.query("UPDATE angebot SET summe_netto = $1 WHERE id = $2", [summen(k, alle).netto, a.id]);
+  }
+  ctx.hub?.sende({ typ: "angebot.geaendert", id: a.id, projekt_id: p.id, bereich: "angebote" });
+  return a;
+}
+
 export function angeboteModul(router) {
   router.get("/api/v1/angebote", { ...A, stufe: "r" }, async (ctx) => {
     const { q, status, projekt_id: projektId } = ctx.query;
@@ -326,18 +351,7 @@ export function angeboteModul(router) {
   router.get("/api/v1/angebote/:id", { ...A, stufe: "r" }, async (ctx) => ladeAngebot(ctx.pool, idParam(ctx.params.id, "Dieses Angebot")));
 
   router.post("/api/v1/angebote", A, async (ctx) => transaktion(ctx.pool, async (c) => {
-    const projektId = Number(ctx.body?.projekt_id);
-    const { rows: [p] } = Number.isInteger(projektId) && projektId > 0 ? await c.query("SELECT id, nummer, name, beginn, ende, status FROM projekt WHERE id = $1", [projektId]) : { rows: [] };
-    if (!p) throw fehler(400, "Wähle ein Projekt für das Angebot.", { felder: { projekt_id: "Projekt wählen" } });
-    if (["abgeschlossen", "storniert"].includes(p.status)) throw fehler(409, `${p.nummer} ist „${PROJEKT_STATUS[p.status]}“. Setze das Projekt zuerst zurück, um ein Angebot zu schreiben.`);
-    const e = await ladeEinstellungen(c);
-    const nummer = await neueNummer(c);
-    const { rows: [{ heute, bis }] } = await c.query("SELECT (now() AT TIME ZONE 'Europe/Berlin')::date AS heute, ((now() AT TIME ZONE 'Europe/Berlin')::date + $1::int) AS bis", [e.angebot_gueltig_tage]);
-    const { rows: [a] } = await c.query(`INSERT INTO angebot (nummer, projekt_id, datum, gueltig_bis, betreff, einleitung, schlusstext, tage, folgetag_prozent, kleinunternehmer, ust_satz, erstellt_von)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING id, nummer`,
-    [nummer, p.id, heute, bis, String(ctx.body?.betreff || `${p.name}`).trim(), e.angebot_text_einleitung, e.angebot_text_schluss, projektTage(p),
-      e.folgetag_prozent, e.kleinunternehmer, e.ust_satz, ctx.nutzer?.benutzername || ""]);
-    ctx.hub?.sende({ typ: "angebot.geaendert", id: a.id, projekt_id: p.id, bereich: "angebote" });
+    const a = await legeAngebotAn(ctx, c, Number(ctx.body?.projekt_id), { betreff: ctx.body?.betreff });
     return { ok: true, level: "success", text: `Angebot ${a.nummer} angelegt.`, angebot: a };
   }));
 
@@ -361,6 +375,11 @@ export function angeboteModul(router) {
       const neu = await ladeAngebot(c, id);
       const hinweise = neu.positionen.filter((p) => p.hinweis).map((p) => `${p.bezeichnung}: ${p.hinweis}`);
       ctx.hub?.sende({ typ: "angebot.geaendert", id, version: a.version, projekt_id: alt.projekt_id, bereich: "angebote" });
+      if (hinweise.length) { // FA-40: Überbuchung an alle mit Recht „Angebote ändern“ (außer dem, der gerade speichert)
+        const an = (await benutzerMitRecht(c, "angebote")).filter((b) => b !== ctx.nutzer.id);
+        await benachrichtige(c, an, { art: "ueberbuchung", schluessel: `ueberbuchung-${id}-${createHash("sha1").update(hinweise.join("|")).digest("hex").slice(0, 12)}`,
+          titel: `Überbuchung in ${alt.nummer}`, text: hinweise.join("\n"), pfad: `/angebote/${id}` }, { mail: !!ctx.config?.smtp, hub: ctx.hub });
+      }
       return { ok: true, level: hinweise.length ? "warning" : "success", text: hinweise.length ? `Gespeichert. ${hinweise.length} Position(en) überbucht.` : "Gespeichert.", hinweise, angebot: neu };
     } catch (e) { throw dbFehler(e); }
   }));

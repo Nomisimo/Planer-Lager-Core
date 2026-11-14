@@ -1,5 +1,7 @@
 // Komplett verdrahteter Lager-Server: Module + Zugangsprüfung + Grunddaten.
 import { aenderungenModul } from "./aenderungen.js";
+import { benachrichtigungenModul, starteHintergrund } from "./benachrichtigungen.js";
+import { vorlagenModul } from "./vorlagen.js";
 import { kontakteModul } from "./kontakte.js";
 import { lagerorteModul } from "./lagerorte.js";
 import { schaedenModul } from "./schaeden.js";
@@ -28,7 +30,7 @@ import { inventurModul } from "./inventur.js";
 import { durchgaengeModul } from "./durchgaenge.js";
 import { ressourcenModul } from "./ressourcen.js";
 
-export const MODULE = [authModul, verwaltungModul, stammdatenModul, etikettenModul, kundenModul, projekteModul, angeboteModul, scanModul, scannerModul, zonenModul, stationModul, zeitModul, uebersichtModul, systemModul, plansymboleModul, inventurModul, durchgaengeModul, ressourcenModul, aenderungenModul, lagerorteModul, schaedenModul, kontakteModul, statischModul];
+export const MODULE = [authModul, verwaltungModul, stammdatenModul, etikettenModul, kundenModul, projekteModul, angeboteModul, scanModul, scannerModul, zonenModul, stationModul, zeitModul, uebersichtModul, systemModul, plansymboleModul, inventurModul, durchgaengeModul, ressourcenModul, aenderungenModul, lagerorteModul, schaedenModul, kontakteModul, benachrichtigungenModul, vorlagenModul, statischModul];
 
 /**
  * @param {{pool: import("pg").Pool, config?: object, migrieren?: boolean}} opt
@@ -43,13 +45,15 @@ export async function erstelleLagerServer({ pool, config = {}, migrieren = true 
   beobachteArtikel(hub, pool, config); // FA-53: Symbolbibliothek bei jeder Artikeländerung
   // Netzwerk-Scanner per TCP startet mit dem HTTP-Server und endet mit ihm.
   const gateway = { server: null, port: null };
+  let hintergrund = null;
   app.server.on("listening", () => {
     // FA-49: automatisch sichern, wenn die letzte Sicherung älter als 20 Stunden ist
     if (config.autoSicherung) autoSicherung(pool, config).then((r) => r && console.log(`Automatische Sicherung: ${r.name} – ${r.pruefung.text}`), (e) => console.error(`Automatische Sicherung fehlgeschlagen: ${e.message}`));
+    hintergrund = starteHintergrund(pool, config, hub); // FA-40
     gateway.server = starteTcpGateway({ pool, hub }, { port: config.scannerTcpPort, host: config.scannerTcpHost });
     gateway.server?.on("listening", () => { gateway.port = gateway.server.address().port; });
     gateway.server?.on("error", (e) => console.error(`Scanner-Gateway (TCP) nicht gestartet: ${e.message}`));
   });
-  app.server.on("close", () => { hub.schliesse(); gateway.server?.close(); });
+  app.server.on("close", () => { hub.schliesse(); gateway.server?.close(); hintergrund?.stop(); });
   return { ...app, hub, gateway };
 }

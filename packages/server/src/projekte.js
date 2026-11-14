@@ -1,4 +1,5 @@
 // Projekte/Jobs (3.2, 4.1, R-12–R-14, R-20, FA-29–FA-31, FA-34), Aufgaben (3.4, FA-32), Dateien (3.3, FA-33).
+import { wendeVorlageAn } from "./vorlagen.js";
 import fs from "node:fs";
 import fsp from "node:fs/promises";
 import path from "node:path";
@@ -147,8 +148,10 @@ export function projekteModul(router) {
   /* ── Anlegen / Bearbeiten (FA-30, R-12, R-13) ── */
   router.post("/api/v1/projekte", P, async (ctx) => transaktion(ctx.pool, async (c) => {
     const p = await legeProjektAn(ctx, c, werte(ctx.body));
+    // FA-39: Vorlage gleich mit anwenden
+    const v = ctx.body?.vorlage_id ? await wendeVorlageAn(ctx, c, p.id, idParam(ctx.body.vorlage_id, "Diese Vorlage")) : null;
     ctx.hub?.sende({ typ: "projekt.geaendert", id: p.id, bereich: "projekte" });
-    return { ok: true, level: "success", text: `${p.art === "job" ? "Job" : "Projekt"} ${p.nummer} angelegt.`, projekt: p };
+    return { ok: true, level: v?.ohneRecht ? "warning" : "success", text: `${p.art === "job" ? "Job" : "Projekt"} ${p.nummer} angelegt.${v ? ` ${v.text}` : ""}`, projekt: p };
   }));
   router.put("/api/v1/projekte/:id", P, async (ctx) => transaktion(ctx.pool, async (c) => {
     const id = idParam(ctx.params.id, "Dieses Projekt");
@@ -249,7 +252,7 @@ export function projekteModul(router) {
   /* ── Aufgaben (3.4, FA-32) ── */
   const AUFGABE_SQL = `SELECT a.*, p.nummer, p.name AS projekt, b.name AS zugewiesen_name, b.benutzername AS zugewiesen_benutzer,
       (NOT a.erledigt AND a.faellig < (now() AT TIME ZONE 'Europe/Berlin')::date) AS ueberfaellig
-    FROM aufgabe a JOIN projekt p ON p.id = a.projekt_id LEFT JOIN benutzer b ON b.id = a.zugewiesen_id`;
+    FROM aufgabe a LEFT JOIN projekt p ON p.id = a.projekt_id LEFT JOIN benutzer b ON b.id = a.zugewiesen_id`;
   router.get("/api/v1/aufgaben", { ...P, stufe: "r" }, async (ctx) => {
     const meine = ctx.query.filter !== "alle";
     const erledigte = ctx.query.erledigt === "1";
@@ -277,6 +280,16 @@ export function projekteModul(router) {
       ctx.hub?.sende({ typ: "aufgabe.geaendert", id: a.id, projekt: id, bereich: "projekte" });
       return { ok: true, level: "success", text: "Aufgabe angelegt.", aufgabe: a };
     } catch (e) { throw dbFehler(e, { verknuepft: "Projekt oder Benutzer gibt es nicht (mehr). Lade die Seite neu." }); }
+  });
+  // FA-40: allgemeine Aufgabe ohne Projekt (z. B. Lagerpflege)
+  router.post("/api/v1/aufgaben", P, async (ctx) => {
+    const w = aufgabeWerte(ctx.body || {});
+    try {
+      const { rows: [a] } = await ctx.pool.query(`INSERT INTO aufgabe (text, faellig, zugewiesen_id, von) VALUES ($1, $2, $3, $4) RETURNING *`,
+        [w.text, w.faellig ?? null, w.zugewiesen_id ?? null, ctx.nutzer.benutzername]);
+      ctx.hub?.sende({ typ: "aufgabe.geaendert", id: a.id, bereich: "projekte" });
+      return { ok: true, level: "success", text: "Aufgabe angelegt.", aufgabe: a };
+    } catch (e) { throw dbFehler(e, { verknuepft: "Den gewählten Benutzer gibt es nicht (mehr). Wähle einen anderen." }); }
   });
   router.put("/api/v1/aufgaben/:id", P, async (ctx) => {
     const id = idParam(ctx.params.id, "Diese Aufgabe");

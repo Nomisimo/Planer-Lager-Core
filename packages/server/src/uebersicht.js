@@ -73,7 +73,7 @@ export function uebersichtModul(router) {
     }
     if (sieht(ctx, "projekte")) {
       const { rows } = await db.query(`SELECT a.id, a.text, a.faellig::text AS faellig, a.projekt_id, p.nummer, p.name AS projekt_name,
-          (a.faellig < ${HEUTE}) AS ueberfaellig FROM aufgabe a JOIN projekt p ON p.id = a.projekt_id
+          (a.faellig < ${HEUTE}) AS ueberfaellig FROM aufgabe a LEFT JOIN projekt p ON p.id = a.projekt_id
         WHERE NOT a.erledigt AND a.zugewiesen_id = $1 ORDER BY a.faellig NULLS LAST, a.id LIMIT 20`, [ctx.nutzer.id]);
       r.aufgaben = rows;
     }

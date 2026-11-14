@@ -25,3 +25,4 @@ export * from "./datenschutz.js";
 export * from "./inventur.js";
 export * from "./reparatur.js";
 export * from "./ressourcen.js";
+export * from "./aufgaben.js";

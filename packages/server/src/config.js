@@ -1,4 +1,6 @@
 // Server-Konfiguration aus Umgebungsvariablen (Werte zentral, NFA-07).
+import { smtpAusEnv } from "./mail.js";
+
 export function configAusEnv(env = process.env) {
   const publicUrl = env.PUBLIC_URL || "";
   const https = publicUrl.startsWith("https://");
@@ -23,5 +25,8 @@ export function configAusEnv(env = process.env) {
     autoSicherung: env.LAGER_AUTO_SICHERUNG !== "0",
     absichernBeimStart: env.LAGER_ABSICHERN !== "0",
     neustartErlaubt: env.LAGER_NEUSTART !== "0",
+    // FA-40 / E-5: Benachrichtigungen – Hintergrundlauf (Minuten, 0 = aus) und E-Mail per SMTP_HOST/SMTP_PORT/SMTP_TLS/SMTP_BENUTZER/SMTP_PASSWORT/SMTP_VON
+    hintergrundMinuten: env.LAGER_HINTERGRUND_MINUTEN === undefined ? 60 : Number(env.LAGER_HINTERGRUND_MINUTEN) || 0,
+    smtp: smtpAusEnv(env),
   };
 }

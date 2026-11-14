@@ -1,4 +1,5 @@
 // App-Hülle beider Apps: Anmeldung, Kopfleiste, Seitenmenü (UI-1), Router, Live-Verbindung, Deep-Links, App-Schalter.
+import { Glocke } from "./glocke.jsx";
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { erstelleApi, Live } from "@lager/client";
 import { themaVariablen, THEMEN, DICHTEN, MODI } from "./themen.js";
@@ -262,6 +263,7 @@ export function AppHuelle({ app, seiten, onCode }) {
             </button>
             {zeit.timer && <TimerAnzeige zeit={zeit} navigiere={(p) => (app === "p" ? navigiere(p) : oeffneAndereApp(p))} />}
             <OnlineStatus live={live} />
+            <Glocke />
             <button className="lp-btn lp-btn-geist lp-btn-klein" title="Darstellung" aria-label="Darstellung" onClick={() => setDarstellung(true)}><Icon name="Palette" size={14} /></button>
             <span className="lp-meta" data-testid="benutzer">{nutzer.name || nutzer.benutzername} · {nutzer.rolle}</span>
             <button className="lp-btn lp-btn-geist lp-btn-klein" onClick={abmelden} title="Abmelden" aria-label="Abmelden"><Icon name="LogOut" size={14} /></button>

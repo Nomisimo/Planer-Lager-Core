@@ -290,6 +290,16 @@ export function AppHuelle({ app, seiten, onCode }) {
     return url;
   }, [api, info, pfad]);
 
+  /** WEB-13: Browser → dieselbe Ansicht in der Desktop-App (Deep-Link mit Handoff-Code, falls installiert). */
+  const inDesktopOeffnen = useCallback(async () => {
+    let code = null;
+    try { code = (await api.post("/api/v1/handoff")).code; } catch { /* Desktop-App fragt dann nach Login */ }
+    const link = `${self.id}://${pfad.replace(/^\//, "")}${code ? `?handoff=${encodeURIComponent(code)}` : ""}`;
+    window.__lagerDesktopLink = link; // für Tests: Protokoll-Links lassen sich im Browser nicht beobachten
+    window.location.href = link;
+    return link;
+  }, [api, pfad]);
+
   // UI-3 / ARCHITEKTUR §5: Handscanner (Tastatur) global erkennen, auch ohne Fokus; an die Scan-Seite oder das Codefeld.
   useHandscanner(scanZiel, (code) => { if (kontextRef.current) onCode?.(code, kontextRef.current); });
   // BT-SPP: serieller Scanner geht denselben Weg (nur wenn in den Einstellungen eingeschaltet)
@@ -330,6 +340,7 @@ export function AppHuelle({ app, seiten, onCode }) {
             <button className="lp-btn lp-btn-klein" data-testid="app-schalter" title={`Zum ${andere.titel} wechseln (gleiche Stelle, ohne neue Anmeldung)`} onClick={() => oeffneAndereApp()}>
               <Icon name="ArrowLeftRight" size={14} />{andere.titel}
             </button>
+            {web && <button className="lp-btn lp-btn-geist lp-btn-klein" data-testid="in-desktop" title={`In der Desktop-App öffnen (${self.titel} muss installiert sein)`} aria-label="In Desktop-App öffnen" onClick={inDesktopOeffnen}><Icon name="Monitor" size={14} /></button>}
             {!web && <button className="lp-btn lp-btn-geist lp-btn-klein" data-testid="im-browser" title="Diese Ansicht im Browser öffnen (ohne neue Anmeldung)" aria-label="Im Browser öffnen" onClick={imBrowserOeffnen}><Icon name="Globe" size={14} /></button>}
             {zeit.timer && <TimerAnzeige zeit={zeit} navigiere={(p) => (app === "p" ? navigiere(p) : oeffneAndereApp(p))} />}
             <OnlineStatus live={live} />

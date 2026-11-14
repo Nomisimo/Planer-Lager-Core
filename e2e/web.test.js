@@ -118,6 +118,15 @@ test("WEB-03 WEB-13 Änderung im Browser-Productionplaner erscheint live im Desk
     await seite.getByTestId("benutzer").waitFor();
     assert.equal(new URL(seite.url()).search, "", "Handoff-Code bleibt nicht in der Adresse");
     assert.equal(new URL(seite.url()).hash, "#/geraete");
+    // WEB-13 Gegenrichtung: Browser → Desktop-App per Deep-Link mit Handoff-Code, Desktop löst ihn ein
+    await seite.getByTestId("in-desktop").click();
+    const zurueck = await warteBis(() => seite.evaluate(() => window.__lagerDesktopLink));
+    assert.match(zurueck, /^materialplaner:\/\/geraete\?handoff=/);
+    const m2 = await starteApp("materialplaner", s.url, { argv: [zurueck] });
+    try {
+      await m2.win.getByTestId("benutzer").waitFor({ timeout: 15000 });
+      assert.equal(await m2.win.evaluate(() => location.hash), "#/geraete");
+    } finally { await m2.ende(); }
     // WEB-03: im Browser in den Productionplaner, Projekt umbenennen → Desktop-Materialplaner zeigt es live
     await m.win.evaluate((id) => { location.hash = `#/projekte/${id}/packen`; }, p.id);
     await m.win.getByText("Stadtfest").first().waitFor();

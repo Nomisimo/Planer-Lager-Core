@@ -131,14 +131,14 @@ Hinter `[x]` kurz notieren: Datum, Repo(s), Testdatei(en). Max. 1 Zeile.
 - [x] Release-Builds per CI lauffähig (14.11.: Windows + Mac arm64 + Mac Intel in beiden Apps grün, D-103) – Releases per `gh workflow run release.yml` (ZUSATZ Abschnitt 5; Workflow legt Tag + Release selbst an)
 
 ## Phase 16 W – Browser-Version (ZUSATZ.md, ARCHITEKTUR §10)
-- [ ] C: Plattform-Schicht `packages/ui/src/plattform.js`, alle Aufrufer umgestellt, rg-Test (WEB-11), `kann()` + „Nur in der Desktop-App“ (WEB-08)
-- [ ] C: Web-Anmeldung per Cookie + CSRF, WebSocket über Cookie, Abmelden beider Web-Apps (WEB-01, WEB-09, WEB-12)
-- [ ] C+M+P: Build `ziel: web` → `dist-web/` (gehashte Assets, Manifest, Icon), `npm run build:web` (WEB-14)
-- [ ] C: Auslieferung `/materialplaner/`, `/productionplaner/`, Portal `/` nach Rechten, `WEB_APPS_DIR`, 503 ohne Bundle (WEB-10, WEB-15)
-- [ ] C: Web-Druck mit `@page` (WEB-04), Hash-Route + Rücksprung nach Login (WEB-06, WEB-07), Wechsel zwischen Web-Apps (WEB-02)
-- [ ] C: „Im Browser öffnen“ / „In Desktop-App öffnen“ per Handoff (WEB-13)
-- [ ] C: Docker-Stufe baut beide Web-Apps, Image-Build in der Core-CI, BETRIEB.md
-- [ ] E2E: Test-Electron ohne Preload als „nackter Browser“: WEB-01–10, WEB-03 Browser → Desktop live, WEB-05 keine CSP-Fehler; INT-07 (INT-01–06 Browser + Desktop)
+- [x] C: Plattform-Schicht `packages/ui/src/plattform.js`, alle Aufrufer umgestellt, rg-Test (WEB-11), `kann()` + „Nur in der Desktop-App“ (WEB-08)
+- [x] C: Web-Anmeldung per Cookie + CSRF, WebSocket über Cookie, Abmelden beider Web-Apps (WEB-01, WEB-09, WEB-12)
+- [x] C+M+P: Build `ziel: web` → `dist-web/` (gehashte Assets, Manifest, Icon), `npm run build:web` (WEB-14)
+- [x] C: Auslieferung `/materialplaner/`, `/productionplaner/`, Portal `/` nach Rechten, `WEB_APPS_DIR`, 503 ohne Bundle (WEB-10, WEB-15)
+- [x] C: Web-Druck mit `@page` (WEB-04), Hash-Route + Rücksprung nach Login (WEB-06, WEB-07), Wechsel zwischen Web-Apps (WEB-02)
+- [x] C: „Im Browser öffnen“ / „In Desktop-App öffnen“ per Handoff (WEB-13)
+- [x] C: Docker-Stufe baut beide Web-Apps, Image-Build in der Core-CI, BETRIEB.md
+- [x] E2E: Chromium ohne Electron-Brücke als Browser (D-114): WEB-01–10, WEB-03 Browser → Desktop live, WEB-05 keine CSP-Fehler; INT-07 (INT-01–06 Browser + Desktop)
 - [ ] Erste Erkundungsrunde `nutzer-tester` (max. 3 Personas), Funde als BUG-n
 - [ ] Phasenende: Suiten, CI grün, Abnahme, Beta-Release
 

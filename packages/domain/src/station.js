@@ -32,12 +32,11 @@ export function nachFehlversuch(fehlversuche, jetzt = Date.now()) {
 const ERLAUBT = [
   { m: "*", p: /^\/api\/v1\/station(\/.*)?$/, sperrfrei: true },
   { m: "*", p: /^\/api\/v1\/(abmelden|ich|einstellungen\/basis)$/, sperrfrei: true },
-  { m: "GET", p: /^\/api\/v1\/anzeige\/zonen$/, sperrfrei: true },
+  { m: "GET", p: /^\/api\/v1\/anzeige\/zonen$/, sperrfrei: "anzeige" }, // nur der Anzeige-Bildschirm ohne Entsperren
   { m: "POST", p: /^\/api\/v1\/(scan|vermisst|pruefung)$/ },
   { m: "GET", p: /^\/api\/v1\/projekte\/\d+\/(packstatus|rueckgabe)$/ },
   { m: "POST", p: /^\/api\/v1\/projekte\/\d+\/(verladen|packen-oeffnen)$/ },
   { m: "GET", p: /^\/api\/v1\/geraete\/(\d+|code\/[^/]+)$/ },
-  { m: "GET", p: /^\/api\/v1\/suche\/code$/ },
   { m: "GET", p: /^\/api\/v1\/angebote\/\d+\/(packliste|packliste\.pdf)$/ },
   { m: "GET", p: /^\/api\/v1\/scanner\/auswahl$/ },
 ];
@@ -47,7 +46,7 @@ export function stationDarf(art, methode, pfad) {
   const r = ERLAUBT.find((e) => (e.m === "*" || e.m === methode) && e.p.test(pfad));
   if (!r) return { erlaubt: false, sperrfrei: false };
   if (art === "anzeige" && !r.sperrfrei) return { erlaubt: false, sperrfrei: false };
-  return { erlaubt: true, sperrfrei: !!r.sperrfrei };
+  return { erlaubt: true, sperrfrei: r.sperrfrei === true || (r.sperrfrei === "anzeige" && art === "anzeige") };
 }
 
 /** FA-25 Eingaben Arbeitsplatz. */

@@ -104,6 +104,7 @@ export async function pruefeZugang(ctx) {
     if (!h || !s.zeile.csrf || !gleich(h, s.zeile.csrf)) throw new HttpFehler(403, TEXT.csrf, { ok: false, level: "error", text: TEXT.csrf });
   }
   if (n.sitzungArt === "geraet") await pruefeStation(ctx); // R-11a–d
+  if (ctx.arbeitsplatz && route.auchArbeitsplatz) return; // R-11d: im ERLAUBT-Muster, unabhängig von den Rollenrechten
   if (route.nurAngemeldet) return;
   const stufe = route.stufe || noetigeStufe(methode, ctx.url.pathname);
   if (!darf(n.rechte, route.bereich, stufe)) {

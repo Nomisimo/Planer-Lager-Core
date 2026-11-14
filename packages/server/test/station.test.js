@@ -107,6 +107,21 @@ test("T-16 R-11a R-11b R-11c R-11d R-11f Arbeitsplatz: gesperrt (423), Entsperre
   const { rows: [bw] } = await q("SELECT benutzer, mitarbeiter FROM bewegung ORDER BY id DESC LIMIT 1");
   assert.equal(bw.mitarbeiter, "Lea");
   assert.match(bw.benutzer, /^arbeitsplatz-/);
+  // R-11b: erlaubte Anfrage verlängert, Sperrbildschirm-Seiten nicht
+  await q("UPDATE arbeitsplatz SET letzte_aktivitaet = now() - interval '4 minutes' WHERE id = $1", [a.id]);
+  await f("GET", "/api/v1/station/zustand");
+  assert.ok((await q("SELECT now() - letzte_aktivitaet > interval '3 minutes' AS alt FROM arbeitsplatz WHERE id = $1", [a.id])).rows[0].alt, "Zustand verlängert nicht");
+  assert.equal((await f("GET", `/api/v1/projekte/${projekt.id}/rueckgabe`)).status, 200);
+  assert.ok((await q("SELECT now() - letzte_aktivitaet < interval '5 seconds' AS neu FROM arbeitsplatz WHERE id = $1", [a.id])).rows[0].neu, "erlaubte Anfrage verlängert");
+  // R-11d Zonen-Anzeige am Lagerplatz trotz Rolle ohne Bereich anzeige
+  assert.equal((await f("GET", "/api/v1/anzeige/zonen")).status, 200);
+  // abgeschalteter Platz: verständliche Meldung statt Abmeldung
+  await admin("PUT", `/api/v1/verwaltung/arbeitsplaetze/${a.id}`, { name: "Rückgabe", art: "rueckgabe", funktionstest: true, sperrzeit_minuten: 5, aktiv: false });
+  const aus = await f("GET", "/api/v1/station/zustand");
+  assert.equal(aus.status, 403);
+  assert.match(aus.json.text, /abgeschaltet/);
+  await admin("PUT", `/api/v1/verwaltung/arbeitsplaetze/${a.id}`, { name: "Rückgabe", art: "rueckgabe", funktionstest: true, sperrzeit_minuten: 5, aktiv: true });
+  await f("POST", "/api/v1/station/entsperren", { mitarbeiter: lea.id, pin: "4711" });
   // R-11b: nach Sperrzeit ohne Eingabe gesperrt
   await q("UPDATE arbeitsplatz SET letzte_aktivitaet = now() - interval '6 minutes' WHERE id = $1", [a.id]);
   assert.equal((await f("POST", "/api/v1/scan", { code: "LI-0001", modus: "rueckgabe" })).status, 423);

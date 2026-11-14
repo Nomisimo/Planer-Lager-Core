@@ -141,7 +141,8 @@ export function stationModul(router) {
           const { rows: [a] } = await c.query(`UPDATE arbeitsplatz SET name = $1, art = $2, ladezone_id = $3, sperrzeit_minuten = $4, funktionstest = $5, aktiv = $6,
             mitarbeiter_id = CASE WHEN $6 THEN mitarbeiter_id END WHERE id = $7 RETURNING benutzer_id`, [w.name, w.art, w.ladezone_id, w.sperrzeit_minuten, w.funktionstest, w.aktiv, id]);
           if (!a) throw nichtGefunden("Dieser Arbeitsplatz");
-          await c.query("UPDATE benutzer SET name = $1, aktiv = $2, rolle_id = (SELECT id FROM rolle WHERE name = $3) WHERE id = $4", [w.name, w.aktiv, STATION_ROLLE[w.art], a.benutzer_id]);
+          // Konto bleibt aktiv: „abgeschaltet“ prüft pruefeStation und meldet es verständlich; die Sitzung bleibt fürs Wiedereinschalten.
+          await c.query("UPDATE benutzer SET name = $1, rolle_id = (SELECT id FROM rolle WHERE name = $2) WHERE id = $3", [w.name, STATION_ROLLE[w.art], a.benutzer_id]);
           return { ok: true, level: "success", text: "Arbeitsplatz gespeichert." };
         }
         // Eigenes Konto der Rolle „Lager-Arbeitsplatz“ bzw. „Anzeige (Bildschirm)“; Passwort zufällig, Anmeldung nur per Einrichtungscode.

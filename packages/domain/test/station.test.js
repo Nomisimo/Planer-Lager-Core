@@ -31,6 +31,8 @@ test("R-11d ERLAUBT-Muster: Station-Seiten, Scan/Vermisst/Prüfung, Packen/Rück
   assert.equal(stationDarf("packen", "POST", "/api/v1/scan").sperrfrei, false);
   assert.equal(stationDarf("anzeige", "POST", "/api/v1/scan").erlaubt, false, "Anzeige nur Anzeige");
   assert.equal(stationDarf("anzeige", "GET", "/api/v1/anzeige/zonen").erlaubt, true);
+  assert.equal(stationDarf("anzeige", "GET", "/api/v1/anzeige/zonen").sperrfrei, true);
+  assert.equal(stationDarf("packen", "GET", "/api/v1/anzeige/zonen").sperrfrei, false, "Lagerplatz zeigt Projektdaten erst entsperrt");
 });
 
 test("FA-25 Eingaben Arbeitsplatz/Mitarbeiter: Packplatz braucht Zone, Funktionstest nur Rückgabe, PIN 4–8 Ziffern", () => {

@@ -100,7 +100,7 @@ export function zonenModul(router) {
   });
 
   // FA-24 / R-59 Anzeige-Bildschirm: Zonen mit Projekten und QR-Code
-  router.get("/api/v1/anzeige/zonen", { bereich: "anzeige", stufe: "r" }, async (ctx) => {
+  router.get("/api/v1/anzeige/zonen", { bereich: "anzeige", stufe: "r", auchArbeitsplatz: true }, async (ctx) => { // R-11d: auch Lager-Arbeitsplätze
     const zonen = (await ladeZonen(ctx.pool)).filter((z) => z.aktiv);
     const { rows: projekte } = await ctx.pool.query(`SELECT p.id, p.nummer, p.name, p.status, p.beginn, p.ende, p.ladezone_id, k.name AS kunde, k.firma AS kunde_firma
       FROM projekt p JOIN kunde k ON k.id = p.kunde_id WHERE p.ladezone_id IS NOT NULL AND ${OFFEN} ORDER BY p.zone_seit`);

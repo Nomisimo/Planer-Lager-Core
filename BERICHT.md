@@ -11,6 +11,11 @@ Bekannte Fehler/Grenzen: <…>
 Annahmen: D-xx, D-yy
 ```
 
+## Phase 9 – Planungszeit – 14.11.2026
+Gebaut: Zeiteintrag 3.5 mit Timer je Benutzer (höchstens einer läuft), Herzschlag aus beiden Apps, Stopp bei fremdem Projekt, Nicht-Planungsseite (Packen/Rückgabe, auch im Materialplaner) oder 5 min Leerlauf (R-62–R-64); Timer in der Kopfleiste mit Stopp-Knopf; „Planungszeit starten“ am Projekt; Nachbuchen mit „1:30“/„90“/„1,5“ (R-65); Satz aus Posten „Technische Projektleitung“ (Stunde oder Tagessatz ÷ Stunden) bzw. Ersatz-Stundensatz × Planungsanteil, Integer-Cent (R-66); Seite „Planungszeit“ mit Filter, Summe je Projekt, CSV; Reiter „Zeiten“ im Projekt; jeder Eintrag als Position im Rechnungsentwurf des Projekts.
+Geprüft: Unit+API alle grün (neu: domain planung, server zeit); E2E neu e2e/planungszeit.test.js (T-20) grün. Screenshots: T-20-timer, FA-46-planungszeit.
+Annahmen: D-76–D-79
+
 ## Phase 8 – Ladezonen, Arbeitsplätze, Anzeige – 14.11.2026
 Gebaut: Ladezonen 3.10 mit Verwaltung, Zuweisen/Freigeben, Prioritätsliste, automatischer Verteilung per Knopf und beim Anmelden (R-55–R-58), Seite „Ladezonen“ im Materialplaner; Arbeitsplätze und Mitarbeiter (Verwaltung → Arbeitsplätze) mit Einrichtungscode; Arbeitsplatz-Web unter /station: Sperrbildschirm mit Namen + PIN, 5 falsche PINs → 30 s, Sperrzeit, ERLAUBT-Muster, Packplatz mit Projekt der Zone, Rückgabeplatz mit Tasche und Funktionstest (Tasten 1/2), Mitarbeiter an jeder Buchung; Anzeige-Bildschirm mit QR, live. Netzwerk-Scanner jetzt mit echtem Fremdschlüssel auf den Arbeitsplatz.
 Geprüft: Unit+API alle grün (neu: domain zonen/station, server zonen/station); E2E neu e2e/ladezonen.test.js (T-06, T-21), e2e/arbeitsplatz.test.js (T-16 im echten Browser) grün. Screenshots: FA-23-ladezonen, FA-25-arbeitsplaetze, T-16-sperrbildschirm, R-11g-funktionstest, FA-24-anzeige.

@@ -83,9 +83,9 @@ Hinter `[x]` kurz notieren: Datum, Repo(s), Testdatei(en). Max. 1 Zeile.
 - [x] E2E: T-06 (aus Phase 6 verschoben), T-16, T-21 (e2e/ladezonen.test.js, e2e/arbeitsplatz.test.js)
 
 ## Phase 9 – Planungszeit
-- [ ] C: Zeiteintrag 3.5, R-62, R-63, R-64, R-65, R-66 + Schnittstelle Rechnungsentwurf (Kap. 11)
-- [ ] P: FA-46 Timer, Nachbuchen, Auswertung, CSV
-- [ ] E2E: T-20
+- [x] C: Zeiteintrag 3.5, R-62, R-63, R-64, R-65, R-66 + Schnittstelle Rechnungsentwurf (Kap. 11)
+- [x] P: FA-46 Timer, Nachbuchen, Auswertung, CSV
+- [x] E2E: T-20
 
 ## Phase 10 – Suche, Startseite, Verwaltung, Sicherung
 - [ ] C+M+P: FA-36 Suche (nur was die Rolle sehen darf)

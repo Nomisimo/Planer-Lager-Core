@@ -11,6 +11,13 @@ Bekannte Fehler/Grenzen: <…>
 Annahmen: D-xx, D-yy
 ```
 
+## Phase 4 – Projekte, Jobs, Aufgaben, Dateien, Kalender – 14.11.2026
+Gebaut: 3.2–3.4, Zustand 4.1, R-12, R-13 (Ladezone frei), R-14 (Hook für Verladen), R-20, Projektordner mit Unterordnern, FA-29 (Liste mit Filtern, Detail mit Kopfkennzahlen), FA-30 (Jobs, „Jobs nach Gewerk“), FA-31, FA-32 (auch globale Liste), FA-33 (Upload bis 50 MB, sichere Auslieferung), FA-34 Monatskalender.
+Geprüft: Unit+API alle grün (neu: domain/projekt.test.js, server/projekte.test.js 8 Tests); E2E gesamt 8/8 grün, neu e2e/projekte.test.js (T-19, T-24 in UI + API). Screenshots erzeugt: FA-29, FA-33, FA-34.
+Nicht geprüft: echte Zip-Ausgabe des Projektordners (D-19, folgt mit Sicherung), PDF-Ansicht in der App nur technisch (Blob im Sandbox-Rahmen), nicht optisch.
+Bekannte Fehler/Grenzen: Angebotswert netto = 0 bis Phase 5 (D-54). Reiter „Angebote“ und „Zeiten“ im Projekt sind Platzhalter bis Phase 5/9.
+Annahmen: D-50–D-54
+
 ## Phase 3 – Etiketten, Kabel, Etiketten-Bestellung – 14.11.2026
 Gebaut: eigener Code-128-Encoder, QR (qrcode), Etiketten-Vorlagen 3.13 mit Standard je Art, FA-10 Druck (Seitengröße aus Vorlage, eine Seite je Etikett), FA-11 Designer (ziehen, Größe, drehen, zentrieren, Raster 0,5 mm, Vorschau), Kabel 3.12/R-29/R-29a/FA-12, Bestellung R-67–R-70 (PDF + CSV ohne Bindestrich, Lieferung per Scan/Abhaken, Meldung mit Bestellnummer), Zustand 4.4, Kabel-Assistent R-73, R-72 „bestellen“.
 Geprüft: Unit+API alle grün (neu: server/etiketten.test.js 8 Tests, domain/etiketten.test.js); E2E T-01, T-02, T-03, FA-10/11/12, R-72 grün (e2e/etiketten.test.js); Druck im Testmodus als PDF geprüft (2 Seiten à 62×29 mm). Screenshots erzeugt: R-73-kabel-assistent, T-02, T-03, FA-10, FA-11.

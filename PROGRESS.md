@@ -44,12 +44,12 @@ Hinter `[x]` kurz notieren: Datum, Repo(s), Testdatei(en). Max. 1 Zeile.
 - [x] E2E: T-01, T-02, T-03 — 14.11., e2e/etiketten.test.js
 
 ## Phase 4 – Projekte, Jobs, Aufgaben, Dateien, Kalender
-- [ ] C: Projekt/Job 3.2, R-20, Zustände 4.1, R-12, R-13, R-14 (Hook), Projektordner
-- [ ] P: FA-29 Liste + Detail mit Kopfkennzahlen, FA-30 anlegen/bearbeiten/Jobs anlegen, FA-31 duplizieren
-- [ ] C+P: Aufgaben 3.4, FA-32 (inkl. globale Liste)
-- [ ] C+P: Dateien 3.3, FA-33 (Typ/Größe, sichere Auslieferung)
-- [ ] P: FA-34 Kalender
-- [ ] E2E: T-19, T-24
+- [x] C: Projekt/Job 3.2, R-20, Zustände 4.1, R-12, R-13, R-14 (Hook `nachVerladen`), Projektordner — 14.11., C, domain/projekt.test.js, server/projekte.test.js
+- [x] P: FA-29 Liste + Detail mit Kopfkennzahlen, FA-30 anlegen/bearbeiten/Jobs anlegen, FA-31 duplizieren — 14.11., C+P, e2e/projekte.test.js (Angebotswert netto = 0 bis Phase 5)
+- [x] C+P: Aufgaben 3.4, FA-32 (inkl. globale Liste) — 14.11., C+P
+- [x] C+P: Dateien 3.3, FA-33 (Typ/Größe, sichere Auslieferung) — 14.11., C+P
+- [x] P: FA-34 Kalender — 14.11., C+P
+- [x] E2E: T-19, T-24 — 14.11., e2e/projekte.test.js + server/projekte.test.js
 
 ## Phase 5 – Angebote, Verfügbarkeit, Packliste
 - [ ] C: Angebot/Position/Fassung 3.11, Zustand 4.2, Fassungen + PDF-Archiv

@@ -4,5 +4,11 @@
   "private": true,
   "type": "module",
   "main": "src/index.js",
-  "exports": { ".": "./src/index.js", "./*": "./src/*" }
+  "exports": {
+    ".": "./src/index.js",
+    "./*": "./src/*"
+  },
+  "dependencies": {
+    "html5-qrcode": "2.3.8"
+  }
 }

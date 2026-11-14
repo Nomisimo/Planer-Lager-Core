@@ -1,5 +1,6 @@
 // Arbeitsplatz-Web (Spec 2.4, R-11a–g, FA-18, FA-25) und Ladezonen-Anzeige (R-59, FA-24).
 // Läuft im Browser am Lager-Arbeitsplatz bzw. am Anzeige-Bildschirm. Anmeldung einmalig per Einrichtungscode (Geräte-Sitzung).
+import { KameraKnopf } from "./kamera.jsx";
 import { SchadenDialog } from "@lager/ui/schaeden.jsx";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
@@ -81,7 +82,7 @@ function PackPlatz({ zustand }) {
   useLive(["packen", "geraet", "projekt", "zone"], () => d.laden());
   if (!projektId) return <Section titel={`Ladezone ${zustand.arbeitsplatz.ladezone || "–"}`} icon="LayoutGrid">
     <Leerzustand icon="LayoutGrid" text="In dieser Ladezone ist gerade kein Projekt. Weise im Materialplaner unter Ladezonen eines zu oder scanne den Projektcode." />
-    <ScanPanel gross modus="packen" arbeitsplatzId={zustand.arbeitsplatz.id} onErgebnis={(r) => { if (r.weiter && r.projekt) setProjektId(r.projekt.id); }} />
+    <ScanPanel gross kamera={KameraKnopf} modus="packen" arbeitsplatzId={zustand.arbeitsplatz.id} onErgebnis={(r) => { if (r.weiter && r.projekt) setProjektId(r.projekt.id); }} />
   </Section>;
   const st = d.daten;
   return (
@@ -99,7 +100,7 @@ function PackPlatz({ zustand }) {
           {st.vollstaendig && <Badge farbe="#1f6e32" text="#fff">Packliste vollständig</Badge>}
           {st.projekt.gepackt_am && <Badge farbe="#1f6e32" text="#fff">verladen</Badge>}
         </div>}
-        <ScanPanel gross modus="packen" projektId={projektId} angebotId={st?.angebot?.id || null} arbeitsplatzId={zustand.arbeitsplatz.id}
+        <ScanPanel gross kamera={KameraKnopf} modus="packen" projektId={projektId} angebotId={st?.angebot?.id || null} arbeitsplatzId={zustand.arbeitsplatz.id}
           onErgebnis={(r) => { if (r.weiter && r.projekt) setProjektId(r.projekt.id); else d.laden(); }} />
       </Section>
       {st?.angebot && <Section titel="Packliste" icon="ListChecks">
@@ -124,7 +125,7 @@ function RueckgabePlatz({ zustand }) {
   return (
     <>
       <Section titel="Rückgabe" icon="ScanLine" aktionen={<Knopf icon="Camera" onClick={() => setSchaden({ code: letzter })}>Schaden dokumentieren</Knopf>}>
-        <ScanPanel gross modus="rueckgabe" tasche={tasche?.code || null} arbeitsplatzId={zustand.arbeitsplatz.id}
+        <ScanPanel gross kamera={KameraKnopf} modus="rueckgabe" tasche={tasche?.code || null} arbeitsplatzId={zustand.arbeitsplatz.id}
           onErgebnis={(r) => { if (r.tasche) setTasche(r.tasche); if (r.gebucht) setLetzter(r.code); if (zustand.arbeitsplatz.funktionstest && r.gebucht) setTest(r.code); }} />
       </Section>
       {meldung && <Meldung {...meldung} onSchliessen={() => setMeldung(null)} />}

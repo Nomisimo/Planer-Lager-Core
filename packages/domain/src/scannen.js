@@ -100,3 +100,9 @@ export function pruefeHid(w) {
   return { schwelleMs: Number.isInteger(ms) && ms >= 10 && ms <= 200 ? ms : 35, minZeichen: Number.isInteger(mz) && mz >= 2 && mz <= 20 ? mz : 4,
     praefix: String(x.praefix || "").slice(0, 10), suffix: String(x.suffix || "").slice(0, 10) };
 }
+
+/** Kamera-Scan: gleicher Code innerhalb der Sperrzeit zählt nur einmal (die Kamera liest etwa 10× pro Sekunde). */
+export const KAMERA_WIEDERHOLSPERRE_MS = 2500;
+export function neuerTreffer(letzter, code, jetzt) {
+  return !(letzter && letzter.code === code && jetzt - letzter.zeit < KAMERA_WIEDERHOLSPERRE_MS);
+}

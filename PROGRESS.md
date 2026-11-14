@@ -120,7 +120,7 @@ Hinter `[x]` kurz notieren: Datum, Repo(s), Testdatei(en). Max. 1 Zeile.
 - [x] FA-08 Lagerorte (C+M, 14.11.) · [x] FA-09 Schadensdoku (C+M+P, 14.11.) · [~] FA-14 Direktdruck Etikettendrucker (Druckdialog mit Maßen aus Vorlage gebaut, D-46; Test mit echtem Gerät braucht Hardware)
 - [x] FA-26 SOLL Dublettenwarnung manuell (14.11., mit Phase 2) · [x] FA-28 Ansprechpartner + Historie (C+P, 14.11.)
 - [x] FA-39 Projektvorlagen (C+P, 14.11.) · [x] FA-40 Wiederkehrende Aufgaben + Benachrichtigungen (C+P, 14.11.) (E-5: Standard = In-App + E-Mail per SMTP-Env)
-- [ ] Kamera-Scan (FA-15-Teil, html5-qrcode lokal, nur Arbeitsplatz-Web)
+- [x] Kamera-Scan (FA-15-Teil, html5-qrcode lokal, nur Arbeitsplatz-Web)
 - [ ] BT-SPP-Scanner (serialport, M)
 
 ## Phase 15 – Abschluss

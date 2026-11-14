@@ -26,7 +26,8 @@ function piep(level) {
  *   onErgebnis?: (r: any) => void, gross?: boolean, deaktiviert?: string|null, arbeitsplatzId?: number|null}} props
  * arbeitsplatzId: Netzwerk-Scanner, die diesem Arbeitsplatz zugeordnet sind, buchen hier (ARCHITEKTUR §5).
  */
-export function ScanPanel({ modus, projektId = null, angebotId = null, tasche = null, onErgebnis, gross = false, deaktiviert = null, arbeitsplatzId = null }) {
+/** kamera: optionale Komponente ({onCode}) für Kamera-Scan – nur das Arbeitsplatz-Web liefert sie (html5-qrcode). */
+export function ScanPanel({ modus, projektId = null, angebotId = null, tasche = null, onErgebnis, gross = false, deaktiviert = null, arbeitsplatzId = null, kamera: Kamera = null }) {
   const { api, live } = useLager();
   const [code, setCode] = useState("");
   const [verlauf, setVerlauf] = useState([]);
@@ -92,6 +93,7 @@ export function ScanPanel({ modus, projektId = null, angebotId = null, tasche = 
           value={code} disabled={!!deaktiviert} onChange={(e) => setCode(e.target.value)} autoComplete="off" autoFocus
           onBlur={() => { if (!deaktiviert) setTimeout(() => { if (!document.activeElement || document.activeElement === document.body) feld.current?.focus(); }, 0); }} />
         <Knopf art="primaer" type="submit" icon="ScanLine" disabled={!!deaktiviert || !code.trim()}>Buchen</Knopf>
+        {Kamera && !deaktiviert && <Kamera onCode={buche} />}
       </form>
       <div className="lp-zeile" style={{ marginTop: 8, alignItems: "center" }}>
         <label className="lp-scan-ton">

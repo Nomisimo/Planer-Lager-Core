@@ -82,9 +82,9 @@ export async function anmelden(win, benutzername, passwort = PW) {
 }
 
 /** Arbeitsplatz-Browser (Chromium, vorinstalliert) für station-web. Baut station-web vorher, außer E2E_OHNE_BUILD. */
-export async function starteBrowser({ viewport = { width: 1280, height: 800 } } = {}) {
+export async function starteBrowser({ viewport = { width: 1280, height: 800 }, args = [], rechte = [] } = {}) {
   if (!process.env.E2E_OHNE_BUILD) { const { baueStationWeb } = await import(path.join(CORE, "packages", "station-web", "build.js")); await baueStationWeb({ minify: false }); }
-  const browser = await playwright().chromium.launch();
-  const kontext = await browser.newContext({ viewport, locale: "de-DE", timezoneId: "Europe/Berlin" });
+  const browser = await playwright().chromium.launch({ args });
+  const kontext = await browser.newContext({ viewport, locale: "de-DE", timezoneId: "Europe/Berlin", permissions: rechte });
   return { browser, neueSeite: async () => (await browser.newContext({ viewport, locale: "de-DE", timezoneId: "Europe/Berlin" })).newPage(), seite: await kontext.newPage(), ende: () => browser.close() };
 }

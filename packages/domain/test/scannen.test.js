@@ -56,3 +56,11 @@ test("ARCHITEKTUR §5 Handscanner-Einstellungen: Schwellwert, Mindestlänge, Pr�
   assert.equal(pruefeHid({ schwelleMs: 5000 }).schwelleMs, 35);
   assert.equal(pruefeHid({ minZeichen: 1 }).minZeichen, 4);
 });
+
+test("FA-15 Kamera-Scan: Wiederholsperre bucht denselben Code nur einmal, anderer Code sofort", async () => {
+  const { neuerTreffer } = await import("../src/scannen.js");
+  assert.equal(neuerTreffer(null, "LI-0001", 1000), true);
+  assert.equal(neuerTreffer({ code: "LI-0001", zeit: 1000 }, "LI-0001", 2000), false);
+  assert.equal(neuerTreffer({ code: "LI-0001", zeit: 1000 }, "LI-0002", 1100), true);
+  assert.equal(neuerTreffer({ code: "LI-0001", zeit: 1000 }, "LI-0001", 3600), true);
+});

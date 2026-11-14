@@ -42,10 +42,14 @@ export class Hub {
     const cookie = leseCookies(req)[COOKIE];
     if (cookie) await anmelden(cookie);
     const frist = setTimeout(() => { if (!ws.nutzer) ws.close(4401, "Bitte melde dich an."); }, ANMELDE_FRIST_MS);
-    ws.on("message", async (roh) => {
+    // Nachrichten der Reihe nach verarbeiten: „abo“ direkt nach „anmelden“ darf nicht verloren gehen.
+    let kette = Promise.resolve();
+    ws.on("message", (roh) => {
       let m; try { m = JSON.parse(String(roh)); } catch { return; }
-      if (m.typ === "anmelden" && !ws.nutzer) await anmelden(m.token);
-      else if (m.typ === "abo" && ws.nutzer) ws.extra = { ...(ws.extra || {}), ...m.daten }; // z. B. {arbeitsplatz: 3}
+      kette = kette.then(async () => {
+        if (m.typ === "anmelden" && !ws.nutzer) await anmelden(m.token);
+        else if (m.typ === "abo" && ws.nutzer && m.daten && typeof m.daten === "object") ws.extra = { ...(ws.extra || {}), ...m.daten }; // z. B. {arbeitsplatz: 3}
+      }).catch(() => {});
     });
     ws.on("close", () => { clearTimeout(frist); this.clients.delete(ws); });
   }

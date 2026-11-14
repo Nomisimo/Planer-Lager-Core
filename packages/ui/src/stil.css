@@ -117,3 +117,16 @@ a{color:var(--lp-link)}
 .lp-tabelle td.rechts,.lp-angebot-summen span,.lp-angebot-summen strong{white-space:nowrap}
 .lp-warnhinweis{color:var(--lp-text)}
 .lp-warnhinweis::before{content:"⚠ ";color:#b26a00;font-weight:700}
+/* Scannen (FA-15, UI-3) */
+.lp-scanfeld{flex:1 1 260px;font-size:1.15em;padding:10px 12px;min-height:44px}
+.lp-scan-gross .lp-scanfeld{font-size:1.5em;min-height:60px}
+.lp-scan-ergebnis{display:flex;margin-top:12px;border:2px solid;border-radius:8px;overflow:hidden;background:var(--lp-flaeche,transparent)}
+.lp-scan-balken{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-width:110px;padding:10px;color:#fff;font-weight:700;font-size:.85em}
+.lp-scan-text{padding:10px 14px}
+.lp-scan-text ul{margin:6px 0 0;padding-left:18px}
+.lp-scan-text li[data-level="error"]{font-weight:600}
+.lp-scan-gross .lp-scan-text{font-size:1.25em}
+.lp-scan-verlauf{list-style:none;margin:12px 0 0;padding:0;max-height:260px;overflow:auto}
+.lp-scan-verlauf li{display:flex;gap:8px;align-items:center;padding:4px 0;border-bottom:1px solid var(--lp-line2)}
+.lp-fortschritt{height:10px;border-radius:5px;background:var(--lp-line2);overflow:hidden}
+.lp-fortschritt>div{height:100%;background:var(--lp-ok,#2e9d47)}

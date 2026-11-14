@@ -12,8 +12,9 @@ import { etikettenModul } from "./etiketten.js";
 import { projekteModul } from "./projekte.js";
 import { angeboteModul } from "./angebote.js";
 import { scanModul } from "./scannen.js";
+import { scannerModul, starteTcpGateway } from "./scanner.js";
 
-export const MODULE = [authModul, verwaltungModul, stammdatenModul, etikettenModul, kundenModul, projekteModul, angeboteModul, scanModul, statischModul];
+export const MODULE = [authModul, verwaltungModul, stammdatenModul, etikettenModul, kundenModul, projekteModul, angeboteModul, scanModul, scannerModul, statischModul];
 
 /**
  * @param {{pool: import("pg").Pool, config?: object, migrieren?: boolean}} opt
@@ -24,6 +25,13 @@ export async function erstelleLagerServer({ pool, config = {}, migrieren = true 
   const hub = new Hub(pool);
   const app = erstelleApp({ pool, config, hub, module: MODULE, pruefeZugang });
   hub.binde(app.server);
-  app.server.on("close", () => hub.schliesse());
-  return { ...app, hub };
+  // Netzwerk-Scanner per TCP startet mit dem HTTP-Server und endet mit ihm.
+  const gateway = { server: null, port: null };
+  app.server.on("listening", () => {
+    gateway.server = starteTcpGateway({ pool, hub }, { port: config.scannerTcpPort, host: config.scannerTcpHost });
+    gateway.server?.on("listening", () => { gateway.port = gateway.server.address().port; });
+    gateway.server?.on("error", (e) => console.error(`Scanner-Gateway (TCP) nicht gestartet: ${e.message}`));
+  });
+  app.server.on("close", () => { hub.schliesse(); gateway.server?.close(); });
+  return { ...app, hub, gateway };
 }

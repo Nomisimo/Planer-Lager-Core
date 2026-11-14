@@ -60,13 +60,13 @@ Hinter `[x]` kurz notieren: Datum, Repo(s), Testdatei(en). Max. 1 Zeile.
 - [x] E2E: T-04, T-05 — 14.11., e2e/angebote.test.js
 
 ## Phase 6 – Scannen, Packen, Verladen, Scanner
-- [ ] C: Scan-Algorithmus Spec 5.5 komplett (Schritte 1–9, eine Transaktion), R-23 (Schritt 2: R-70 `offeneBestellung` aus server/src/etiketten.js nutzen)
-- [ ] C: Scan-API 7.2 (`/api/scan`, `/api/pruefung`, `/api/vermisst`), FA-19 Status-API
-- [ ] C+M: HID-Scanner-Erkennung (ARCHITEKTUR §5) + UI-3
-- [ ] C: Netzwerk-Scanner-Gateway (TCP + HTTP), Verwaltung „Scanner“, Zuordnung zu Arbeitsplatz
-- [ ] M: FA-15 Scan-Seite, FA-16 globales Codefeld (auch P), FA-17 Packansicht live
-- [ ] C+M: Verladen R-60, R-61 — dabei `nachVerladen` (R-14) aus server/src/projekte.js aufrufen
-- [ ] E2E: T-06, T-07, T-08, T-09, T-10, T-11
+- [x] C: Scan-Algorithmus Spec 5.5 komplett (Schritte 1–9, eine Transaktion), R-23, R-70 im Scan — 14.11., C, server/scannen.test.js (Rückgabe/Tasche R-46 im Kern schon enthalten)
+- [x] C: Scan-API 7.2 (`/api/scan`, `/api/pruefung`, `/api/vermisst`), FA-19 Status-API — 14.11., C, server/scannen.test.js
+- [x] C+M: HID-Scanner-Erkennung (ARCHITEKTUR §5) + UI-3 — 14.11., domain/scannen.test.js, e2e/scannen.test.js
+- [x] C: Netzwerk-Scanner-Gateway (TCP + HTTP), Verwaltung „Scanner“, Zuordnung zu Arbeitsplatz — 14.11., server/scanner.test.js (FK auf Arbeitsplatz folgt Phase 8)
+- [x] M: FA-15 Scan-Seite, FA-16 globales Codefeld (auch P), FA-17 Packansicht live — 14.11., e2e/scannen.test.js
+- [x] C+M: Verladen R-60, R-61 — dabei `nachVerladen` (R-14) aus server/src/projekte.js aufrufen
+- [x] E2E: T-07, T-08, T-09, T-10, T-11 — 14.11., e2e/scannen.test.js (T-06 braucht Ladezonen → Phase 8)
 
 ## Phase 7 – Rückgabe
 - [ ] C: R-46 Taschen, R-47 Funktionstest, R-48, R-49, R-50
@@ -78,7 +78,7 @@ Hinter `[x]` kurz notieren: Datum, Repo(s), Testdatei(en). Max. 1 Zeile.
 - [ ] M: FA-23 Zonen verwalten + Prioritätsliste, FA-24 Anzeige
 - [ ] C: station-web: R-11a, R-11b, R-11c, R-11d, R-11e, R-11f, R-11g, HTTP 423
 - [ ] M: FA-25 Arbeitsplätze + Mitarbeiter verwalten, Kiosk-Modus
-- [ ] E2E: T-16, T-21
+- [ ] E2E: T-06 (aus Phase 6 verschoben), T-16, T-21
 
 ## Phase 9 – Planungszeit
 - [ ] C: Zeiteintrag 3.5, R-62, R-63, R-64, R-65, R-66 + Schnittstelle Rechnungsentwurf (Kap. 11)

@@ -11,6 +11,13 @@ Bekannte Fehler/Grenzen: <…>
 Annahmen: D-xx, D-yy
 ```
 
+## Phase 6 – Scannen, Packen, Verladen, Scanner – 14.11.2026
+Gebaut: Scan-Kern 5.5 (Schritte 1–9 in einer Transaktion, inkl. Rückgabe, vermisst → wieder aufgetaucht, aktive Tasche R-46), R-23 Projektcode → Packansicht, R-70 im Scan, Scan-API 7.2 (scan, pruefung = Funktionstest R-47, vermisst R-48/R-49), FA-19 Packstatus, R-60/R-61 Verladen/Wieder öffnen mit R-14, HID-Erkennung global (UI-3), Netzwerk-Scanner-Gateway TCP + HTTP mit Token, Verwaltung „Scanner“, FA-15 Scan-Seite (Modus, Projekt, Verlauf, Farbe, Ton), FA-17 Packansicht live mit Fortschritt und Verladen, FA-16 Sprung PP → Packansicht.
+Geprüft: Unit+API alle grün (neu: server/scannen.test.js 9, server/scanner.test.js, domain/scannen.test.js 5); E2E neu e2e/scannen.test.js (T-07–T-11, Handscanner, Netzwerk-Scanner) grün. Screenshots: FA-15, FA-17.
+Nicht geprüft: echter Handscanner/Netzwerk-Scanner-Hardware (simuliert per Tastatur, TCP-Client und HTTP), Kamera-Scan (kommt zuletzt).
+Bekannte Fehler/Grenzen: T-06 braucht Ladezonen (Phase 8). Arbeitsplatz-Zuordnung der Scanner ist eine Nummer ohne Fremdschlüssel bis Phase 8. Rückgabeansicht/Funktionstest-Oberfläche folgt in Phase 7 (API fertig).
+Annahmen: D-62–D-65
+
 ## Phase 5 – Angebote, Verfügbarkeit, Packliste – 14.11.2026
 Gebaut: 3.11 Angebot/Position/Fassung (A-JJJJ-NNN), Zustand 4.2 mit Fassungsarchiv (PDF im Projektordner/Angebote), R-24–R-27 Reservierung/Verfügbarkeit (SQL-Sicht `reservierung`, Domain-Formeln), R-28–R-28c Preise und Zeitrechner, FA-41 Editor (Material, Verkauf, Personal mit Zeitrechner, freie Positionen, Reihenfolge, Rabatt, Texte, Gültigkeit), FA-42 Live-Überbuchungshinweis + Reservierungen je Artikel (Materialplaner), FA-43 Statuswechsel mit Projektstatus-Folge (D-55), FA-44 Packliste Bildschirm + PDF mit Set-Vorschlag, FA-45 Kalkulator + Zeitrechner, Kopfkennzahl Angebotswert.
 Geprüft: Unit+API alle grün (neu: domain/angebot.test.js 13, server/angebote.test.js 6 inkl. FA-41-Beispiel 50,00 €); E2E neu e2e/angebote.test.js (T-04, T-05, FA-41–45) grün. Screenshots: FA-41, FA-44, FA-45, T-05.

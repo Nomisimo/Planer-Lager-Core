@@ -7,6 +7,7 @@ import { passeMuster, zerlegeHash, deepLinkZuPfad } from "./router.js";
 import { fehlerText } from "./texte.js";
 import { Icon, Knopf, Feld, Eingabe, Meldung, Modal, Section, Auswahl, Seite } from "./bausteine.jsx";
 import STIL from "./stil.css";
+import { hidErkenner } from "@lager/domain/scannen.js";
 
 export const PROTOKOLL_ERWARTET = 1;
 const APPS = { m: { id: "materialplaner", titel: "Materialplaner" }, p: { id: "productionplaner", titel: "Productionplaner" } };
@@ -139,6 +140,8 @@ export function AppHuelle({ app, seiten, onCode }) {
   const [darstellung, setDarstellung] = useState(false);
   const [menueOffen, setMenueOffen] = useState(false);
   const tokenRef = useRef(null);
+  const scanZiel = useRef(null);
+  const kontextRef = useRef(null);
   const { pfad, query } = useHash();
   const shellApi = window.lagerShell;
 
@@ -212,6 +215,22 @@ export function AppHuelle({ app, seiten, onCode }) {
     return link;
   }, [api, pfad, andere, shellApi]);
 
+  // UI-3 / ARCHITEKTUR §5: Handscanner (Tastatur) global erkennen, auch ohne Fokus; an die Scan-Seite oder das Codefeld.
+  useEffect(() => {
+    const e = hidErkenner();
+    const k = (ev) => {
+      const el = document.activeElement;
+      if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.tagName === "SELECT" || el.isContentEditable)) return; // Feld nimmt die Eingabe selbst
+      const code = e.taste(ev.key, ev.timeStamp || performance.now());
+      if (!code) return;
+      ev.preventDefault();
+      if (scanZiel.current) scanZiel.current(code);
+      else if (kontextRef.current) onCode?.(code, kontextRef.current);
+    };
+    window.addEventListener("keydown", k, true);
+    return () => window.removeEventListener("keydown", k, true);
+  }, [onCode]);
+
   const abmelden = async () => { try { await api.post("/api/v1/abmelden"); } catch { /* egal */ } setzeToken(null); };
   const designAendern = (d) => { setDesign(d); try { localStorage.setItem(DESIGN_KEY, JSON.stringify(d)); } catch { /* privat */ } api?.put("/api/v1/ich/design", d).catch(() => {}); };
 
@@ -230,7 +249,8 @@ export function AppHuelle({ app, seiten, onCode }) {
   // R-05: Seite eines Bereichs ohne Recht → „Zugriff verweigert“ mit Rolle (statt leerer Seite).
   const pfadEintrag = aktiverEintrag(pfad, MENUE.flatMap((g) => g.eintraege));
   const verweigert = pfadEintrag && !alle.some((e) => e.pfad === pfadEintrag.pfad);
-  const kontext = { api, live, nutzer, info, pfad, query, navigiere, oeffneAndereApp, app, firma, setBanner };
+  const kontext = { api, live, nutzer, info, pfad, query, navigiere, oeffneAndereApp, app, firma, setBanner, scanZiel };
+  kontextRef.current = kontext;
 
   return (
     <Ctx.Provider value={kontext}>
@@ -305,4 +325,17 @@ export function useLive(praefix, fn) {
     const ab = [].concat(praefix).map((p) => live.on(p, (e) => ref.current(e)));
     return () => ab.forEach((f) => f());
   }, [live, String(praefix)]);
+}
+
+/** Registriert die aktuelle Seite als Ziel für Handscanner-Eingaben (UI-3). */
+export function useScanZiel(fn) {
+  const { scanZiel } = useLager() || {};
+  const ref = useRef(fn);
+  ref.current = fn;
+  useEffect(() => {
+    if (!scanZiel) return;
+    const f = (c) => ref.current(c);
+    scanZiel.current = f;
+    return () => { if (scanZiel.current === f) scanZiel.current = null; };
+  }, [scanZiel]);
 }

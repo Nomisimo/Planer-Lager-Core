@@ -1,0 +1,1 @@
+Weiter mit Skill `umsetzen`. Lies Planer-Lager-Core/PROGRESS.md und den letzten Eintrag in BERICHT.md, prüfe `git status` in allen drei Repos, starte PostgreSQL (`bash scripts/db-test.sh`) und mach beim ersten offenen Punkt weiter. Nicht fragen, Annahmen in ENTSCHEIDUNGEN.md.

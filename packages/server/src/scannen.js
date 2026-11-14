@@ -56,7 +56,7 @@ export async function scanne(ctx, e) {
     if (!g) {
       const b = await offeneBestellung(c, code);
       if (b) return { ...leer, level: "error", text: `Code ${code} ist bestellt (${b.nummer}), aber noch nicht geliefert. Buche zuerst die Lieferung der Etiketten.` };
-      return { ...leer, level: "error", text: `Code ${code} ist keinem Gerät zugeordnet. Prüfe den Code oder lege das Gerät im Materialplaner an.` };
+      return { ...leer, level: "error", text: `Code ${code} ist keinem Gerät zugeordnet. Prüfe den Code oder lege das Gerät unter Material & Lager → Geräte an. Ohne Rechte dafür: sag der Lagerleitung Bescheid.` };
     }
     // 3. Modus prüfen
     const modus = String(e.modus || "");

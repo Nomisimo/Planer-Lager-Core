@@ -11,7 +11,7 @@ after(async () => { await s.ende(); });
 test("R-01 jede registrierte Route hat einen Bereich oder ist ausdrücklich öffentlich", () => {
   for (const r of s.router.routen) assert.ok(r.oeffentlich || r.bereich, `${r.methode} ${r.pfad} ohne Bereich`);
   const oeffentlich = s.router.routen.filter((r) => r.oeffentlich).map((r) => r.pfad).sort();
-  assert.deepEqual(oeffentlich.filter((p) => p.startsWith("/api")), ["/api/v1/anmelden", "/api/v1/anmelden/totp", "/api/v1/handoff/einloesen", "/api/v1/ping", "/api/v1/scanner/eingang", "/api/v1/station/einrichten"], "Scanner-Eingang und Arbeitsplatz-Einrichtung prüfen ihren Token/Code selbst; Ping liefert nur ok + Zeit");
+  assert.deepEqual(oeffentlich.filter((p) => p.startsWith("/api")), ["/api/v1/anmelden", "/api/v1/anmelden/totp", "/api/v1/handoff/einloesen", "/api/v1/ping", "/api/v1/scanner/eingang", "/api/v1/sitzung", "/api/v1/station/einrichten"], "Scanner-Eingang und Arbeitsplatz-Einrichtung prüfen ihren Token/Code selbst; Ping liefert nur ok + Zeit, Sitzung nur angemeldet ja/nein");
 });
 
 test("R-04 ohne Anmeldung ist nichts erreichbar außer der Anmeldung", async () => {
@@ -181,5 +181,18 @@ test("WEB-09 Web-Sitzung ohne CSRF-Token → 403 mit verständlichem Text, mit T
     assert.match(ohne.json.text, /Sitzung ist nicht mehr gültig\. Lade die Seite neu/);
     const mit = await s.api("PUT", "/api/v1/ich/design", { modus: "dunkel" }, { ...cookie, "X-CSRF-Token": r.json.csrf });
     assert.notEqual(mit.status, 403);
+  } finally { await s.ende(); }
+});
+
+test("BUG-2 Sitzungsprüfung im Browser ohne 401: /api/v1/sitzung antwortet 200 mit angemeldet true/false", async () => {
+  const s = await starteTestServer();
+  try {
+    const ohne = await s.api("GET", "/api/v1/sitzung");
+    assert.equal(ohne.status, 200);
+    assert.equal(ohne.json.angemeldet, false);
+    await legeBenutzerAn(s.db.pool, { benutzername: "web2", passwort: PW, rolle: "Administrator" });
+    const r = await s.api("POST", "/api/v1/anmelden", { benutzername: "web2", passwort: PW, art: "web" });
+    const mit = await s.api("GET", "/api/v1/sitzung", undefined, { Cookie: r.headers.get("set-cookie").split(";")[0] });
+    assert.equal(mit.json.angemeldet, true);
   } finally { await s.ende(); }
 });

@@ -245,6 +245,8 @@ export function authModul(router) {
       [sha(code), ctx.nutzer.id, HANDOFF_SEKUNDEN]);
     return { ok: true, code, gueltigSekunden: HANDOFF_SEKUNDEN };
   });
+  // BUG-2: Browser fragt beim Start, ob eine Cookie-Sitzung besteht – ohne 401 (sonst Konsolenfehler vor dem Login)
+  router.get("/api/v1/sitzung", { oeffentlich: true }, (ctx) => ({ angemeldet: !!ctx.nutzer }));
   router.post("/api/v1/handoff/einloesen", { oeffentlich: true }, async (ctx) => {
     const code = String(ctx.body?.code || "");
     const art = ctx.body?.art === "web" ? "web" : "app"; // web: Cookie-Sitzung für die Browser-Version (WEB-13)

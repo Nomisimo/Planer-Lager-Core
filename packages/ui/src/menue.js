@@ -61,3 +61,15 @@ export function aktiverEintrag(pfad, eintraege) {
   }
   return best;
 }
+
+/**
+ * App-Schalter (BUG-1): dieselbe Stelle in der anderen App, falls es sie dort gibt, sonst deren Übersicht.
+ * @param {string} pfad aktueller Pfad (mit ?query) @param {"m"|"p"} ziel Schlüssel der anderen App
+ */
+export function zielInAndererApp(pfad, ziel) {
+  const nur = String(pfad || "/").split("?")[0];
+  const pack = /^\/projekte\/(\d+)\/(packen|rueckgabe)$/.exec(nur);
+  if (pack) return ziel === "p" ? `/projekte/${pack[1]}` : pfad;
+  const e = aktiverEintrag(nur, MENUE.flatMap((g) => g.eintraege));
+  return e && (e.app === "beide" || e.app === ziel) ? pfad : "/";
+}

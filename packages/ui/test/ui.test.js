@@ -97,3 +97,14 @@ test("UI-7 Status-Badges: Schrift mit mindestens 4,5:1 Kontrast zur Badge-Farbe"
   assert.equal(badgeSchrift("#d8902a", "#fff"), "#1c2127", "Orange bekommt dunkle Schrift");
   assert.equal(badgeSchrift("var(--lp-btn)", "var(--lp-text)"), "var(--lp-text)", "CSS-Variable bleibt");
 });
+
+test("BUG-1 App-Schalter: Seite, die es in der anderen App nicht gibt, führt dort zur Übersicht statt ins Leere", async () => {
+  const { zielInAndererApp } = await import("../src/menue.js");
+  assert.equal(zielInAndererApp("/angebote/7", "m"), "/");
+  assert.equal(zielInAndererApp("/geraete/code/LI-0001", "p"), "/");
+  assert.equal(zielInAndererApp("/projekte/3", "m"), "/");
+  assert.equal(zielInAndererApp("/projekte/3/packen", "p"), "/projekte/3", "Packansicht → Projekt in P");
+  assert.equal(zielInAndererApp("/suche?q=x", "p"), "/suche?q=x");
+  assert.equal(zielInAndererApp("/verwaltung/benutzer", "m"), "/verwaltung/benutzer");
+  assert.equal(zielInAndererApp("/kunden/4", "p"), "/kunden/4");
+});

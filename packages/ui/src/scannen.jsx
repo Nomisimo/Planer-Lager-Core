@@ -117,7 +117,7 @@ export function ScanPanel({ modus, projektId = null, angebotId = null, tasche = 
           </div>
           <div className="lp-scan-text">
             <strong className="lp-scan-haupt">{letzte.text}</strong>
-            <span className="lp-meta"> · {letzte.zeit.toLocaleTimeString("de-DE")}</span>
+            <span className="lp-meta lp-scan-zeit">{letzte.zeit.toLocaleTimeString("de-DE")}</span>
             {letzte.meldungen?.length > 0 && <ul>{letzte.meldungen.map((m, i) => <li key={i} data-level={m.level}>{m.text}</li>)}</ul>}
           </div>
         </div>

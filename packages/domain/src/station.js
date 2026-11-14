@@ -63,7 +63,7 @@ export function pruefeArbeitsplatz(w) {
   if (!Number.isInteger(sperr) || sperr < 1 || sperr > 480) fehler.sperrzeit_minuten = "Sperrzeit in ganzen Minuten von 1 bis 480.";
   const zone = w?.ladezone_id === "" || w?.ladezone_id == null ? null : Number(w.ladezone_id);
   if (zone != null && !Number.isInteger(zone)) fehler.ladezone_id = "Wähle eine Ladezone aus der Liste.";
-  if (art === "packen" && zone == null) fehler.ladezone_id = "Ein Packplatz gehört zu einer Ladezone. Wähle sie aus.";
+  if (art === "packen" && zone == null) fehler.ladezone_id = "Ein Packplatz gehört zu einer Ladezone. Wähle sie aus. Gibt es noch keine, lege sie zuerst unter Material & Lager → Ladezonen an.";
   return { fehler, werte: { name, art, sperrzeit_minuten: sperr, ladezone_id: art === "packen" ? zone : null,
     funktionstest: art === "rueckgabe" && !!w?.funktionstest, aktiv: w?.aktiv !== false } };
 }

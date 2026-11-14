@@ -11,6 +11,17 @@ Bekannte Fehler/Grenzen: <…>
 Annahmen: D-xx, D-yy
 ```
 
+## Phase 16 – Browser-Version – 15.11.2026
+Gebaut: WEB-01 bis WEB-15, INT-07. Plattform-Schicht `plattform.js` (einziger Ort mit `window.lagerShell`), Browser-Login per HttpOnly-Cookie + CSRF, Handoff in beide Richtungen („Im Browser öffnen“, „In Desktop-App öffnen“), `npm run build:web` (index ohne Inline-Script, gehashte Assets, Manifest), Auslieferung `/materialplaner/`, `/productionplaner/` mit no-store + CSP, Portal `/` nach Rechten, 503-Seite bei fehlendem Bundle, Docker-Stufe baut beide Web-Apps, Etikettendruck im Browser über das Druckfenster mit `@page`.
+Geprüft: Unit+API grün, E2E web.test.js (5 Tests, Chromium als Browser + Desktop-Electron gemischt), huelle, nahtlos, etiketten, seriell, arbeitsplatz grün; erste Erkundungsrunde mit 3 Personas (disponentin, lagerhelfer, admin).
+Funde der Erkundung:
+- BUG-1 App-Schalter nahm die Seite mit in die andere App, auch wenn es sie dort nicht gibt („Seite nicht gefunden“). Behoben: Ziel nur, wenn die Seite in der anderen App existiert, sonst Übersicht; Packansicht → Projekt im Productionplaner.
+- BUG-2 Browser-Konsole zeigte vor der Anmeldung einen 401-Fehler (Sitzungsprüfung über /ich). Behoben: öffentliches `/api/v1/sitzung` antwortet 200 mit angemeldet ja/nein.
+- Stolpersteine behoben: Scan-Karte ohne „·“ vor der Uhrzeit, Fehltext bei unbekanntem Code nennt den Menüweg statt „im Materialplaner“, nach dem Verladen nur noch eine Erfolgsmeldung, Packplatz ohne Ladezone verweist auf Material & Lager → Ladezonen, Sicherheits-Check erklärt NODE_ENV für Nicht-Techniker.
+- Offen (beobachtet, nicht nachgestellt): Angebotsposition schien nach Browser-Zurück verloren; wird in Phase 17 mit GLEICH (Eingaben behalten) und NUTZER-01 gezielt geprüft.
+Nicht geprüft: Docker-Image nur in der CI gebaut (VM ohne Docker-Dienst); Safari/Firefox selbst.
+Annahmen: D-114, D-115, D-116
+
 ## Phase 15 – Abschluss – 14.11.2026
 Gebaut: Lücke FA-05 geschlossen (Reservierungen je Artikel im wählbaren Zeitraum); Fehler UI-4 behoben (Knöpfe in klickbaren Tabellenzeilen öffneten beim Löschen zusätzlich den Bearbeiten-Dialog, weil die Aktion erst im nächsten Mikrotask lief); Server-Adresse in der installierten App auf der Anmeldeseite eintragbar (vorher nur per Umgebungsvariable); Installer per GitHub Actions für Windows x64 und macOS Apple Silicon + Intel (D-103); Sichtprüfungs-Test e2e/themen.test.js (Hauptseiten beider Apps in Hell, Dunkel, Grün/kompakt); Befunde der Sichtprüfung behoben: Status-Badges wählen die Schrift mit dem besseren Kontrast (Orange/Grau vorher weiß, < 4,5:1), abgeschnittene Auswahl „Projekte und Jobs“.
 Geprüft: `npm run spec:abdeckung` 166/166; Unit+API, alle 31+ E2E-Dateien einzeln, Materialplaner- und Productionplaner-Tests grün, Lint sauber; Endabnahme durch unabhängigen Prüfer (Stichprobe über alle Kapitel, Akzeptanztexte wörtlich geprüft für Verfügbarkeit, Rabatt, Verladen, Rückgabe, Arbeitsplatz, Sicherheit); Paket für Linux lokal gebaut und gestartet (Inhalt nur dist-app).

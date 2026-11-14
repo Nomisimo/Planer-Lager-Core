@@ -5,7 +5,7 @@ import { useSeriellerScanner } from "./seriell.jsx";
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { erstelleApi, Live } from "@lager/client";
 import { themaVariablen, THEMEN, DICHTEN, MODI } from "./themen.js";
-import { menueFuer, aktiverEintrag, MENUE } from "./menue.js";
+import { menueFuer, aktiverEintrag, MENUE, zielInAndererApp } from "./menue.js";
 import { passeMuster, zerlegeHash, deepLinkZuPfad } from "./router.js";
 import { fehlerText } from "./texte.js";
 import { Icon, Knopf, Feld, Eingabe, Meldung, Modal, Section, Auswahl, Seite } from "./bausteine.jsx";
@@ -219,9 +219,9 @@ export function AppHuelle({ app, seiten, onCode }) {
         }
         // Browser: besteht schon eine Cookie-Sitzung? (WEB-02: gilt für beide Web-Apps)
         try {
-          const r = await fetch(`${i.serverUrl}/api/v1/ich`, { credentials: "same-origin", headers: { Accept: "application/json" } });
+          const r = await fetch(`${i.serverUrl}/api/v1/sitzung`, { credentials: "same-origin", headers: { Accept: "application/json" } });
           const j = r.ok ? await r.json() : null;
-          if (j?.nutzer) { csrfRef.current = j.csrf || null; tokenRef.current = "cookie"; setToken("cookie"); return; }
+          if (j?.angemeldet) { tokenRef.current = "cookie"; setToken("cookie"); return; } // CSRF kommt mit /ich
         } catch { /* Server nicht erreichbar: Anmeldung zeigen */ }
         tokenRef.current = null; setToken(null);
         return;
@@ -337,7 +337,7 @@ export function AppHuelle({ app, seiten, onCode }) {
           <span className="lp-meta">{firma ? firma + " · " : ""}Version {info.version}</span>
           <div className="lp-kopf-rechts">
             <CodeFeld onCode={(c) => onCode?.(c, kontext)} />
-            <button className="lp-btn lp-btn-klein" data-testid="app-schalter" title={`Zum ${andere.titel} wechseln (gleiche Stelle, ohne neue Anmeldung)`} onClick={() => oeffneAndereApp()}>
+            <button className="lp-btn lp-btn-klein" data-testid="app-schalter" title={`Zum ${andere.titel} wechseln (gleiche Stelle, ohne neue Anmeldung)`} onClick={() => oeffneAndereApp(zielInAndererApp(pfad, app === "m" ? "p" : "m"))}>
               <Icon name="ArrowLeftRight" size={14} />{andere.titel}
             </button>
             {web && <button className="lp-btn lp-btn-geist lp-btn-klein" data-testid="in-desktop" title={`In der Desktop-App öffnen (${self.titel} muss installiert sein)`} aria-label="In Desktop-App öffnen" onClick={inDesktopOeffnen}><Icon name="Monitor" size={14} /></button>}

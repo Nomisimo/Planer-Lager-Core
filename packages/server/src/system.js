@@ -43,7 +43,7 @@ export async function sicherheitsCheck(pool, config) {
   const https = String(config.publicUrl || "").startsWith("https://");
   add("https", "HTTPS", https || !config.imNetz, https ? `Erreichbar über ${config.publicUrl}.` : config.imNetz ? "Der Server ist aus dem Netz erreichbar, aber ohne HTTPS. Setze PUBLIC_URL auf eine https-Adresse (Caddy)." : "Nur im lokalen Netz, ohne HTTPS.", https ? "ok" : config.imNetz ? "error" : "warning");
   add("cookies", "Sichere Cookies", !!config.secureCookies, config.secureCookies ? "Cookies nur über HTTPS." : "Cookies auch ohne HTTPS. Wird mit HTTPS automatisch aktiv.");
-  add("betrieb", "Betriebsmodus", process.env.NODE_ENV === "production", process.env.NODE_ENV === "production" ? "Produktivbetrieb (NODE_ENV=production)." : "Kein Produktivbetrieb. Setze NODE_ENV=production auf dem Server.");
+  add("betrieb", "Betriebsmodus", process.env.NODE_ENV === "production", process.env.NODE_ENV === "production" ? "Produktivbetrieb (NODE_ENV=production)." : "Der Server läuft im Testbetrieb, nicht im Produktivbetrieb. Gib das an den Betreiber des Servers weiter: Er muss NODE_ENV=production setzen (das offizielle Server-Image macht das schon, siehe BETRIEB.md).");
   const { rows: admins } = await pool.query(`SELECT b.benutzername, b.totp_aktiv FROM benutzer b JOIN rolle r ON r.id = b.rolle_id
     WHERE b.aktiv AND r.rechte->>'verwaltung' = 'w'`);
   const ohne = admins.filter((a) => !a.totp_aktiv).map((a) => a.benutzername);

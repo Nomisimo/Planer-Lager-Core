@@ -26,6 +26,7 @@ test("WEB-01 WEB-02 WEB-05 WEB-06 WEB-07 WEB-08 WEB-10 WEB-12 Login im Browser, 
     await seite.goto(`${s.url}/productionplaner/#/kunden`);
     await seite.getByLabel("Benutzername").waitFor();
     await screenshot(seite, "WEB-01-login-browser");
+    assert.deepEqual(fehler, [], "BUG-2: keine Konsolenfehler vor der Anmeldung");
     await imBrowserAnmelden(seite, "chef");
     await seite.getByRole("heading", { name: "Kunden" }).first().waitFor();
     assert.equal(new URL(seite.url()).hash, "#/kunden");
@@ -130,10 +131,12 @@ test("WEB-03 WEB-13 Änderung im Browser-Productionplaner erscheint live im Desk
     // WEB-03: im Browser in den Productionplaner, Projekt umbenennen → Desktop-Materialplaner zeigt es live
     await m.win.evaluate((id) => { location.hash = `#/projekte/${id}/packen`; }, p.id);
     await m.win.getByText("Stadtfest").first().waitFor();
+    await m.win.getByTestId("online-status").getByText("Online").waitFor();
     await seite.goto(`${s.url}/productionplaner/#/projekte/${p.id}/bearbeiten`);
     await seite.waitForFunction(() => [...document.querySelectorAll("input")].some((i) => i.value === "Stadtfest"));
     await seite.getByLabel(/^Name/).first().fill("Stadtfest Nord");
     await seite.getByRole("button", { name: "Speichern" }).click();
+    await warteBis(async () => (await s.db.pool.query("SELECT name FROM projekt WHERE id = $1", [p.id])).rows[0].name === "Stadtfest Nord");
     await m.win.getByText("Stadtfest Nord").first().waitFor({ timeout: 10000 });
     await screenshot(m.win, "WEB-03-live-desktop");
   } finally { await b.ende(); await m.ende(); await s.ende(); fs.rmSync(web, { recursive: true, force: true }); }

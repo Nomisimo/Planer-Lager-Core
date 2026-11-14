@@ -1,6 +1,6 @@
 // Gemeinsamer Electron-Hauptprozess für Materialplaner und Productionplaner.
 // Wird je App mit esbuild nach dist-app/main.cjs gebündelt (siehe scripts/app-build.cjs).
-import { app, BrowserWindow, ipcMain, shell, safeStorage } from "electron";
+import { app, BrowserWindow, ipcMain, shell, safeStorage, session } from "electron";
 import fs from "node:fs";
 import path from "node:path";
 import { linkAusArgv } from "./deeplink.js";
@@ -116,9 +116,27 @@ export function starteShell(cfg) {
     win.loadFile(path.join(cfg.root, "index.html"));
   };
 
+  // BT-SPP-Scanner (ARCHITEKTUR §5) über Web Serial: Electron hat keine eigene Portauswahl, darum zeigt die Oberfläche die Liste.
+  // Zugriff nur für die eigene Oberfläche (file://), nie für Seiten vom Server.
+  let seriellAntwort = null;
+  ipcMain.handle("seriell-gewaehlt", (_e, portId) => { const cb = seriellAntwort; seriellAntwort = null; cb?.(String(portId || "")); return true; });
+  const seriellEinrichten = () => {
+    const ses = session.defaultSession;
+    const eigen = (origin) => /^file:/i.test(String(origin || ""));
+    ses.on("select-serial-port", (e, liste, wc, cb) => {
+      e.preventDefault();
+      if (!eigen(wc.getURL())) { cb(""); return; }
+      seriellAntwort?.("");
+      seriellAntwort = cb;
+      wc.send("seriell-auswahl", liste.map((p) => ({ portId: p.portId, name: p.displayName ? `${p.displayName} (${p.portName})` : p.portName })));
+    });
+    ses.setPermissionCheckHandler((_wc, recht, origin) => (recht === "serial" ? eigen(origin) : true));
+    ses.setDevicePermissionHandler((d) => d.deviceType === "serial" && eigen(d.origin));
+  };
+
   // Datumsfelder und Zahlen im deutschen Format (TT.MM.JJJJ), unabhängig von der Systemsprache.
   app.commandLine.appendSwitch("lang", "de-DE");
-  app.whenReady().then(erstelleFenster);
+  app.whenReady().then(() => { seriellEinrichten(); erstelleFenster(); });
   app.on("activate", () => { if (!win) erstelleFenster(); });
   app.on("window-all-closed", () => { if (process.platform !== "darwin" || test) app.quit(); });
 }

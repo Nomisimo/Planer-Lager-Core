@@ -106,3 +106,37 @@ export const KAMERA_WIEDERHOLSPERRE_MS = 2500;
 export function neuerTreffer(letzter, code, jetzt) {
   return !(letzter && letzter.code === code && jetzt - letzter.zeit < KAMERA_WIEDERHOLSPERRE_MS);
 }
+
+/**
+ * BT-SPP / serieller Scanner (ARCHITEKTUR §5): Daten kommen in beliebigen Stücken, ein Code endet mit CR, LF oder CRLF.
+ * Präfix/Suffix wie beim Handscanner entfernen, zu kurze Zeilen verwerfen.
+ */
+export function zeilenLeser({ minZeichen = 4, praefix = "", suffix = "" } = {}) {
+  let puffer = "";
+  return {
+    daten(text) {
+      puffer += String(text);
+      const teile = puffer.split(/\r\n|\r|\n/);
+      puffer = teile.pop();
+      if (puffer.length > 512) puffer = ""; // Müll ohne Zeilenende nicht endlos sammeln
+      const codes = [];
+      for (const t of teile) {
+        let c = t.replace(/[\x00-\x1f\x7f]/g, "").trim();
+        if (praefix && c.startsWith(praefix)) c = c.slice(praefix.length);
+        if (suffix && c.endsWith(suffix)) c = c.slice(0, -suffix.length);
+        if (c.length >= minZeichen) codes.push(c);
+      }
+      return codes;
+    },
+    get puffer() { return puffer; },
+  };
+}
+
+/** Einstellungen des seriellen Scanners je Gerät. */
+export const SERIELL_BAUDRATEN = Object.freeze([9600, 19200, 38400, 57600, 115200]);
+export const SERIELL_STANDARD = Object.freeze({ aktiv: false, baudrate: 9600 });
+export function pruefeSeriell(w) {
+  const x = { ...SERIELL_STANDARD, ...(w || {}) };
+  const b = Number(x.baudrate);
+  return { aktiv: x.aktiv === true, baudrate: SERIELL_BAUDRATEN.includes(b) ? b : 9600 };
+}

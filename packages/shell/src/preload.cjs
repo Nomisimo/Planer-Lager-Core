@@ -10,5 +10,8 @@ contextBridge.exposeInMainWorld("lagerShell", {
   oeffneExtern: (url) => ipcRenderer.invoke("shell-extern", url),
   /** Etikettendruck mit Seitengröße in mm (FA-10/FA-14). */
   drucken: (opt) => ipcRenderer.invoke("shell-drucken", opt),
+  /** BT-SPP: Portliste für die eigene Auswahl (Electron zeigt keine) und Antwort mit portId ("" = abbrechen). */
+  onSeriellAuswahl: (cb) => { const h = (_e, liste) => cb(liste); ipcRenderer.on("seriell-auswahl", h); return () => ipcRenderer.removeListener("seriell-auswahl", h); },
+  seriellGewaehlt: (portId) => ipcRenderer.invoke("seriell-gewaehlt", portId),
   onDeepLink: (cb) => { const h = (_e, url) => cb(url); ipcRenderer.on("deep-link", h); return () => ipcRenderer.removeListener("deep-link", h); },
 });

@@ -81,7 +81,7 @@ test/                  App-spezifische Unit-Tests
   - HTTP: `POST /api/v1/scanner/eingang` mit Scanner-Token (für Scanner/Gateways mit HTTP-Push).
   - Ergebnis geht per WebSocket an den zugeordneten Arbeitsplatz (Farbe, Text, Ton). Verwaltung → „Scanner“ (anlegen, Token, Zuordnung, letzter Kontakt).
   - Tests simulieren Scanner mit TCP-Client und HTTP-Aufruf.
-- **BT-SPP (seriell)** – P3, nur wenn Budget: `serialport` im Materialplaner.
+- **BT-SPP (seriell)** – über Web Serial in Electron (kein `serialport`, D-102): Hauptprozess liefert die Portliste, Oberfläche zeigt die Auswahl; eine Zeile = ein Code, gleicher Weg wie der Handscanner. Einstellungen je Gerät in Verwaltung → Scanner.
 - **Kamera (html5-qrcode)** – IST in der Spec, aber spät: nur Arbeitsplatz-Web, lokal ausgeliefert.
 - **Android-APK** – ganz zuletzt (Phase Z): station-web per Capacitor verpacken (wie Stromplaner/webapp).
 

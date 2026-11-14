@@ -1,5 +1,6 @@
 // App-Hülle beider Apps: Anmeldung, Kopfleiste, Seitenmenü (UI-1), Router, Live-Verbindung, Deep-Links, App-Schalter.
 import { Glocke } from "./glocke.jsx";
+import { useSeriellerScanner } from "./seriell.jsx";
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { erstelleApi, Live } from "@lager/client";
 import { themaVariablen, THEMEN, DICHTEN, MODI } from "./themen.js";
@@ -225,6 +226,8 @@ export function AppHuelle({ app, seiten, onCode }) {
 
   // UI-3 / ARCHITEKTUR §5: Handscanner (Tastatur) global erkennen, auch ohne Fokus; an die Scan-Seite oder das Codefeld.
   useHandscanner(scanZiel, (code) => { if (kontextRef.current) onCode?.(code, kontextRef.current); });
+  // BT-SPP: serieller Scanner geht denselben Weg (nur wenn in den Einstellungen eingeschaltet)
+  useSeriellerScanner(scanZiel, (code) => { if (kontextRef.current) onCode?.(code, kontextRef.current); });
   // R-63 Planungszeit: Timer-Zustand + Herzschlag in beiden Apps (Sprung in den Materialplaner stoppt auf Nicht-Planungsseiten)
   const zeit = usePlanungszeit(api, live, nutzer, pfad);
 

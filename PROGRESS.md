@@ -121,7 +121,7 @@ Hinter `[x]` kurz notieren: Datum, Repo(s), Testdatei(en). Max. 1 Zeile.
 - [x] FA-26 SOLL Dublettenwarnung manuell (14.11., mit Phase 2) · [x] FA-28 Ansprechpartner + Historie (C+P, 14.11.)
 - [x] FA-39 Projektvorlagen (C+P, 14.11.) · [x] FA-40 Wiederkehrende Aufgaben + Benachrichtigungen (C+P, 14.11.) (E-5: Standard = In-App + E-Mail per SMTP-Env)
 - [x] Kamera-Scan (FA-15-Teil, html5-qrcode lokal, nur Arbeitsplatz-Web)
-- [ ] BT-SPP-Scanner (serialport, M)
+- [x] BT-SPP-Scanner (Web Serial statt serialport, D-102)
 
 ## Phase 15 – Abschluss
 - [ ] Volle Suite grün in allen 3 Repos, `spec:abdeckung` = 0 fehlend

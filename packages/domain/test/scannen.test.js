@@ -64,3 +64,16 @@ test("FA-15 Kamera-Scan: Wiederholsperre bucht denselben Code nur einmal, andere
   assert.equal(neuerTreffer({ code: "LI-0001", zeit: 1000 }, "LI-0002", 1100), true);
   assert.equal(neuerTreffer({ code: "LI-0001", zeit: 1000 }, "LI-0001", 3600), true);
 });
+
+test("ARCHITEKTUR-5 BT-SPP Zeilenleser: Stücke, CR/LF/CRLF, Präfix/Suffix, Mindestlänge", async () => {
+  const { zeilenLeser, pruefeSeriell } = await import("../src/scannen.js");
+  const l = zeilenLeser({ minZeichen: 4, praefix: "]C1", suffix: "#" });
+  assert.deepEqual(l.daten("LT-00"), []);
+  assert.deepEqual(l.daten("01\r\nLT-0002\rAB\n]C1LT-0003#\r"), ["LT-0001", "LT-0002", "LT-0003"]);
+  assert.deepEqual(l.daten("\nLT-0004\x02\n"), ["LT-0004"], "LF nach CR ergibt keine leere Zeile als Code, Steuerzeichen weg");
+  assert.equal(l.puffer, "");
+  l.daten("x".repeat(600));
+  assert.equal(l.puffer, "", "zu lange Zeile ohne Ende wird verworfen");
+  assert.deepEqual(pruefeSeriell({ aktiv: true, baudrate: "115200" }), { aktiv: true, baudrate: 115200 });
+  assert.deepEqual(pruefeSeriell({ aktiv: "ja", baudrate: 1234 }), { aktiv: false, baudrate: 9600 });
+});

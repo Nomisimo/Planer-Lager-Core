@@ -1,4 +1,5 @@
 // Verwaltung (nur Admin, R-03): gemeinsame Seiten für beide Apps. Hier: Übersicht und Netzwerk-Scanner (ARCHITEKTUR §5).
+import { SeriellEinstellungen } from "./seriell.jsx";
 import React, { useState } from "react";
 import { Seite, Section, Knopf, Tabelle, Eingabe, Auswahl, Feld, Meldung, Modal, Toggle, Badge, useDaten, useFormular, useBestaetigung } from "./bausteine.jsx";
 import { useLager, HID_KEY, hidEinstellungen } from "./huelle.jsx";
@@ -78,6 +79,7 @@ export function ScannerVerwaltung() {
         ]} />
       </Section>
       <HandscannerEinstellungen />
+      <SeriellEinstellungen />
       {form && <Modal titel={form.id ? "Scanner bearbeiten" : "Scanner anlegen"} onSchliessen={() => setForm(null)}
         fuss={<><Knopf onClick={() => setForm(null)}>Abbrechen</Knopf><Knopf art="primaer" icon="Save" onClick={speichern}>Speichern</Knopf></>}>
         {f.meldung && <Meldung {...f.meldung} />}

@@ -10,3 +10,4 @@ export * from "./artikel.js";
 export * from "./geraet.js";
 export * from "./pruefung.js";
 export * from "./geld.js";
+export * from "./kunden.js";

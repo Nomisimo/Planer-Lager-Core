@@ -7,8 +7,9 @@ import { sichereGrunddaten } from "./grunddaten.js";
 import { Hub } from "./hub.js";
 import { statischModul } from "./statisch.js";
 import { stammdatenModul } from "./stammdaten.js";
+import { kundenModul } from "./kunden.js";
 
-export const MODULE = [authModul, verwaltungModul, stammdatenModul, statischModul];
+export const MODULE = [authModul, verwaltungModul, stammdatenModul, kundenModul, statischModul];
 
 /**
  * @param {{pool: import("pg").Pool, config?: object, migrieren?: boolean}} opt

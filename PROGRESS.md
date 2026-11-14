@@ -33,7 +33,7 @@ Hinter `[x]` kurz notieren: Datum, Repo(s), Testdatei(en). Max. 1 Zeile.
 - [x] C: Prüfstatus 5.10 (Monatsende!) — 14.11., C, domain/geraet.test.js, server/stammdaten.test.js
 - [x] M: FA-01 Materialliste, FA-02 Artikel anlegen/bearbeiten/löschen, R-71, R-72 — 14.11., C+M, e2e/material.test.js (R-72 „bestellen“ folgt mit R-67 in Phase 3)
 - [x] M: FA-03 Geräteliste + Detail, FA-04 Verbrauchsbestand, FA-05 Reservierungen je Artikel — 14.11., C+M, e2e/material.test.js (FA-05-Daten kommen mit Verfügbarkeit Phase 5, Anzeige vorbereitet)
-- [ ] C+P: Kunde 3.1, FA-26 (IST-Teil), FA-27 PDF-Formular + Import mit Dublettenprüfung, Adresssuche (gemockt im Test)
+- [x] C+P: Kunde 3.1, FA-26 (IST-Teil), FA-27 PDF-Formular + Import mit Dublettenprüfung, Adresssuche (gemockt im Test) — 14.11., C+P, domain/kunden.test.js, server/kunden.test.js, e2e/kunden.test.js
 
 ## Phase 3 – Etiketten
 - [ ] C: QR (SVG), eigener Code-128-Encoder + Tests
@@ -116,7 +116,7 @@ Hinter `[x]` kurz notieren: Datum, Repo(s), Testdatei(en). Max. 1 Zeile.
 
 ## Phase 14 – SOLL P3 + Rest
 - [ ] FA-08 Lagerorte · [ ] FA-09 Schadensdoku · [ ] FA-14 Direktdruck Etikettendrucker
-- [ ] FA-26 SOLL Dublettenwarnung manuell · [ ] FA-28 Ansprechpartner + Historie
+- [x] FA-26 SOLL Dublettenwarnung manuell (14.11., mit Phase 2) · [ ] FA-28 Ansprechpartner + Historie
 - [ ] FA-39 Projektvorlagen · [ ] FA-40 Wiederkehrende Aufgaben + Benachrichtigungen (E-5: Standard = In-App + E-Mail per SMTP-Env)
 - [ ] Kamera-Scan (FA-15-Teil, html5-qrcode lokal, nur Arbeitsplatz-Web)
 - [ ] BT-SPP-Scanner (serialport, M)

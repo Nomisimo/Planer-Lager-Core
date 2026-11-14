@@ -19,8 +19,9 @@ import { zeitModul } from "./zeit.js";
 import { uebersichtModul } from "./uebersicht.js";
 import { systemModul, beimStart } from "./system.js";
 import { autoSicherung } from "./sicherung.js";
+import { plansymboleModul, beobachteArtikel } from "./plansymbole.js";
 
-export const MODULE = [authModul, verwaltungModul, stammdatenModul, etikettenModul, kundenModul, projekteModul, angeboteModul, scanModul, scannerModul, zonenModul, stationModul, zeitModul, uebersichtModul, systemModul, statischModul];
+export const MODULE = [authModul, verwaltungModul, stammdatenModul, etikettenModul, kundenModul, projekteModul, angeboteModul, scanModul, scannerModul, zonenModul, stationModul, zeitModul, uebersichtModul, systemModul, plansymboleModul, statischModul];
 
 /**
  * @param {{pool: import("pg").Pool, config?: object, migrieren?: boolean}} opt
@@ -32,6 +33,7 @@ export async function erstelleLagerServer({ pool, config = {}, migrieren = true 
   const hub = new Hub(pool);
   const app = erstelleApp({ pool, config, hub, module: MODULE, pruefeZugang });
   hub.binde(app.server);
+  beobachteArtikel(hub, pool, config); // FA-53: Symbolbibliothek bei jeder Artikeländerung
   // Netzwerk-Scanner per TCP startet mit dem HTTP-Server und endet mit ihm.
   const gateway = { server: null, port: null };
   app.server.on("listening", () => {

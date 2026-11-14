@@ -60,6 +60,7 @@ export class Hub {
    * @param {(ws: any) => boolean} [filter] zusätzliche Auswahl (z. B. nur ein Arbeitsplatz)
    */
   sende(ev, filter) {
+    for (const fn of this.beobachter || []) { try { fn(ev); } catch (e) { console.error(`Hub-Beobachter: ${e.message}`); } }
     const text = JSON.stringify({ ...ev, nr: ++this.zaehler });
     for (const ws of this.clients) {
       if (!ws.nutzer || ws.readyState !== 1) continue;
@@ -68,6 +69,9 @@ export class Hub {
       ws.send(text);
     }
   }
+
+  /** Server-interne Reaktion auf Ereignisse (z. B. Symbolbibliothek neu erzeugen, FA-53). */
+  beobachte(fn) { (this.beobachter ||= []).push(fn); }
 
   /** Meldet Benutzer ab (z. B. nach Deaktivierung). */
   trenneBenutzer(benutzerId) {

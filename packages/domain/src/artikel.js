@@ -1,4 +1,5 @@
 // Artikel (Spec 3.7) und Material-aufnehmen-Formular (5.13, R-71).
+import { plansymbolGueltig } from "./plansymbole.js";
 
 /** Artikeltyp aus Kennzeichen, Reihenfolge laut 3.7. */
 export function artikeltyp(a) {
@@ -66,6 +67,7 @@ export function pruefeArtikel(w) {
   if (w.pruef_intervall_monate != null && (!Number.isInteger(w.pruef_intervall_monate) || w.pruef_intervall_monate < 1 || w.pruef_intervall_monate > 120)) f.pruef_intervall_monate = "Prüfintervall: 1 bis 120 Monate.";
   if (w.laenge_m != null && w.laenge_m !== "" && !(Number(w.laenge_m) > 0)) f.laenge_m = "Länge muss größer als 0 m sein.";
   if (w.ist_case && w.inhalt_artikel_id == null && !(w.verpackungseinheit > 0)) f.verpackungseinheit = "Gib an, wie viele Teile in das Case gehören, oder wähle einen Inhalt-Artikel.";
+  if (!plansymbolGueltig(w.plansymbol)) f.plansymbol = "Wähle ein Plan-Symbol aus der Liste (oder leer = automatisch).";
   if (w.ist_leistung && w.zeitmodell && !["tag", "stunde", "pauschale"].includes(w.zeitmodell)) f.zeitmodell = "Wähle ein Zeitmodell aus der Liste.";
   return f;
 }

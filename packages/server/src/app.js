@@ -70,7 +70,7 @@ export function erstelleApp(deps) {
       }
       const { route, params } = fund;
       let body = null;
-      if (req.method !== "GET" && req.method !== "HEAD") {
+      if (req.method !== "GET" && req.method !== "HEAD" && !route.stream) { // stream: Handler liest selbst (Uploads)
         const roh = await leseBody(req);
         const typ = String(req.headers["content-type"] || "");
         if (typ.includes("application/json") && roh.length) {

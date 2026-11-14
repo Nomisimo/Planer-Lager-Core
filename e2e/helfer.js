@@ -30,11 +30,12 @@ export const APP_DIRS = {
 /** Startet einen Testserver mit frischem Schema. */
 export async function starteServer(extra = {}) {
   const db = await neueTestDb({ migrieren: false });
-  const app = await erstelleLagerServer({ pool: db.pool, config: extra.config || {} });
+  const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), "lager-data-"));
+  const app = await erstelleLagerServer({ pool: db.pool, config: { dataDir, ...(extra.config || {}) } });
   await new Promise((r) => app.server.listen(0, "127.0.0.1", r));
   const url = `http://127.0.0.1:${app.server.address().port}`;
   const benutzer = (benutzername, rolle = "Administrator", name) => legeBenutzerAn(db.pool, { benutzername, passwort: PW, rolle, name });
-  return { ...app, db, url, benutzer, async ende() { app.server.closeAllConnections?.(); await new Promise((r) => app.server.close(r)); await db.ende(); } };
+  return { ...app, db, url, benutzer, async ende() { app.server.closeAllConnections?.(); await new Promise((r) => app.server.close(r)); await db.ende(); fs.rmSync(dataDir, { recursive: true, force: true }); }, dataDir };
 }
 
 /** Baut (falls nötig) und startet eine App. @param {"materialplaner"|"productionplaner"} name */

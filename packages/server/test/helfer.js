@@ -1,4 +1,7 @@
 // Testhilfe: voll verdrahteter Server auf Zufallsport mit frischem DB-Schema + Anmelde-Helfer.
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import { neueTestDb } from "@lager/db/testdb.js";
 import { erstelleLagerServer } from "../src/server.js";
 import { legeBenutzerAn } from "../src/grunddaten.js";
@@ -7,6 +10,8 @@ export const PW = "Sicheres-Testpasswort-1";
 
 export async function starteTestServer({ config = {} } = {}) {
   const db = await neueTestDb({ migrieren: false });
+  const dataDir = config.dataDir || fs.mkdtempSync(path.join(os.tmpdir(), "lager-data-"));
+  config = { dataDir, ...config };
   const app = await erstelleLagerServer({ pool: db.pool, config });
   await new Promise((r) => app.server.listen(0, "127.0.0.1", r));
   const url = `http://127.0.0.1:${app.server.address().port}`;
@@ -27,5 +32,5 @@ export async function starteTestServer({ config = {} } = {}) {
     f.token = r.json.token;
     return f;
   };
-  return { ...app, db, url, api, als, async ende() { app.server.closeAllConnections?.(); await new Promise((r) => app.server.close(r)); await db.ende(); } };
+  return { ...app, db, url, api, als, async ende() { app.server.closeAllConnections?.(); await new Promise((r) => app.server.close(r)); await db.ende(); if (!config.behalteDaten) fs.rmSync(dataDir, { recursive: true, force: true }); } , dataDir };
 }

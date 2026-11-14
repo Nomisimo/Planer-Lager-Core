@@ -13,6 +13,14 @@ after(async () => { await s.ende(); });
 
 const neueKategorie = async (name, praefix) => (await admin("POST", "/api/v1/kategorien", { name, praefix })).json;
 const neuerArtikel = async (w) => (await admin("POST", "/api/v1/artikel", w)).json;
+let projektNr = 0;
+/** Minimales Projekt direkt in der DB (Geräte verweisen per Fremdschlüssel auf Projekte). */
+const testProjekt = async () => {
+  const { rows: [k] } = await s.db.pool.query("INSERT INTO kunde (name) VALUES ('Testkunde') RETURNING id");
+  const { rows: [p] } = await s.db.pool.query("INSERT INTO projekt (nummer, art, name, kunde_id) VALUES ($1, 'projekt', 'Test', $2) RETURNING id",
+    [`P-2000-${String(++projektNr).padStart(3, "0")}`, k.id]);
+  return p.id;
+};
 
 test("3.6 Kategorie: Präfix-Vorschlag, eindeutig, letzte_nummer nur steigend, Präfix nach Codevergabe fest", async () => {
   assert.equal((await admin("GET", "/api/v1/kategorien/praefix-vorschlag?name=Lautsprecher")).json.praefix, "LA");
@@ -130,7 +138,7 @@ test("R-19 T-23 Gerät in einem Projekt löschen verweigert; SOLL: mit Verlauf n
   const k = await neueKategorie("Traversen", "TR");
   const a = await neuerArtikel({ name: "Traverse 2 m", kategorie_id: k.id, anzahl: 2, kennzeichnung: "qr" });
   const [g1, g2] = a.geraete.ids;
-  await s.db.pool.query("UPDATE geraet SET projekt_id = 99, status = 'zugeordnet' WHERE id = $1", [g1]);
+  await s.db.pool.query("UPDATE geraet SET projekt_id = $2, status = 'zugeordnet' WHERE id = $1", [g1, await testProjekt()]);
   const r = await admin("DELETE", `/api/v1/geraete/${g1}`);
   assert.equal(r.status, 409);
   assert.match(r.json.text, /Projekt zugeordnet/);
@@ -145,7 +153,7 @@ test("R-19 T-23 Gerät in einem Projekt löschen verweigert; SOLL: mit Verlauf n
 test("FA-02 Artikel löschen nur ohne belegte Geräte (vermisste zählen nicht), sonst verständliche Meldung", async () => {
   const k = await neueKategorie("Stative", "ST");
   const a = await neuerArtikel({ name: "Stativ", kategorie_id: k.id, anzahl: 1, kennzeichnung: "qr" });
-  await s.db.pool.query("UPDATE geraet SET projekt_id = 77, status = 'zugeordnet' WHERE id = $1", [a.geraete.ids[0]]);
+  await s.db.pool.query("UPDATE geraet SET projekt_id = $2, status = 'zugeordnet' WHERE id = $1", [a.geraete.ids[0], await testProjekt()]);
   const r = await admin("DELETE", `/api/v1/artikel/${a.artikel.id}`);
   assert.equal(r.status, 409);
   assert.match(r.json.text, /ST-0001/);

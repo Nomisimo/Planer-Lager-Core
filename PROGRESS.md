@@ -74,8 +74,9 @@ Hinter `[x]` kurz notieren: Datum, Repo(s), Testdatei(en). Max. 1 Zeile.
 - [x] E2E: T-12, T-13, T-14, T-15 (e2e/rueckgabe.test.js)
 
 ## Phase 8 – Ladezonen, Arbeitsplätze, Anzeige
-- [ ] C: Ladezone 3.10, R-55, R-56, R-57, R-58 (darf Login nie verhindern), R-59
-- [ ] M: FA-23 Zonen verwalten + Prioritätsliste, FA-24 Anzeige
+- [x] C: Ladezone 3.10, R-55, R-56, R-57, R-58 (darf Login nie verhindern), R-59 (API `/api/v1/anzeige/zonen` mit QR)
+- [x] M: FA-23 Zonen verwalten + Prioritätsliste (Seite /zonen)
+- [ ] W: FA-24 Anzeige-Bildschirm in station-web
 - [ ] C: station-web: R-11a, R-11b, R-11c, R-11d, R-11e, R-11f, R-11g, HTTP 423
 - [ ] M: FA-25 Arbeitsplätze + Mitarbeiter verwalten, Kiosk-Modus
 - [ ] E2E: T-06 (aus Phase 6 verschoben), T-16, T-21

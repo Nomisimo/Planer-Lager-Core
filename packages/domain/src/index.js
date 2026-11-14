@@ -17,3 +17,4 @@ export * from "./kabel.js";
 export * from "./etiketten.js";
 export * from "./angebot.js";
 export * from "./scannen.js";
+export * from "./zonen.js";

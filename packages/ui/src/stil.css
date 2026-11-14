@@ -137,3 +137,8 @@ a{color:var(--lp-link)}
 .lp-scan-ton input{width:20px;height:20px}
 .lp-scan .lp-select,.lp-scan .lp-btn{min-height:44px}
 .lp-scanfeld:focus{outline:3px solid var(--lp-info,#1e66d0);outline-offset:1px}
+
+/* Ladezonen (FA-23) */
+.lp-liste { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.lp-liste > li { padding: 6px 0; border-bottom: 1px solid var(--lp-line); }
+.lp-liste > li:last-child { border-bottom: 0; }

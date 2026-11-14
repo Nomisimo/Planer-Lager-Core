@@ -72,12 +72,13 @@ test("R-12 Statuswechsel (auch rückwärts) mit Recht projekte w; R-13 abgeschlo
   for (const st of ["angebot_gesendet", "bestaetigt", "anfrage"]) assert.equal((await buero("POST", `/api/v1/projekte/${p.id}/status`, { status: st })).status, 200, st);
   assert.equal((await buero("POST", `/api/v1/projekte/${p.id}/status`, { status: "anfrage" })).status, 400, "gleicher Status");
   assert.equal((await lager("POST", `/api/v1/projekte/${p.id}/status`, { status: "laeuft" })).status, 403);
-  await s.db.pool.query("UPDATE projekt SET ladezone_id = 4, zone_seit = now() WHERE id = $1", [p.id]);
+  await s.db.pool.query("INSERT INTO ladezone (bezeichnung) VALUES ('R-13') ON CONFLICT DO NOTHING");
+  await s.db.pool.query("UPDATE projekt SET ladezone_id = (SELECT id FROM ladezone WHERE bezeichnung = 'R-13'), zone_seit = now() WHERE id = $1", [p.id]);
   const r = await buero("POST", `/api/v1/projekte/${p.id}/status`, { status: "abgeschlossen" });
   assert.match(r.json.text, /Ladezone freigegeben/);
   const { rows: [z] } = await s.db.pool.query("SELECT ladezone_id, zone_seit FROM projekt WHERE id = $1", [p.id]);
   assert.deepEqual([z.ladezone_id, z.zone_seit], [null, null]);
-  await s.db.pool.query("UPDATE projekt SET ladezone_id = 5 WHERE id = $1", [p.id]);
+  await s.db.pool.query("UPDATE projekt SET ladezone_id = (SELECT id FROM ladezone WHERE bezeichnung = 'R-13') WHERE id = $1", [p.id]);
   await buero("PUT", `/api/v1/projekte/${p.id}`, { status: "storniert" });
   assert.equal((await s.db.pool.query("SELECT ladezone_id FROM projekt WHERE id = $1", [p.id])).rows[0].ladezone_id, null);
   // R-14

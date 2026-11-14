@@ -132,7 +132,7 @@ export function Tabelle({ spalten, zeilen, onZeile, leer = "Keine Einträge.", s
         <tbody>{zeilen.map((z, i) => (
           <tr key={z[schluessel] ?? i} className={onZeile ? "lp-klickbar" : undefined} onClick={onZeile ? () => onZeile(z) : undefined}
             tabIndex={onZeile ? 0 : undefined} onKeyDown={onZeile ? (e) => { if (e.key === "Enter") onZeile(z); } : undefined}>
-            {spalten.map((s) => <td key={s.titel} style={{ textAlign: s.rechts ? "right" : undefined }}>{s.wert ? s.wert(z) : z[s.feld]}</td>)}
+            {spalten.map((s) => <td key={s.titel} style={{ textAlign: s.rechts ? "right" : undefined }}>{s.wert ? s.wert(z, i) : z[s.feld]}</td>)}
           </tr>
         ))}</tbody>
       </table>

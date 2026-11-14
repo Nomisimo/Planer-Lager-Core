@@ -160,7 +160,8 @@ test("T-11 R-60 R-14 R-57 Packen abgeschlossen & verladen; R-61 wieder öffnen",
   const p = await projekt("Verladen");
   await mitAngebot(p, [{ artikel_id: akku.id, menge: 1 }]);
   assert.equal((await buero("GET", `/api/v1/projekte/${p.id}`)).json.status, "bestaetigt");
-  await q("UPDATE projekt SET ladezone_id = 7, zone_seit = now() WHERE id = $1", [p.id]);
+  await q("INSERT INTO ladezone (bezeichnung) VALUES ('T-11') ON CONFLICT DO NOTHING");
+  await q("UPDATE projekt SET ladezone_id = (SELECT id FROM ladezone WHERE bezeichnung = 'T-11'), zone_seit = now() WHERE id = $1", [p.id]);
   const r = await lager("POST", `/api/v1/projekte/${p.id}/verladen`, {});
   assert.equal(r.status, 200, r.text);
   assert.match(r.json.text, /Ladezone frei.*Läuft/);

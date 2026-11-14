@@ -6,6 +6,7 @@ import QRCode from "qrcode";
 import { HttpFehler } from "./router.js";
 import { protokolliere, clientIp } from "./sicherheit.js";
 import { pruefePasswortHash, DUMMY_HASH } from "./passwort-hash.js";
+import { verteileBeimAnmelden } from "./zonen.js";
 
 export const SITZUNG_STUNDEN = 12;              // R-10
 export const SPERRE_MINUTEN = 15;               // R-08
@@ -141,6 +142,7 @@ async function anmeldungFertig(ctx, b, art) {
   await protokolliere(ctx.pool, "login", { benutzer: b.benutzername, ip, text: `Anmeldung (${art})` });
   if (art === "web") setzeCookie(ctx, token, SITZUNG_STUNDEN * 3600);
   const s = await ladeSitzung(ctx.pool, token);
+  await verteileBeimAnmelden(ctx, s.nutzer); // R-58, fängt eigene Fehler
   return { ok: true, token: art === "app" ? token : undefined, csrf: csrf || undefined, nutzer: s.nutzer,
     zweiFaktorEinrichten: !!(ctx.config?.imNetz && s.nutzer.admin && !s.nutzer.totpAktiv) };
 }

@@ -52,12 +52,12 @@ Hinter `[x]` kurz notieren: Datum, Repo(s), Testdatei(en). Max. 1 Zeile.
 - [x] E2E: T-19, T-24 — 14.11., e2e/projekte.test.js + server/projekte.test.js
 
 ## Phase 5 – Angebote, Verfügbarkeit, Packliste
-- [ ] C: Angebot/Position/Fassung 3.11, Zustand 4.2, Fassungen + PDF-Archiv — dabei Projekt-Kennzahl `angebotswert_netto` + Reiter Angebote im Projekt füllen
-- [ ] C: Verfügbarkeit R-15, R-24, R-25, R-26, R-27
-- [ ] C: Preise R-28, R-28a, R-28b, R-28c (FA-41-Beispiel = 50,00 € als Test)
-- [ ] P: FA-41 Angebotseditor, FA-42 Überbuchungshinweis, FA-43 Statuswechsel, FA-45 Kalkulator + Zeitrechner
-- [ ] C+P+M: Packliste R-51, R-52, R-53, R-54, FA-44 (Bildschirm + PDF)
-- [ ] E2E: T-04, T-05
+- [x] C: Angebot/Position/Fassung 3.11, Zustand 4.2, Fassungen + PDF-Archiv — 14.11., C, server/angebote.test.js (Angebotswert + Reiter Angebote im Projekt gefüllt)
+- [x] C: Verfügbarkeit R-15, R-24, R-25, R-26, R-27 — 14.11., C, domain/angebot.test.js, server/angebote.test.js
+- [x] C: Preise R-28, R-28a, R-28b, R-28c (FA-41-Beispiel = 50,00 € als Test) — 14.11., C
+- [x] P: FA-41 Angebotseditor, FA-42 Überbuchungshinweis, FA-43 Statuswechsel, FA-45 Kalkulator + Zeitrechner — 14.11., C+P, e2e/angebote.test.js
+- [x] C+P+M: Packliste R-51, R-52, R-53, R-54, FA-44 (Bildschirm + PDF) — 14.11., C+P (Materialplaner-Packen nutzt sie in Phase 6)
+- [x] E2E: T-04, T-05 — 14.11., e2e/angebote.test.js
 
 ## Phase 6 – Scannen, Packen, Verladen, Scanner
 - [ ] C: Scan-Algorithmus Spec 5.5 komplett (Schritte 1–9, eine Transaktion), R-23 (Schritt 2: R-70 `offeneBestellung` aus server/src/etiketten.js nutzen)

@@ -108,3 +108,9 @@ a{color:var(--lp-link)}
 .lp-kalender-zahl{align-self:flex-start;margin-left:6px;font-size:.85em;font-weight:600;min-width:22px;text-align:center;padding:0 4px}
 .lp-kalender-balken{display:block;width:100%;border:0;color:#fff;font:inherit;font-size:.78em;font-weight:600;text-align:left;padding:2px 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;min-height:22px}
 .lp-kalender-balken:hover{filter:brightness(1.1)}
+/* Angebote: Tabelle mit Eingaben, Summenblock */
+.lp-tabelle-wrap{overflow-x:auto}
+.lp-tabelle th.rechts,.lp-tabelle td.rechts{text-align:right}
+.lp-tabelle td .lp-input,.lp-tabelle td .lp-select{padding:4px 6px}
+.lp-angebot-summen{margin:14px 0 0 auto;max-width:360px;display:grid;gap:4px}
+.lp-angebot-summen>div{display:flex;justify-content:space-between;gap:16px}

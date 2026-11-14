@@ -24,7 +24,8 @@ export function verwaltungModul(router) {
   // Öffentlicher Teil der Einstellungen für alle Angemeldeten (Firmenname, Design-Standard).
   router.get("/api/v1/einstellungen/basis", { bereich: "start" }, async (ctx) => {
     const e = await ladeEinstellungen(ctx.pool);
-    return { firma: { name: e.firma.name }, design_standard: e.design_standard };
+    return { firma: { name: e.firma.name }, design_standard: e.design_standard, folgetag_prozent: e.folgetag_prozent,
+      tag_stunden_standard: e.tag_stunden_standard, tag_stunden_erweitert: e.tag_stunden_erweitert, kleinunternehmer: e.kleinunternehmer, ust_satz: e.ust_satz };
   });
   router.get("/api/v1/verwaltung/einstellungen", V, async (ctx) => ladeEinstellungen(ctx.pool));
   router.put("/api/v1/verwaltung/einstellungen", V, async (ctx) => transaktion(ctx.pool, async (c) => {

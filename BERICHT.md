@@ -11,6 +11,13 @@ Bekannte Fehler/Grenzen: <…>
 Annahmen: D-xx, D-yy
 ```
 
+## Phase 5 – Angebote, Verfügbarkeit, Packliste – 14.11.2026
+Gebaut: 3.11 Angebot/Position/Fassung (A-JJJJ-NNN), Zustand 4.2 mit Fassungsarchiv (PDF im Projektordner/Angebote), R-24–R-27 Reservierung/Verfügbarkeit (SQL-Sicht `reservierung`, Domain-Formeln), R-28–R-28c Preise und Zeitrechner, FA-41 Editor (Material, Verkauf, Personal mit Zeitrechner, freie Positionen, Reihenfolge, Rabatt, Texte, Gültigkeit), FA-42 Live-Überbuchungshinweis + Reservierungen je Artikel (Materialplaner), FA-43 Statuswechsel mit Projektstatus-Folge (D-55), FA-44 Packliste Bildschirm + PDF mit Set-Vorschlag, FA-45 Kalkulator + Zeitrechner, Kopfkennzahl Angebotswert.
+Geprüft: Unit+API alle grün (neu: domain/angebot.test.js 13, server/angebote.test.js 6 inkl. FA-41-Beispiel 50,00 €); E2E neu e2e/angebote.test.js (T-04, T-05, FA-41–45) grün. Screenshots: FA-41, FA-44, FA-45, T-05.
+Nicht geprüft: Inhalt/Optik der PDFs nur als gültiges PDF geprüft; Firmenlogo im PDF folgt mit Verwaltung (Phase 11).
+Bekannte Fehler/Grenzen: Einstellungen Kleinunternehmer/USt-Satz nur per API änderbar, bis die Verwaltungsseite Einstellungen (FA-48) kommt.
+Annahmen: D-55–D-59
+
 ## Phase 4 – Projekte, Jobs, Aufgaben, Dateien, Kalender – 14.11.2026
 Gebaut: 3.2–3.4, Zustand 4.1, R-12, R-13 (Ladezone frei), R-14 (Hook für Verladen), R-20, Projektordner mit Unterordnern, FA-29 (Liste mit Filtern, Detail mit Kopfkennzahlen), FA-30 (Jobs, „Jobs nach Gewerk“), FA-31, FA-32 (auch globale Liste), FA-33 (Upload bis 50 MB, sichere Auslieferung), FA-34 Monatskalender.
 Geprüft: Unit+API alle grün (neu: domain/projekt.test.js, server/projekte.test.js 8 Tests); E2E gesamt 8/8 grün, neu e2e/projekte.test.js (T-19, T-24 in UI + API). Screenshots erzeugt: FA-29, FA-33, FA-34.

@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { starteServer, starteApp, screenshot, anmelden, PW } from "./helfer.js";
 
-test("T-17 T-18 FA-47 FA-48 FA-49 FA-50 FA-51 Verwaltung: Sperre, Rechte, Benutzer, Rollen, Einstellungen, Sicherung, Sicherheit, System", async () => {
+test("T-17 T-18 UI-4 FA-47 FA-48 FA-49 FA-50 FA-51 Verwaltung: Sperre, Rechte, Benutzer, Rollen, Einstellungen, Sicherung, Sicherheit, System", async () => {
   const s = await starteServer();
   try {
     await s.benutzer("admin", "Administrator", "Ada Admin");

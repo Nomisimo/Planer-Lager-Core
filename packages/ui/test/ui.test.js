@@ -81,3 +81,10 @@ test("Deep-Links → App-Pfade (ARCHITEKTUR §4.2) und Hash-Router", () => {
   assert.equal(passeMuster("/projekte/:id", "/projekte/12/x"), null);
   assert.deepEqual(zerlegeHash("#/projekte/1?tab=jobs"), { pfad: "/projekte/1", query: { tab: "jobs" } });
 });
+
+test("UI-4 einmalig ruft sofort auf: stopPropagation im Klick wirkt noch (Knopf in klickbarer Zeile)", () => {
+  let gestoppt = false;
+  const f = einmalig((e) => { e.stopPropagation(); });
+  f({ stopPropagation: () => { gestoppt = true; } });
+  assert.equal(gestoppt, true, "synchron, nicht erst im nächsten Mikrotask");
+});

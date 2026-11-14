@@ -5,7 +5,10 @@ export function einmalig(fn) {
   let laeuft = null;
   const f = (...a) => {
     if (laeuft) return laeuft;
-    laeuft = Promise.resolve().then(() => fn(...a)).finally(() => { laeuft = null; });
+    // fn sofort (synchron) aufrufen, damit e.stopPropagation()/preventDefault() im Klick noch wirken
+    let r;
+    try { r = Promise.resolve(fn(...a)); } catch (e) { r = Promise.reject(e); }
+    laeuft = r.finally(() => { laeuft = null; });
     return laeuft;
   };
   f.laeuft = () => !!laeuft;

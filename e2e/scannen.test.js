@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { starteServer, starteApp, screenshot, anmelden } from "./helfer.js";
 
-test("T-07 T-08 T-09 T-10 T-11 FA-15 FA-17 R-23 UI-3 Materialplaner: Scannen, Packansicht, Handscanner, Netzwerk-Scanner, Verladen", async () => {
+test("T-07 T-08 T-09 T-10 T-11 FA-15 FA-17 R-23 UI-3 UI-4 Materialplaner: Scannen, Packansicht, Handscanner, Netzwerk-Scanner, Verladen", async () => {
   const s = await starteServer();
   await s.benutzer("lager", "Lager / Techniker", "Lars Lager");
   const q = (sql, w) => s.db.pool.query(sql, w);

@@ -48,6 +48,24 @@ export function starteShell(cfg) {
     return shell.openExternal(url).then(() => true, () => false);
   });
 
+  // FA-10/FA-14 Etikettendruck: Seitengröße aus der Vorlage, ohne Ränder. Testmodus: PDF statt Drucker.
+  let druckNr = 0;
+  ipcMain.handle("shell-drucken", async (e, { breite_mm, hoehe_mm } = {}) => {
+    const b = Number(breite_mm), h = Number(hoehe_mm);
+    if (!(b >= 10 && b <= 300 && h >= 5 && h <= 300)) return { ok: false, text: "Die Etikettengröße ist ungültig. Prüfe die Vorlage." };
+    const wc = e.sender;
+    if (test) {
+      const pdf = await wc.printToPDF({ pageSize: { width: b / 25.4, height: h / 25.4 }, margins: { top: 0, bottom: 0, left: 0, right: 0 }, printBackground: true });
+      const datei = path.join(app.getPath("userData"), `druck-${++druckNr}.pdf`);
+      fs.writeFileSync(datei, pdf);
+      process.stdout.write(`[shell-druck] ${datei} ${b}x${h}\n`);
+      return { ok: true, test: true, datei };
+    }
+    return new Promise((resolve) => wc.print({ silent: false, printBackground: true, margins: { marginType: "none" },
+      pageSize: { width: Math.round(b * 1000), height: Math.round(h * 1000) } },
+    (ok, grund) => resolve(ok ? { ok: true } : { ok: false, abgebrochen: grund === "cancelled", text: grund === "cancelled" ? "Druck abgebrochen." : `Drucken fehlgeschlagen (${grund}). Prüfe den Drucker und versuche es erneut.` })));
+  });
+
   // Sitzungs-Token verschlüsselt im Benutzerordner (safeStorage = Schlüsselbund/DPAPI).
   const tokenDatei = () => path.join(app.getPath("userData"), "sitzung.bin");
   ipcMain.handle("token-lesen", () => {

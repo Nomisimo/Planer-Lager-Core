@@ -78,3 +78,23 @@ a{color:var(--lp-link)}
 .lp-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 .lp-nur-mobil{display:none}
 @media (max-width:760px){.lp-nur-mobil{display:inline-flex}}
+/* Etiketten (FA-10/FA-11) */
+.lp-etikett{display:inline-block;background:#fff;box-shadow:0 0 0 1px var(--lp-line);border-radius:3px;overflow:hidden}
+.lp-etikett svg{display:block;width:100%;height:100%}
+.lp-etiketten-raster{display:flex;flex-wrap:wrap;gap:12px}
+.lp-designer{position:relative;user-select:none;touch-action:none;background:#fff;box-shadow:0 0 0 1px var(--lp-line)}
+.lp-designer>svg{position:absolute;inset:0;width:100%;height:100%}
+.lp-designer-raster{position:absolute;inset:0;pointer-events:none;background-image:linear-gradient(rgba(0,0,0,.06) 1px,transparent 1px),linear-gradient(90deg,rgba(0,0,0,.06) 1px,transparent 1px)}
+.lp-designer-el{position:absolute;border:1px dashed rgba(30,102,208,.55);cursor:move;background:transparent;padding:0}
+.lp-designer-el[aria-pressed="true"]{border:2px solid var(--lp-accent);background:rgba(179,72,63,.06)}
+.lp-designer-griff{position:absolute;right:-6px;bottom:-6px;width:12px;height:12px;border-radius:2px;background:var(--lp-accent);cursor:nwse-resize}
+.lp-farbfeld{display:inline-block;width:18px;height:18px;border-radius:4px;border:1px solid #0006;vertical-align:-4px}
+.lp-druckbogen{display:none}
+@media print{
+  html,body{background:#fff!important;margin:0!important;padding:0!important;height:auto!important;overflow:visible!important}
+  body>:not(.lp-druckbogen){display:none!important}
+  .lp-druckbogen{display:block!important}
+  .lp-druckseite{break-after:page;overflow:hidden}
+  .lp-druckseite:last-child{break-after:auto}
+  .lp-druckseite svg{display:block;width:100%;height:100%}
+}

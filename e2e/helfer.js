@@ -54,7 +54,9 @@ export async function starteApp(name, serverUrl, { bauen = !process.env.E2E_OHNE
   app.process().stdout.on("data", (d) => ausgabe.push(String(d)));
   /** Vom Hauptprozess geöffnete externe Links (Testmodus schreibt sie nach stdout). */
   const externeLinks = () => ausgabe.join("").split("\n").filter((z) => z.startsWith("[shell-extern] ")).map((z) => z.slice(15).trim());
-  return { app, win, externeLinks, async ende() { await app.close().catch(() => {}); fs.rmSync(userData, { recursive: true, force: true }); } };
+  /** Druckaufträge im Testmodus: {datei, groesse} (FA-10). */
+  const druckauftraege = () => ausgabe.join("").split("\n").filter((z) => z.startsWith("[shell-druck] ")).map((z) => { const [datei, groesse] = z.slice(14).trim().split(" "); return { datei, groesse }; });
+  return { app, win, externeLinks, druckauftraege, async ende() { await app.close().catch(() => {}); fs.rmSync(userData, { recursive: true, force: true }); } };
 }
 
 export const screenshot = (win, name) => { fs.mkdirSync(ARTEFAKTE, { recursive: true }); return win.screenshot({ path: path.join(ARTEFAKTE, name + ".png") }); };

@@ -36,12 +36,12 @@ Hinter `[x]` kurz notieren: Datum, Repo(s), Testdatei(en). Max. 1 Zeile.
 - [x] C+P: Kunde 3.1, FA-26 (IST-Teil), FA-27 PDF-Formular + Import mit Dublettenprüfung, Adresssuche (gemockt im Test) — 14.11., C+P, domain/kunden.test.js, server/kunden.test.js, e2e/kunden.test.js
 
 ## Phase 3 – Etiketten
-- [ ] C: QR (SVG), eigener Code-128-Encoder + Tests
-- [ ] C+M: Etiketten-Vorlagen 3.13, FA-10 Druck, FA-11 Designer
-- [ ] C+M: Kabel 3.12, R-29, R-29a, FA-12
-- [ ] C+M: Etiketten-Bestellung R-67, R-68 (PDF + CSV „ohne Bindestrich“), R-69, R-70, FA-13, Zustand 4.4
-- [ ] C+M: Kabel-Assistent R-73
-- [ ] E2E: T-01, T-02, T-03
+- [x] C: QR (SVG), eigener Code-128-Encoder + Tests — 14.11., C, domain/etiketten.test.js
+- [x] C+M: Etiketten-Vorlagen 3.13, FA-10 Druck, FA-11 Designer — 14.11., C+M, server/etiketten.test.js, e2e/etiketten.test.js
+- [x] C+M: Kabel 3.12, R-29, R-29a, FA-12 — 14.11., C+M, server/etiketten.test.js, e2e/etiketten.test.js
+- [x] C+M: Etiketten-Bestellung R-67, R-68 (PDF + CSV „ohne Bindestrich“), R-69, R-70, FA-13, Zustand 4.4 — 14.11., C+M (R-72 „bestellen“ jetzt aktiv)
+- [x] C+M: Kabel-Assistent R-73 — 14.11., C+M
+- [x] E2E: T-01, T-02, T-03 — 14.11., e2e/etiketten.test.js
 
 ## Phase 4 – Projekte, Jobs, Aufgaben, Dateien, Kalender
 - [ ] C: Projekt/Job 3.2, R-20, Zustände 4.1, R-12, R-13, R-14 (Hook), Projektordner
@@ -115,7 +115,7 @@ Hinter `[x]` kurz notieren: Datum, Repo(s), Testdatei(en). Max. 1 Zeile.
 - [ ] FA-55 Änderungsprotokoll (C) · [x] R-19 SOLL + T-23 Teil 2 (14.11., mit Phase 2) · [ ] FA-49 SOLL Wiederherstellung in der Oberfläche
 
 ## Phase 14 – SOLL P3 + Rest
-- [ ] FA-08 Lagerorte · [ ] FA-09 Schadensdoku · [ ] FA-14 Direktdruck Etikettendrucker
+- [ ] FA-08 Lagerorte · [ ] FA-09 Schadensdoku · [~] FA-14 Direktdruck Etikettendrucker (Druckdialog mit Maßen aus Vorlage gebaut, D-46; Test mit echtem Gerät braucht Hardware)
 - [x] FA-26 SOLL Dublettenwarnung manuell (14.11., mit Phase 2) · [ ] FA-28 Ansprechpartner + Historie
 - [ ] FA-39 Projektvorlagen · [ ] FA-40 Wiederkehrende Aufgaben + Benachrichtigungen (E-5: Standard = In-App + E-Mail per SMTP-Env)
 - [ ] Kamera-Scan (FA-15-Teil, html5-qrcode lokal, nur Arbeitsplatz-Web)

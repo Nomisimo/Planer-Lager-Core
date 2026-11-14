@@ -1,6 +1,7 @@
 // Kunden (3.1, FA-26, FA-27): Stamm, Dublettenprüfung, Kontaktformular-PDF + Import, Adresssuche (NFA-03).
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
-import { KUNDE_FELDER, pruefeKunde, dubletten } from "@lager/domain";
+import { KUNDE_FELDER, pruefeKunde, dubletten, loeschbarkeit, anonymisiert, FRIST_TEXT } from "@lager/domain";
+import { transaktion } from "@lager/db";
 import { fehler, nichtGefunden, seite, idParam, dbFehler } from "./hilfen.js";
 import { HttpFehler } from "./router.js";
 import { protokolliere, clientIp } from "./sicherheit.js";
@@ -133,6 +134,56 @@ export function kundenModul(router) {
     }
     ctx.hub?.sende({ typ: "kunde.geaendert", id, version: k.version, bereich: "kunden" });
     return { ok: true, level: "success", text: "Gespeichert.", kunde: k };
+  });
+  // NFA-03 Löschkonzept: Fristen prüfen, Datenauskunft, Anonymisieren (nur Admin)
+  const HEUTE_SQL = "(now() AT TIME ZONE 'Europe/Berlin')::date::text";
+  const dokumente = async (db, id) => (await db.query(`
+      SELECT 'projekt' AS art, p.nummer, coalesce(p.ende, p.beginn, p.erstellt::date)::text AS datum FROM projekt p WHERE p.kunde_id = $1
+      UNION ALL SELECT 'angebot', a.nummer, a.datum::text FROM angebot a JOIN projekt p ON p.id = a.projekt_id WHERE p.kunde_id = $1 AND a.status <> 'entwurf'
+      UNION ALL SELECT 'rechnung', 'Rechnung ' || r.id, r.erstellt::date::text FROM rechnung r JOIN projekt p ON p.id = r.projekt_id WHERE p.kunde_id = $1 AND r.status <> 'entwurf'`, [id])).rows;
+  const datenschutz = async (db, id) => {
+    const { rows: [k] } = await db.query(`SELECT id, anonymisiert, ${HEUTE_SQL} AS heute, (SELECT count(*)::int FROM projekt WHERE kunde_id = kunde.id) AS projekte FROM kunde WHERE id = $1`, [id]);
+    if (!k) throw nichtGefunden("Diesen Kunden");
+    const l = loeschbarkeit(await dokumente(db, id), k.heute);
+    return { anonymisiert: k.anonymisiert, loeschen: k.projekte === 0, anonymisieren: l.erlaubt && !k.anonymisiert && k.projekte > 0, ab: l.ab,
+      sperrt: l.sperrt.map((d) => ({ ...d, text: FRIST_TEXT[d.art] })),
+      text: k.anonymisiert ? "Personenbezogene Daten sind gelöscht." : k.projekte === 0 ? "Keine Projekte: Der Kunde kann ganz gelöscht werden."
+        : l.erlaubt ? "Alle Aufbewahrungsfristen sind abgelaufen: Die Kundendaten können anonymisiert werden."
+          : `Aufbewahrungspflicht bis ${l.ab.split("-").reverse().join(".")}: ${l.sperrt.length} Unterlage(n). Erst danach anonymisieren.` };
+  };
+  router.get("/api/v1/kunden/:id/datenschutz", { ...K, stufe: "r" }, async (ctx) => datenschutz(ctx.pool, idParam(ctx.params.id, "Dieser Kunde")));
+  // DSGVO Art. 15: alle gespeicherten Daten zum Kunden als JSON
+  router.get("/api/v1/kunden/:id/auskunft", K, async (ctx) => {
+    const id = idParam(ctx.params.id, "Dieser Kunde");
+    const { rows: [k] } = await ctx.pool.query("SELECT * FROM kunde WHERE id = $1", [id]);
+    if (!k) throw nichtGefunden("Diesen Kunden");
+    const projekte = (await ctx.pool.query("SELECT id, nummer, name, ort, status, beginn::text, ende::text, notizen FROM projekt WHERE kunde_id = $1 ORDER BY id", [id])).rows;
+    const angebote = (await ctx.pool.query("SELECT a.nummer, a.datum::text, a.status, a.betreff, a.summe_netto FROM angebot a JOIN projekt p ON p.id = a.projekt_id WHERE p.kunde_id = $1 ORDER BY a.id", [id])).rows;
+    await protokolliere(ctx.pool, "aktion", { benutzer: ctx.nutzer.benutzername, ip: clientIp(ctx), text: `Datenauskunft Kunde ${id}` });
+    const body = JSON.stringify({ erstellt: new Date().toISOString(), kunde: k, projekte, angebote }, null, 2);
+    ctx.res.writeHead(200, { "Content-Type": "application/json; charset=utf-8", "Content-Disposition": `attachment; filename="Datenauskunft-Kunde-${id}.json"`, "Cache-Control": "no-store" });
+    ctx.res.end(body);
+  });
+  router.post("/api/v1/kunden/:id/anonymisieren", { bereich: "verwaltung" }, async (ctx) => transaktion(ctx.pool, async (c) => {
+    const id = idParam(ctx.params.id, "Dieser Kunde");
+    await c.query("SELECT 1 FROM kunde WHERE id = $1 FOR UPDATE", [id]);
+    const d = await datenschutz(c, id);
+    if (d.anonymisiert) throw fehler(409, "Dieser Kunde ist schon anonymisiert.");
+    if (!d.anonymisieren) throw fehler(409, d.text);
+    if (ctx.body?.bestaetigung !== "ANONYMISIEREN") throw fehler(400, "Tippe zur Bestätigung ANONYMISIEREN ein.", { felder: { bestaetigung: "Bestätigung fehlt" } });
+    const a = anonymisiert(id);
+    const sp = Object.keys(a);
+    await c.query(`UPDATE kunde SET ${sp.map((k, i) => `${k} = $${i + 1}`).join(", ")}, anonymisiert = now(), version = version + 1 WHERE id = $${sp.length + 1}`, [...sp.map((k) => a[k]), id]);
+    await protokolliere(c, "aktion", { benutzer: ctx.nutzer.benutzername, ip: clientIp(ctx), text: `Kunde ${id} anonymisiert (NFA-03)` });
+    ctx.hub?.sende({ typ: "kunde.geaendert", id, bereich: "kunden" });
+    return { ok: true, level: "success", text: "Personenbezogene Daten gelöscht. Projekte und Belege bleiben mit der Kundennummer erhalten." };
+  }));
+  // Übersicht für Admins: Kunden, deren Fristen abgelaufen sind (Kandidaten zum Anonymisieren)
+  router.get("/api/v1/verwaltung/loeschfristen", { bereich: "verwaltung" }, async (ctx) => {
+    const { rows } = await ctx.pool.query("SELECT id, name, firma FROM kunde WHERE anonymisiert IS NULL AND EXISTS (SELECT 1 FROM projekt WHERE kunde_id = kunde.id) ORDER BY id");
+    const out = [];
+    for (const k of rows) { const d = await datenschutz(ctx.pool, k.id); if (d.anonymisieren) out.push({ ...k, text: d.text }); }
+    return out;
   });
   router.delete("/api/v1/kunden/:id", K, async (ctx) => {
     const id = idParam(ctx.params.id, "Dieser Kunde");

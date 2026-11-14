@@ -93,8 +93,8 @@ Hinter `[x]` kurz notieren: Datum, Repo(s), Testdatei(en). Max. 1 Zeile.
 - [x] C+M+P: FA-47 Benutzer/Rollen, FA-48 Einstellungen komplett, FA-50 Sicherheit, FA-51 System
 - [x] C: FA-49 Sicherung (pg_dump + Dateien, Prüfung, Aufbewahrung, Zweitort, Auto beim Start), `lager restore`
 - [x] C+M: FA-53 Plan-Symbole yEd (graphml + SVG-zip)
-- [ ] C: NFA-03 Löschkonzept Kundendaten
-- [ ] E2E: T-17, T-18, T-22, T-23 (IST-Teil)
+- [x] C: NFA-03 Löschkonzept Kundendaten
+- [x] E2E: T-17, T-18, T-22, T-23 (IST-Teil)
 
 ## Phase 11 – Cloud-Betrieb, Offline, Leistung
 - [ ] C: `deploy/` docker-compose (caddy, server, postgres), Healthcheck, FA-56, NFA-02 (HTTPS/HSTS/Secure-Cookies)

@@ -2,6 +2,7 @@
 import React, { useState } from "react";
 import { Seite, Section, Knopf, Tabelle, Eingabe, Auswahl, Feld, Meldung, Modal, Toggle, Badge, Textfeld, GeldEingabe, useDaten, useFormular, useBestaetigung } from "./bausteine.jsx";
 import { useLager } from "./huelle.jsx";
+import { useOeffne } from "./uebersicht.jsx";
 import { ladeHerunter } from "./download.js";
 import { fehlerText } from "./texte.js";
 import { zeitpunktAnzeige } from "@lager/domain/zeit.js";
@@ -256,6 +257,7 @@ export function SicherheitSeite() {
           { titel: "Details", feld: "text" },
         ]} />
       </Section>
+      <Loeschfristen />
       <Section titel="Sicherheitsprotokoll" icon="History">
         <div className="lp-zeile" style={{ marginBottom: 12 }}>
           <div style={{ width: 200 }}><Auswahl aria-label="Art" leer="Alle Arten" value={f.art} onChange={(e) => setF({ ...f, art: e.target.value })}
@@ -267,6 +269,20 @@ export function SicherheitSeite() {
         ]} />
       </Section>
     </Seite>
+  );
+}
+
+/** NFA-03: Kunden, deren Aufbewahrungsfristen abgelaufen sind (Anonymisieren im Kunden im Productionplaner). */
+function Loeschfristen() {
+  const { api } = useLager();
+  const oeffne = useOeffne();
+  const d = useDaten(() => api.get("/api/v1/verwaltung/loeschfristen"), []);
+  return (
+    <Section titel="Löschfristen Kundendaten" icon="EyeOff">
+      {d.daten?.length ? <ul className="lp-liste" data-testid="loeschfristen">{d.daten.map((k) => (
+        <li key={k.id}><a href={`#/kunden/${k.id}`} onClick={(e) => { e.preventDefault(); oeffne("p", `/kunden/${k.id}`); }}>{k.firma || k.name}</a> · {k.text}</li>))}</ul>
+        : <p className="lp-hinweis" style={{ margin: 0 }}>Kein Kunde, dessen Aufbewahrungsfristen abgelaufen sind.</p>}
+    </Section>
   );
 }
 

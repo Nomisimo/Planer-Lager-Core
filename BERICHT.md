@@ -11,6 +11,12 @@ Bekannte Fehler/Grenzen: <…>
 Annahmen: D-xx, D-yy
 ```
 
+## Phase 10 – Suche, Startseite, Verwaltung, Sicherung – 14.11.2026
+Gebaut: FA-36 Suche über Kunden, Projekte, Angebote, Material, Geräte nur nach Leserecht, Treffer der anderen App per Deep-Link; FA-35 Startseite in beiden Apps (Kacheln je Rolle, „Diese Woche“ mit Starts und fälligen Rückgaben, meine Aufgaben, Schnellzugriff); Verwaltungsseiten Benutzer, Rollen, Einstellungen, Datensicherung, Sicherheit, System; FA-49 geprüfte Sicherung (Datenbank + Dateien) mit Aufbewahrung, Zweitkopie, Auto beim Start (> 20 h), Download, Wiederherstellung per Befehl und über die Oberfläche mit Vorab-Sicherung; FA-50 Check-Seite, Dateirechte absichern (auch beim Start, `npm run lager -- sicherheitscheck --absichern`); FA-51 Ping, Wartung, Neustart; FA-53 Plan-Symbole mit yEd-Bibliothek und SVG-ZIP; NFA-03 Löschfristen, Datenauskunft, Anonymisieren.
+Geprüft: Unit+API alle grün (neu: uebersicht, system, plansymbole, datenschutz, domain plansymbole/datenschutz); E2E neu: uebersicht, verwaltung (T-17, T-18), plansymbole, datenschutz grün; T-22 als Server-Test mit echtem Befehl `restore`; T-23 schon seit Phase 3. Screenshots: FA-35-start-*, FA-36-suche, T-17-verweigert, T-18-sperre, FA-47-benutzer, FA-49-sicherung, FA-50-sicherheit, FA-51-system, FA-53-plansymbole, NFA-03-anonymisiert.
+Nicht geprüft: Symbolbibliothek in yEd selbst; Neustart im echten Docker-Container; Zweitordner auf echtem Netzlaufwerk.
+Annahmen: D-80–D-85
+
 ## Phase 9 – Planungszeit – 14.11.2026
 Gebaut: Zeiteintrag 3.5 mit Timer je Benutzer (höchstens einer läuft), Herzschlag aus beiden Apps, Stopp bei fremdem Projekt, Nicht-Planungsseite (Packen/Rückgabe, auch im Materialplaner) oder 5 min Leerlauf (R-62–R-64); Timer in der Kopfleiste mit Stopp-Knopf; „Planungszeit starten“ am Projekt; Nachbuchen mit „1:30“/„90“/„1,5“ (R-65); Satz aus Posten „Technische Projektleitung“ (Stunde oder Tagessatz ÷ Stunden) bzw. Ersatz-Stundensatz × Planungsanteil, Integer-Cent (R-66); Seite „Planungszeit“ mit Filter, Summe je Projekt, CSV; Reiter „Zeiten“ im Projekt; jeder Eintrag als Position im Rechnungsentwurf des Projekts.
 Geprüft: Unit+API alle grün (neu: domain planung, server zeit); E2E neu e2e/planungszeit.test.js (T-20) grün. Screenshots: T-20-timer, FA-46-planungszeit.

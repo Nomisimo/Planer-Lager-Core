@@ -11,3 +11,6 @@ export * from "./geraet.js";
 export * from "./pruefung.js";
 export * from "./geld.js";
 export * from "./kunden.js";
+export * from "./barcode.js";
+export * from "./kabel.js";
+export * from "./etiketten.js";

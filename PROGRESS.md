@@ -131,4 +131,4 @@ Hinter `[x]` kurz notieren: Datum, Repo(s), Testdatei(en). Max. 1 Zeile.
 - [x] Release-Builds per CI lauffähig (14.11.: Windows + Mac arm64 + Mac Intel in beiden Apps grün, D-103) (Tag setzt der Nutzer, Proxy erlaubt keine Tag-Pushes)
 
 ## Phase Z – nur wenn Budget übrig
-- [ ] Android-APK: station-web per Capacitor (wie Stromplaner/webapp), HID-Scanner + Kamera
+- [ ] Android-APK: station-web per Capacitor (wie Stromplaner/webapp), HID-Scanner + Kamera — bewusst nicht begonnen (optional, D-104)

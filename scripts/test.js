@@ -22,7 +22,7 @@ for (const pkg of fs.readdirSync(path.join(ROOT, "packages")).sort()) {
   sammle(path.join(ROOT, "packages", pkg, "test"));
 }
 if (!dateien.length) { console.log("Keine Tests gefunden."); process.exit(0); }
-const r = spawnSync(process.execPath, ["--test", "--test-reporter=dot", ...dateien], {
+const r = spawnSync(process.execPath, ["--import", "./scripts/ohne-netz.mjs", "--test", "--test-reporter=dot", ...dateien], {
   cwd: ROOT, stdio: "inherit", env: { TZ: "Europe/Berlin", ...process.env },
 });
 process.exit(r.status ?? 1);

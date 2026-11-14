@@ -31,7 +31,7 @@ packages/ui/           Gemeinsame React-Komponenten + CSS-Variablen (Planer-Stil
 packages/station-web/  Browser-UI für Lager-Arbeitsplätze (R-11a–g) und Ladezonen-Anzeige (R-59). Vom Server ausgeliefert.
 e2e/                   Playwright-Tests T-01…T-24 + Integrations-Szenarien über beide Apps.
 deploy/                docker-compose.yml (caddy, server, postgres), Caddyfile, .env.beispiel, Betriebsanleitung.
-scripts/               spec-abdeckung.js, db-test.sh, seed.js (5.000 Geräte / 500 Projekte für NFA-05).
+scripts/               spec-abdeckung.js, db-test.sh, seed.mjs (5.000 Geräte / 500 Projekte für NFA-05).
 ```
 
 ### Materialplaner / Productionplaner (je ein Repo, gleicher Aufbau wie Netzwerkplaner)

@@ -9,6 +9,8 @@ import { fileURLToPath } from "node:url";
 const HIER = path.dirname(fileURLToPath(import.meta.url));
 const PKGS = path.join(HIER, "..");
 const OUT = path.join(HIER, "dist");
+// NFA-09: aktuelle Safari, Chrome, Firefox, Edge. esbuild bricht ab, wenn Code für diese Versionen nicht übersetzbar ist.
+export const BROWSER_ZIELE = ["chrome109", "edge109", "firefox115", "safari15"];
 
 export async function baueStationWeb({ minify = true } = {}) {
   const lagerAlias = { name: "lager-alias", setup(b) {
@@ -19,7 +21,7 @@ export async function baueStationWeb({ minify = true } = {}) {
       return { path: p };
     });
   } };
-  const r = await esbuild.build({ entryPoints: [path.join(HIER, "src", "index.jsx")], bundle: true, format: "iife", write: false, minify,
+  const r = await esbuild.build({ entryPoints: [path.join(HIER, "src", "index.jsx")], bundle: true, format: "iife", write: false, minify, target: BROWSER_ZIELE,
     loader: { ".js": "jsx", ".jsx": "jsx", ".css": "text" }, jsx: "transform", define: { "process.env.NODE_ENV": '"production"' },
     plugins: [lagerAlias], logLevel: "warning" });
   const js = r.outputFiles[0].contents;

@@ -156,7 +156,7 @@ export function projekteModul(router) {
       throw fehler(409, "Jemand anderes hat dieses Projekt inzwischen geändert. Lade die Seite neu und trage deine Änderung erneut ein.");
     const w = { ...alt, ...werte(ctx.body) };
     if (w.art === "projekt") { w.uebergeordnet_id = null; w.gewerk = ""; }
-    if (w.uebergeordnet_id === id) throw fehler(400, "Ein Projekt kann nicht sein eigener Job sein.", { felder: { uebergeordnet_id: "Anderes Projekt wählen" } });
+    if (w.uebergeordnet_id === id) throw fehler(400, "Ein Projekt kann nicht sein eigener Job sein. Wähle ein anderes Oberprojekt.", { felder: { uebergeordnet_id: "Anderes Projekt wählen" } });
     if (w.art === "job" && alt.art === "projekt") {
       const { rows: [j] } = await c.query("SELECT count(*)::int AS n FROM projekt WHERE uebergeordnet_id = $1", [id]);
       if (j.n) throw fehler(409, `Dieses Projekt hat ${j.n} Job(s) und kann nicht zum Job werden. Verschiebe oder lösche zuerst die Jobs.`);
@@ -182,7 +182,7 @@ export function projekteModul(router) {
     const nach = String(ctx.body?.status || "");
     const { rows: [alt] } = await c.query("SELECT nummer, status, ladezone_id FROM projekt WHERE id = $1 FOR UPDATE", [id]);
     if (!alt) throw nichtGefunden("Dieses Projekt");
-    if (!statusWechselErlaubt(alt.status, nach)) throw fehler(400, PROJEKT_STATUS[nach] ? `${alt.nummer} ist schon „${PROJEKT_STATUS[nach]}“.` : "Wähle einen Status aus der Liste.");
+    if (!statusWechselErlaubt(alt.status, nach)) throw fehler(400, PROJEKT_STATUS[nach] ? `${alt.nummer} ist schon „${PROJEKT_STATUS[nach]}“. Wähle einen anderen Status.` : "Wähle einen Status aus der Liste.");
     const frei = gibtZoneFrei(nach);
     await c.query(`UPDATE projekt SET status = $1, ladezone_id = CASE WHEN $2 THEN NULL ELSE ladezone_id END, zone_seit = CASE WHEN $2 THEN NULL ELSE zone_seit END,
       version = version + 1, geaendert = now() WHERE id = $3`, [nach, frei, id]);
@@ -284,7 +284,7 @@ export function projekteModul(router) {
       werteListe.push(v); sets.push(`${k} = $${werteListe.length}`);
       if (k === "erledigt") sets.push(`erledigt_am = CASE WHEN $${werteListe.length}::boolean THEN coalesce(erledigt_am, now()) END`);
     }
-    if (!sets.length) throw fehler(400, "Nichts zu ändern.");
+    if (!sets.length) throw fehler(400, "Nichts zu ändern. Ändere ein Feld und speichere erneut.");
     werteListe.push(id);
     try {
       const { rows: [a] } = await ctx.pool.query(`UPDATE aufgabe SET ${sets.join(", ")} WHERE id = $${werteListe.length} RETURNING *`, werteListe);
@@ -309,7 +309,7 @@ export function projekteModul(router) {
   /* ── Dateien (3.3, FA-33) ── */
   router.post("/api/v1/projekte/:id/dateien", { ...P, stream: true }, async (ctx) => {
     const id = idParam(ctx.params.id, "Dieses Projekt");
-    const name = sichererDateiname(decodeURIComponent(String(ctx.query.name || "")));
+    const name = sichererDateiname(String(ctx.query.name || "")); // Query ist schon dekodiert
     const kategorie = DATEI_KATEGORIEN[ctx.query.kategorie] ? ctx.query.kategorie : "sonstiges";
     const angegeben = Number(ctx.req.headers["content-length"] || 0);
     const vorab = pruefeDatei(name, angegeben || 1);
@@ -319,17 +319,26 @@ export function projekteModul(router) {
     const basis = datenOrdner(ctx);
     const ziel = sichererPfad(basis, path.join(p.ordner, "Dokumente", "Dateien"));
     await fsp.mkdir(ziel, { recursive: true });
-    let datei = name, n = 2;
-    while (fs.existsSync(path.join(ziel, datei))) datei = name.replace(/(\.[^.]+)?$/, (m) => ` (${n++})${m}`);
+    // Freien Namen atomar belegen ("wx"): parallele Uploads mit gleichem Namen bekommen „Name (2)“ usw.
+    let datei = name, n = 2, handle;
+    for (;;) {
+      try { handle = await fsp.open(path.join(ziel, datei), "wx"); break; }
+      catch (e) { if (e.code !== "EEXIST" || n > 999) throw e; datei = name.replace(/(\.[^.]+)?$/, (m) => ` (${n++})${m}`); }
+    }
     const voll = path.join(ziel, datei);
     let groesse = 0;
     try {
       await new Promise((resolve, reject) => {
-        const out = fs.createWriteStream(voll, { flags: "wx" });
+        const out = handle.createWriteStream();
+        let fertig = false;
         ctx.req.on("data", (t) => {
           groesse += t.length;
           if (groesse > MAX_DATEI) { ctx.req.unpipe(out); out.destroy(); reject(fehler(413, "Die Datei ist größer als 50 MB. Verkleinere sie oder teile sie auf.")); ctx.req.resume(); }
         });
+        ctx.req.on("end", () => { fertig = true; });
+        // Abbruch durch den Client: Teildatei verwerfen
+        ctx.req.on("aborted", () => { out.destroy(); reject(fehler(400, "Der Upload wurde abgebrochen. Lade die Datei erneut hoch.")); });
+        ctx.req.on("close", () => { if (!fertig) { out.destroy(); reject(fehler(400, "Der Upload wurde abgebrochen. Lade die Datei erneut hoch.")); } });
         ctx.req.on("error", reject);
         out.on("error", reject).on("finish", resolve);
         ctx.req.pipe(out);
@@ -352,8 +361,9 @@ export function projekteModul(router) {
     const d = await ladeDatei(ctx);
     const basis = datenOrdner(ctx);
     const voll = sichererPfad(basis, d.pfad);
+    if (!d.ordner) throw fehler(404, `Das Projekt von „${d.name}“ hat keinen Projektordner. Lade die Datei erneut hoch.`);
     const bereichOrdner = sichererPfad(basis, d.ordner);
-    if (!voll.startsWith(bereichOrdner + path.sep)) throw fehler(403, "Diese Datei liegt außerhalb des Projektordners und wird nicht ausgeliefert.");
+    if (!voll.startsWith(bereichOrdner + path.sep)) throw fehler(403, "Diese Datei liegt außerhalb des Projektordners und wird nicht ausgeliefert. Lade sie im Projekt erneut hoch.");
     let st;
     try { st = await fsp.stat(voll); } catch { throw fehler(404, `Die Datei „${d.name}“ fehlt im Projektordner. Lade sie erneut hoch.`); }
     const inline = inlineErlaubt(d.name) && ctx.query.download !== "1";

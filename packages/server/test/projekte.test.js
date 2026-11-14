@@ -44,6 +44,12 @@ test("T-19 FA-30 Job zu Projekt übernimmt Kunde/Termin/Ort, liegt unter Jobs/; 
   assert.match(unter.json.text, /keine Unter-Jobs/);
   const zuJob = await buero("PUT", `/api/v1/projekte/${p.id}`, { art: "job" });
   assert.equal(zuJob.status, 409);
+  // Job nachträglich unter einen Job hängen → abgelehnt
+  const p2 = (await projekt({ name: "Andere Messe" })).projekt;
+  const j2 = (await buero("POST", "/api/v1/projekte", { name: "Job B", uebergeordnet_id: p2.id })).json.projekt;
+  const umh = await buero("PUT", `/api/v1/projekte/${j2.id}`, { uebergeordnet_id: j.id });
+  assert.equal(umh.status, 400);
+  assert.match(umh.json.text, /keine Unter-Jobs.*Wähle ein Projekt/);
   // Kundenwechsel am Projekt wandert in die Jobs
   await buero("PUT", `/api/v1/projekte/${p.id}`, { kunde_id: k2.id });
   assert.equal((await buero("GET", `/api/v1/projekte/${j.id}`)).json.kunde_id, k2.id);
@@ -90,6 +96,9 @@ test("FA-29 Liste mit Filtern Status/Zeitraum/Kunde/Art; Detail mit Kopfkennzahl
   assert.deepEqual((await l(`kunde=${k3.id}`)).zeilen.map((z) => z.name).sort(), ["Sommerfest", "Winterfest"]);
   assert.deepEqual((await l(`kunde=${k3.id}&von=2026-06-30&bis=2026-07-01`)).zeilen.map((z) => z.name), ["Sommerfest"]);
   assert.deepEqual((await l(`kunde=${k3.id}&status=anfrage,bestaetigt&art=projekt`)).gesamt, 2);
+  await buero("POST", `/api/v1/projekte/${p.id}/status`, { status: "storniert" });
+  assert.deepEqual((await l(`kunde=${k3.id}&status=anfrage,bestaetigt`)).zeilen.map((z) => z.name), ["Winterfest"], "Gegenprobe: storniert ausgeschlossen");
+  assert.equal((await l(`kunde=${k3.id}&status=storniert,anfrage`)).gesamt, 2, "Mehrfachauswahl");
   assert.equal((await l(`q=${p.nummer}`)).zeilen[0].id, p.id);
   assert.equal((await l("art=job&q=Einzeljob")).gesamt, 1);
   assert.equal((await l("von=1.1.2026")).zeilen, undefined);
@@ -166,6 +175,21 @@ test("FA-33 T-24 Dateien: Typ- und Größenprüfung, Ablage im Projektordner, PD
   assert.equal(await r1.text(), "%PDF-1.4 test");
   const r2 = await lade(svg.json.datei.id);
   assert.equal(r2.headers.get("content-type"), "application/octet-stream", "T-24: SVG nie inline");
+  // ?download=1 erzwingt Download auch bei PDF; PNG inline; Lager (nur lesen) darf nicht hochladen
+  assert.match((await lade(pdf.json.datei.id + "?download=1")).headers.get("content-disposition"), /^attachment/);
+  const png = await hoch("foto.png", Buffer.from([0x89, 0x50, 0x4e, 0x47]), "foto");
+  const r3 = await lade(png.json.datei.id);
+  assert.deepEqual([r3.headers.get("content-type"), r3.headers.get("content-disposition").split(";")[0]], ["image/png", "inline"]);
+  const verboten = await fetch(`${s.url}/api/v1/projekte/${p.id}/dateien?name=x.pdf`, { method: "POST", headers: { Authorization: "Bearer " + lager.token }, body: Buffer.from("%PDF") });
+  assert.equal(verboten.status, 403);
+  // parallele Uploads mit gleichem Namen: beide bleiben erhalten
+  const par = await Promise.all([1, 2, 3].map((i) => hoch("Rider.pdf", Buffer.from(`%PDF ${i}`))));
+  assert.deepEqual(par.map((x) => x.json.datei.name).sort(), ["Rider (2).pdf", "Rider (3).pdf", "Rider.pdf"]);
+  for (const x of par) assert.equal((await lade(x.json.datei.id)).status, 200);
+  // Upload ohne Content-Length (chunked) über 50 MB wird beim Lesen abgebrochen
+  const strom = new ReadableStream({ start(c) { for (let i = 0; i < 51; i++) c.enqueue(new Uint8Array(1024 * 1024)); c.close(); } });
+  const chunk = await fetch(`${s.url}/api/v1/projekte/${p.id}/dateien?name=riesig.zip`, { method: "POST", headers: { Authorization: "Bearer " + buero.token }, body: strom, duplex: "half" });
+  assert.equal(chunk.status, 413);
   assert.match(r2.headers.get("content-disposition"), /^attachment/);
   assert.match(r2.headers.get("content-security-policy"), /sandbox/);
   // nur aus dem Projektbereich ausliefern
@@ -175,7 +199,7 @@ test("FA-33 T-24 Dateien: Typ- und Größenprüfung, Ablage im Projektordner, PD
   assert.ok(log.n >= 2);
   assert.equal((await buero("DELETE", `/api/v1/dateien/${pdf.json.datei.id}`)).status, 200);
   assert.ok(!fs.existsSync(path.join(s.dataDir, p.ordner, "Dokumente", "Dateien", "Bühnenplan.pdf")));
-  assert.deepEqual((await buero("GET", `/api/v1/projekte/${p.id}`)).json.dateien.map((d) => d.kategorie).sort(), ["foto", "plan", "plan"]);
+  assert.equal((await buero("GET", `/api/v1/projekte/${p.id}`)).json.dateien.filter((d) => d.kategorie === "foto").length, 2);
 });
 
 test("FA-34 Kalender: Projekte im Zeitraum mit Status", async () => {

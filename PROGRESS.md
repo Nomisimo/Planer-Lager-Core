@@ -52,7 +52,7 @@ Hinter `[x]` kurz notieren: Datum, Repo(s), Testdatei(en). Max. 1 Zeile.
 - [x] E2E: T-19, T-24 — 14.11., e2e/projekte.test.js + server/projekte.test.js
 
 ## Phase 5 – Angebote, Verfügbarkeit, Packliste
-- [ ] C: Angebot/Position/Fassung 3.11, Zustand 4.2, Fassungen + PDF-Archiv
+- [ ] C: Angebot/Position/Fassung 3.11, Zustand 4.2, Fassungen + PDF-Archiv — dabei Projekt-Kennzahl `angebotswert_netto` + Reiter Angebote im Projekt füllen
 - [ ] C: Verfügbarkeit R-15, R-24, R-25, R-26, R-27
 - [ ] C: Preise R-28, R-28a, R-28b, R-28c (FA-41-Beispiel = 50,00 € als Test)
 - [ ] P: FA-41 Angebotseditor, FA-42 Überbuchungshinweis, FA-43 Statuswechsel, FA-45 Kalkulator + Zeitrechner
@@ -65,7 +65,7 @@ Hinter `[x]` kurz notieren: Datum, Repo(s), Testdatei(en). Max. 1 Zeile.
 - [ ] C+M: HID-Scanner-Erkennung (ARCHITEKTUR §5) + UI-3
 - [ ] C: Netzwerk-Scanner-Gateway (TCP + HTTP), Verwaltung „Scanner“, Zuordnung zu Arbeitsplatz
 - [ ] M: FA-15 Scan-Seite, FA-16 globales Codefeld (auch P), FA-17 Packansicht live
-- [ ] C+M: Verladen R-60, R-61
+- [ ] C+M: Verladen R-60, R-61 — dabei `nachVerladen` (R-14) aus server/src/projekte.js aufrufen
 - [ ] E2E: T-06, T-07, T-08, T-09, T-10, T-11
 
 ## Phase 7 – Rückgabe

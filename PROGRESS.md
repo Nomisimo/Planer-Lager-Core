@@ -27,10 +27,10 @@ Hinter `[x]` kurz notieren: Datum, Repo(s), Testdatei(en). Max. 1 Zeile.
 - [x] C+M+P: UI-8 Versionskennung der Assets (Hash im Dateinamen) für station-web; Electron-Bundle versioniert — 14.11., C, server/test/statisch.test.js; Apps: meta lager-build + dist-app/build.json
 
 ## Phase 2 – Stammdaten
-- [ ] C: Kategorie 3.6 (Präfix-Vorschlag, letzte_nummer nur steigend)
-- [ ] C: Artikel 3.7 inkl. Artikeltyp-Ableitung
-- [ ] C: Gerät 3.8, Codes R-21, Normalisierung R-22, Bewegung 3.9, R-16, R-17, R-18, R-19 (IST), R-30 (= R-18, D-15)
-- [ ] C: Prüfstatus 5.10 (Monatsende!)
+- [x] C: Kategorie 3.6 (Präfix-Vorschlag, letzte_nummer nur steigend) — 14.11., C, domain/codes.test.js, server/stammdaten.test.js
+- [x] C: Artikel 3.7 inkl. Artikeltyp-Ableitung — 14.11., C, domain/geraet.test.js, server/stammdaten.test.js
+- [x] C: Gerät 3.8, Codes R-21, Normalisierung R-22, Bewegung 3.9, R-16, R-17, R-18, R-19 (IST), R-30 (= R-18, D-15) — 14.11., C, domain/codes+geraet.test.js, server/stammdaten.test.js (R-19 SOLL gleich mit, D-37)
+- [x] C: Prüfstatus 5.10 (Monatsende!) — 14.11., C, domain/geraet.test.js, server/stammdaten.test.js
 - [ ] M: FA-01 Materialliste, FA-02 Artikel anlegen/bearbeiten/löschen, R-71, R-72
 - [ ] M: FA-03 Geräteliste + Detail, FA-04 Verbrauchsbestand, FA-05 Reservierungen je Artikel
 - [ ] C+P: Kunde 3.1, FA-26 (IST-Teil), FA-27 PDF-Formular + Import mit Dublettenprüfung, Adresssuche (gemockt im Test)
@@ -112,7 +112,7 @@ Hinter `[x]` kurz notieren: Datum, Repo(s), Testdatei(en). Max. 1 Zeile.
 ## Phase 13 – SOLL P2
 - [ ] FA-06 Inventur (M) · [ ] FA-07 Reparatur/Wartung (M) · [ ] FA-20 Teilrückgabe/Nachpacken (M)
 - [ ] FA-21 Lieferschein + Rückgabeprotokoll PDF (C+M) · [ ] FA-37 Personalplanung (P) · [ ] FA-38 Fahrzeuge (P)
-- [ ] FA-55 Änderungsprotokoll (C) · [ ] R-19 SOLL + T-23 Teil 2 · [ ] FA-49 SOLL Wiederherstellung in der Oberfläche
+- [ ] FA-55 Änderungsprotokoll (C) · [x] R-19 SOLL + T-23 Teil 2 (14.11., mit Phase 2) · [ ] FA-49 SOLL Wiederherstellung in der Oberfläche
 
 ## Phase 14 – SOLL P3 + Rest
 - [ ] FA-08 Lagerorte · [ ] FA-09 Schadensdoku · [ ] FA-14 Direktdruck Etikettendrucker

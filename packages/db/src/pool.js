@@ -5,6 +5,8 @@ import pg from "pg";
 pg.types.setTypeParser(20, (v) => Number(v));
 // DATE als 'JJJJ-MM-TT'-Text lassen, nie in Date umwandeln (Zeitzonen-Falle).
 pg.types.setTypeParser(1082, (v) => v);
+// NUMERIC nur für Längen (m), nie für Geld → als Zahl.
+pg.types.setTypeParser(1700, (v) => Number(v));
 
 export const standardUrl = () =>
   process.env.DATABASE_URL || "postgres://lager:lager@localhost:5432/lager_test";

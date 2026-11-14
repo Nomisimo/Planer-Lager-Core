@@ -7,7 +7,7 @@ const NODE = g(["process", "console", "Buffer", "URL", "URLSearchParams", "setTi
 const BROWSER = g(["window", "document", "localStorage", "sessionStorage", "navigator", "location", "indexedDB",
   "HTMLElement", "KeyboardEvent", "Event", "CustomEvent", "requestAnimationFrame", "getComputedStyle", "alert", "Audio", "AudioContext", "matchMedia", "history", "IDBKeyRange", "File", "FileReader"]);
 module.exports = [
-  { ignores: ["**/node_modules/**", "**/dist/**", "**/dist-app/**", "e2e/artefakte/**", "deploy/**"] },
+  { ignores: ["**/node_modules/**", "**/dist/**", "**/dist-app/**", "e2e/artefakte/**", "e2e/erkundung/**", "deploy/**"] },
   ...(js ? [js.configs.recommended] : []),
   {
     files: ["**/*.js", "**/*.jsx", "**/*.mjs", "**/*.cjs"],

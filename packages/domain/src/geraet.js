@@ -44,3 +44,6 @@ export function loeschSperre(g, anzahlBewegungen) {
     return `Das Gerät ${g.code} hat einen Verlauf und darf nicht gelöscht werden (Nachweis). Mustere es stattdessen aus.`;
   return null;
 }
+
+/** Status, die man von Hand setzen darf. „Projekt zugeordnet“/„Gepackt“ nur über Packen. */
+export const MANUELLER_STATUS = Object.freeze(["lager", "vermisst", "defekt", "reparatur", "ausgemustert", "verkauft"]);

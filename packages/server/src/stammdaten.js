@@ -1,7 +1,7 @@
 // Stammdaten: Kategorien (3.6), Artikel (3.7, FA-01/02/04/05, R-71/72), Geräte (3.8, FA-03, R-16–R-22), Bewegungen (3.9).
 import { transaktion } from "@lager/db";
-import { praefixVorschlag, praefixGueltig, naechsterGeraetecode, normalisiereCode, pruefeArtikel, artikeltyp,
-  bestandNiedrig, uebergangErlaubt, aktionText, loeschSperre, STATUS, pruefstatus } from "@lager/domain";
+import { wendeArtAn, artVon, praefixVorschlag, praefixGueltig, naechsterGeraetecode, normalisiereCode, pruefeArtikel, artikeltyp,
+  bestandNiedrig, uebergangErlaubt, aktionText, loeschSperre, STATUS, MANUELLER_STATUS, pruefstatus } from "@lager/domain";
 import { fehler, nichtGefunden, seite, idParam, wer, bucheBewegung, dbFehler } from "./hilfen.js";
 
 /** Prüfstatus in SQL (5.10), Stichtag Berlin. Erwartet Aliase a (artikel) und g (geraet). */
@@ -84,6 +84,7 @@ export function stammdatenModul(router) {
     try {
       const { rows } = await ctx.pool.query("UPDATE kategorie SET name = $1, praefix = $2 WHERE id = $3 RETURNING *", [name, praefix, id]);
       if (!rows[0]) throw nichtGefunden("Diese Kategorie");
+      ctx.hub?.sende({ typ: "kategorie.geaendert", id, bereich: "material" });
       return rows[0];
     } catch (e) {
       if (/Präfix ist schon vergeben/.test(e.message)) throw fehler(409, "Das Präfix ist schon für Gerätecodes verwendet worden und bleibt fest. Lege bei Bedarf eine neue Kategorie an.");
@@ -91,9 +92,11 @@ export function stammdatenModul(router) {
     }
   });
   router.delete("/api/v1/kategorien/:id", M, async (ctx) => {
+    const id = idParam(ctx.params.id, "Diese Kategorie");
     try {
-      const { rowCount } = await ctx.pool.query("DELETE FROM kategorie WHERE id = $1", [idParam(ctx.params.id, "Diese Kategorie")]);
+      const { rowCount } = await ctx.pool.query("DELETE FROM kategorie WHERE id = $1", [id]);
       if (!rowCount) throw nichtGefunden("Diese Kategorie");
+      ctx.hub?.sende({ typ: "kategorie.geaendert", id, bereich: "material" });
       return { ok: true };
     } catch (e) { throw dbFehler(e, { verknuepft: "In dieser Kategorie gibt es noch Artikel. Verschiebe oder lösche sie zuerst." }); }
   });
@@ -126,7 +129,8 @@ export function stammdatenModul(router) {
     return { ...a, typ: artikeltyp(a), niedrig: bestandNiedrig(a), geraete };
   });
   router.post("/api/v1/artikel", M, async (ctx) => transaktion(ctx.pool, async (c) => {
-    const w = { mengenschritt: 1, pruefpflichtig: true, pruef_intervall_monate: 12, aktiv: true, ...nurFelder(ctx.body, ARTIKEL_FELDER) };
+    const roh = { mengenschritt: 1, pruefpflichtig: true, pruef_intervall_monate: 12, aktiv: true, ...nurFelder(ctx.body, ARTIKEL_FELDER) };
+    const w = wendeArtAn(roh, artVon(roh)); // R-71 serverseitig erzwingen
     const f = pruefeArtikel(w);
     const anzahl = ctx.body?.anzahl == null || ctx.body.anzahl === "" ? 0 : Number(ctx.body.anzahl);
     const kennzeichnung = ctx.body?.kennzeichnung || "keine";
@@ -156,7 +160,8 @@ export function stammdatenModul(router) {
     if (!alt) throw nichtGefunden("Dieser Artikel");
     if (ctx.body?.version != null && ctx.body.version !== alt.version)
       throw fehler(409, "Jemand anderes hat diesen Artikel inzwischen geändert. Lade die Seite neu und trage deine Änderung erneut ein.");
-    const w = { ...alt, ...nurFelder(ctx.body, ARTIKEL_FELDER) };
+    const roh = { ...alt, ...nurFelder(ctx.body, ARTIKEL_FELDER) };
+    const w = wendeArtAn(roh, artVon(roh)); // R-71
     const f = pruefeArtikel(w);
     if (w.inhalt_artikel_id === id) f.inhalt_artikel_id = "Ein Case kann nicht sich selbst enthalten.";
     if (Object.keys(f).length) throw fehler(400, "Bitte prüfe die markierten Felder.", { felder: f });
@@ -269,7 +274,8 @@ export function stammdatenModul(router) {
   }
   router.post("/api/v1/geraete/:id/status", G, async (ctx) => {
     const nach = String(ctx.body?.status || "");
-    if (!STATUS[nach]) throw fehler(400, "Wähle einen Status aus der Liste.");
+    // Zugeordnet/Gepackt nur über Packen (Phase 5), nie manuell ohne Projekt.
+    if (!MANUELLER_STATUS.includes(nach)) throw fehler(400, "Wähle einen Status aus der Liste. „Projekt zugeordnet“ und „Gepackt“ setzt nur das Packen.");
     return wechsleStatus(ctx, idParam(ctx.params.id, "Dieses Gerät"), nach, { zusatz: String(ctx.body?.notiz || "").slice(0, 200) });
   });
   // geprueft/vermisst/gefunden: Bereich packen (Spec 7.1)

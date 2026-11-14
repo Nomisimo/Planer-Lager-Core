@@ -23,6 +23,21 @@ test("3.6 Kategorie: Präfix-Vorschlag, eindeutig, letzte_nummer nur steigend, P
   assert.equal((await admin("POST", "/api/v1/kategorien", { name: "X", praefix: "ABCDE" })).status, 400);
   await assert.rejects(s.db.pool.query("UPDATE kategorie SET letzte_nummer = 5 WHERE id = $1", [k.id]).then(() => s.db.pool.query("UPDATE kategorie SET letzte_nummer = 4 WHERE id = $1", [k.id])), /nur steigen/);
   assert.equal((await admin("PUT", `/api/v1/kategorien/${k.id}`, { name: "Lautsprecher", praefix: "LS" })).status, 409);
+  assert.equal((await admin("POST", "/api/v1/kategorien", { name: "Lautsprecher", praefix: "LT" })).status, 409, "doppelter Name");
+  // Live-Update bei Ändern und Löschen; Löschen mit Artikeln verweigert
+  const gesendet = [];
+  const orig = s.hub.sende.bind(s.hub);
+  s.hub.sende = (m) => { gesendet.push(m.typ); return orig(m); };
+  try {
+    const leer = await neueKategorie("Leer", "LE");
+    assert.equal((await admin("PUT", `/api/v1/kategorien/${leer.id}`, { name: "Leer 2", praefix: "LE" })).status, 200);
+    assert.equal((await admin("DELETE", `/api/v1/kategorien/${leer.id}`)).status, 200);
+    assert.deepEqual(gesendet.filter((t) => t === "kategorie.geaendert").length, 3);
+  } finally { s.hub.sende = orig; }
+  await neuerArtikel({ name: "Box", kategorie_id: k.id });
+  const v = await admin("DELETE", `/api/v1/kategorien/${k.id}`);
+  assert.equal(v.status, 409);
+  assert.match(v.json.text, /noch Artikel/);
 });
 
 test("R-21 Gerätecodes fortlaufend je Präfix, nie wiederverwendet nach Löschen; R-72 Kennzeichnung qr legt Geräte an", async () => {
@@ -63,8 +78,52 @@ test("R-18 Statuswechsel erzeugt Bewegung mit Aktion, Person, Zeit; R-30 jede Be
   await assert.rejects(s.db.pool.query("UPDATE bewegung SET aktion = 'x'"), /nur neue Einträge/);
   // verbotener Übergang
   await lager("POST", `/api/v1/geraete/${id}/vermisst`, {});
-  const v = await admin("POST", `/api/v1/geraete/${id}/status`, { status: "gepackt" });
-  assert.equal(v.status, 409);
+  const v = await admin("POST", `/api/v1/geraete/${id}/status`, { status: "lager" });
+  assert.equal(v.status, 200);
+  // 4.3: zugeordnet/gepackt nie manuell (nur Packen)
+  const z = await admin("POST", `/api/v1/geraete/${id}/status`, { status: "gepackt" });
+  assert.equal(z.status, 400);
+  assert.match(z.json.text, /nur das Packen/);
+  // defekt, reparatur, ausgemustert werden als Bewegung gebucht; ausgemustert ist endgültig
+  for (const st of ["defekt", "reparatur", "ausgemustert"]) assert.equal((await admin("POST", `/api/v1/geraete/${id}/status`, { status: st })).status, 200, st);
+  assert.equal((await admin("POST", `/api/v1/geraete/${id}/status`, { status: "lager" })).status, 409);
+  // wer = Mitarbeiter (Arbeitsplatz), sonst Benutzer
+  await s.db.pool.query("INSERT INTO bewegung (geraet_id, aktion, benutzer, mitarbeiter) VALUES ($1, 'Test', 'station1', 'Max')", [id]);
+  const e = (await lager("GET", `/api/v1/geraete/${id}`)).json;
+  assert.equal(e.bewegungen[0].wer, "Max");
+  assert.equal(e.bewegungen[1].wer, "admin");
+  assert.match(e.bewegungen[1].aktion, /In Reparatur → Ausgemustert/);
+  assert.equal(e.bewegungen.length, 8);
+});
+
+test("3.8 Gerätecode: nicht änderbar, Format geprüft; Case-Löschung leert „Liegt in Case“", async () => {
+  const k = await neueKategorie("Taschen", "TA");
+  const inh = await neuerArtikel({ name: "Mikro", kategorie_id: k.id, anzahl: 1, kennzeichnung: "qr" });
+  const cs = await neuerArtikel({ name: "Mikrocase", kategorie_id: k.id, ist_case: true, verpackungseinheit: 4, anzahl: 1, kennzeichnung: "qr" });
+  await assert.rejects(s.db.pool.query("UPDATE geraet SET code = 'CA-9999' WHERE id = $1", [inh.geraete.ids[0]]));
+  await assert.rejects(s.db.pool.query("INSERT INTO geraet (artikel_id, code) VALUES ($1, 'ca-1')", [inh.artikel.id]));
+  await assert.rejects(s.db.pool.query("INSERT INTO geraet (artikel_id, code) VALUES ($1, 'ABCDE-0001')", [inh.artikel.id]));
+  const code = (await admin("GET", `/api/v1/geraete/${inh.geraete.ids[0]}`)).json.code;
+  assert.equal((await admin("POST", `/api/v1/geraete/${cs.geraete.ids[0]}/inhalt`, { code })).status, 200);
+  assert.equal((await admin("GET", `/api/v1/geraete/${inh.geraete.ids[0]}`)).json.case_code, "TA-0002");
+  assert.equal((await admin("DELETE", `/api/v1/geraete/${cs.geraete.ids[0]}`)).status, 200);
+  assert.equal((await admin("GET", `/api/v1/geraete/${inh.geraete.ids[0]}`)).json.case_id, null);
+});
+
+test("5.10 Prüfstatus: SQL liefert dasselbe wie pruefstatus() an den Grenzen", async () => {
+  const { pruefstatus, plusMonate } = await import("@lager/domain");
+  const k = await neueKategorie("Prüfgrenzen", "PG");
+  const a = await neuerArtikel({ name: "Prüfling", kategorie_id: k.id, pruef_intervall_monate: 1, anzahl: 6, kennzeichnung: "qr" });
+  const { rows: [{ heute }] } = await s.db.pool.query("SELECT ((now() AT TIME ZONE 'Europe/Berlin')::date)::text AS heute");
+  const tag = (iso, n) => new Date(Date.parse(iso + "T00:00:00Z") + n * 86400000).toISOString().slice(0, 10);
+  const vor1 = plusMonate(heute, -1);
+  const daten = [vor1, tag(vor1, -1), tag(vor1, 30), tag(vor1, 31), null, "2026-01-31"];
+  for (let i = 0; i < daten.length; i++) await s.db.pool.query("UPDATE geraet SET letzte_pruefung = $1 WHERE id = $2", [daten[i], a.geraete.ids[i]]);
+  const d = (await admin("GET", `/api/v1/artikel/${a.artikel.id}`)).json;
+  for (let i = 0; i < daten.length; i++) {
+    const g = d.geraete.find((x) => x.id === a.geraete.ids[i]);
+    assert.equal(g.pruefstatus, pruefstatus({ pruefpflichtig: true, pruef_intervall_monate: 1 }, daten[i], heute).status, `letzte Prüfung ${daten[i]}`);
+  }
 });
 
 test("R-19 T-23 Gerät in einem Projekt löschen verweigert; SOLL: mit Verlauf nur ausmustern", async () => {
@@ -90,9 +149,15 @@ test("FA-02 Artikel löschen nur ohne belegte Geräte (vermisste zählen nicht),
   const r = await admin("DELETE", `/api/v1/artikel/${a.artikel.id}`);
   assert.equal(r.status, 409);
   assert.match(r.json.text, /ST-0001/);
+  // vermisst im Projekt zählt nicht als belegt → dieser Artikel ist löschbar (ohne Verlauf)
   await s.db.pool.query("UPDATE geraet SET status = 'vermisst' WHERE id = $1", [a.geraete.ids[0]]);
-  const leer = await neuerArtikel({ name: "Stativ klein", kategorie_id: k.id, anzahl: 1, kennzeichnung: "qr" });
-  assert.equal((await admin("DELETE", `/api/v1/artikel/${leer.artikel.id}`)).status, 200);
+  assert.equal((await admin("DELETE", `/api/v1/artikel/${a.artikel.id}`)).status, 200);
+  // D-37: Gerät mit Verlauf → nicht löschbar, Hinweis auf inaktiv/ausmustern
+  const b = await neuerArtikel({ name: "Stativ groß", kategorie_id: k.id, anzahl: 1, kennzeichnung: "qr" });
+  await admin("POST", `/api/v1/geraete/${b.geraete.ids[0]}/status`, { status: "defekt" });
+  const h = await admin("DELETE", `/api/v1/artikel/${b.artikel.id}`);
+  assert.equal(h.status, 409);
+  assert.match(h.json.text, /Verlauf/);
 });
 
 test("FA-01 Materialliste mit Suche, Filter Kategorie/Typ, Geräteanzahl, Warnzeichen bei Bestand ≤ Mindestbestand", async () => {
@@ -138,7 +203,7 @@ test("FA-03 Geräteliste mit Status-, Prüf- und Projektfilter; Detail mit Prüf
   assert.equal(d.pruefstatus, "ok");
   assert.ok(d.naechste_pruefung);
   await s.db.pool.query("UPDATE geraet SET letzte_pruefung = '2020-01-31' WHERE id = $1", [funk.geraete.ids[1]]);
-  const ue = (await admin("GET", "/api/v1/geraete?pruef=ueberfaellig")).json.zeilen;
+  const ue = (await admin("GET", "/api/v1/geraete?pruef=ueberfaellig")).json.zeilen.filter((z) => z.code.startsWith("FU-"));
   assert.deepEqual(ue.map((z) => z.code), ["FU-0002"]);
   assert.equal(ue[0].naechste_pruefung, "2021-01-31");
   assert.ok((await admin("GET", "/api/v1/geraete?status=vermisst")).json.zeilen.every((z) => z.status === "vermisst"));
@@ -154,4 +219,13 @@ test("R-71 Art Kabel/Verbrauch: Prüfung der Felder; R-72 Verbrauch legt keine G
   const f = await admin("POST", "/api/v1/artikel", { name: "", kategorie_id: k.id, preis_tag: 2.5 });
   assert.equal(f.status, 400);
   assert.ok(f.json.felder.name && f.json.felder.preis_tag);
+  // R-71 serverseitig: Verbrauch/Leistung leeren laenge_m, Kennzeichen exklusiv; Default prüfpflichtig 12 Monate
+  const x = (await admin("POST", "/api/v1/artikel", { name: "Klebeband", kategorie_id: k.id, verbrauch: true, ist_case: true, laenge_m: 50 })).json.artikel;
+  assert.deepEqual([x.verbrauch, x.ist_case, x.laenge_m], [true, false, null]);
+  const l = (await admin("POST", "/api/v1/artikel", { name: "Aufbau", kategorie_id: k.id, ist_leistung: true, laenge_m: 3 })).json.artikel;
+  assert.deepEqual([l.ist_leistung, l.laenge_m, l.pruefpflichtig], [true, null, false]);
+  const p = (await admin("PUT", `/api/v1/artikel/${kab.artikel.id}`, { verbrauch: true })).json.artikel;
+  assert.equal(p.laenge_m, null);
+  const g = (await admin("POST", "/api/v1/artikel", { name: "Mischpult", kategorie_id: k.id })).json.artikel;
+  assert.deepEqual([g.pruefpflichtig, g.pruef_intervall_monate], [true, 12]);
 });

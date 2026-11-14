@@ -21,6 +21,11 @@ test("FA-26 Kundenstamm: anlegen, Suche, Detail, bearbeiten; Name Pflicht; Lager
   assert.equal((await buero("PUT", `/api/v1/kunden/${r.json.kunde.id}`, { ...d.json, telefon: "0221 1" })).status, 200);
   assert.equal((await buero("PUT", `/api/v1/kunden/${r.json.kunde.id}`, { ...d.json, version: 1 })).status, 409, "veraltete Version");
   assert.equal((await lager("POST", "/api/v1/kunden", { name: "X" })).status, 403);
+  const leer = await buero("POST", "/api/v1/kunden", { name: "" });
+  assert.match(leer.json.felder.name, /Name des Ansprechpartners fehlt/);
+  const weg = await buero("POST", "/api/v1/kunden", { name: "Zum Löschen" });
+  assert.equal((await buero("DELETE", `/api/v1/kunden/${weg.json.kunde.id}`)).status, 200);
+  assert.equal((await buero("GET", `/api/v1/kunden/${weg.json.kunde.id}`)).status, 404);
 });
 
 test("FA-26 SOLL Dublettenwarnung beim manuellen Anlegen, bewusst trotzdem anlegbar", async () => {

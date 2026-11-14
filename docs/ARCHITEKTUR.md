@@ -87,7 +87,7 @@ test/                  App-spezifische Unit-Tests
 
 ## 6. Cloud-Betrieb und Offline
 
-- Deployment: `deploy/docker-compose.yml` (caddy mit automatischem HTTPS, server, postgres mit Volume). Host noch offen (VPS in DE/EU empfohlen). Env: `DATABASE_URL`, `PUBLIC_URL`, `DATA_DIR`, `GEOAPIFY_KEY`, `BACKUP_ZIEL`, `BACKUP_SCHLUESSEL`.
+- Deployment: `deploy/docker-compose.yml` (caddy mit automatischem HTTPS, server, postgres mit Volume). Host noch offen (VPS in DE/EU empfohlen); vorerst kein Testserver, alles wird in der VM und in der CI getestet. Das Server-Image enthält ab Phase 16 auch die Browser-Versionen beider Apps (Bau-Stufe klont Materialplaner/Productionplaner, `npm run build:web`, nach `/app/web/<app>`, siehe §10). Env: `DATABASE_URL`, `PUBLIC_URL`, `DATA_DIR`, `GEOAPIFY_KEY`, `BACKUP_ZIEL`, `BACKUP_SCHLUESSEL`.
 - Abweichung von Spec 1.2 Nr. 6 / NFA-02 (Daten beim Betrieb, nur 127.0.0.1): bewusst, siehe ENTSCHEIDUNGEN.md D-01. Darum FA-54, FA-56 und verschlüsselte Sicherungen schon in Phase 1.
 - **Offline (FA-22, hochgestuft)**: Fällt die Verbindung aus, puffern Apps und Arbeitsplatz Scans lokal (IndexedDB) mit Zeitstempel und Mitarbeiter. Beim Wiederverbinden bucht der Server in Reihenfolge. Konflikte gehen als Gelb/Rot zurück. Anzeige „Offline – n Scans warten“.
 
@@ -121,5 +121,26 @@ test/                  App-spezifische Unit-Tests
 
 ## 9. Build und Release
 
-- Wie Geschwister-Apps: electron-builder, macOS dmg (arm64 + x64), Windows NSIS x64, unsigniert, electron-updater über GitHub Releases. Version in package.json + „Was ist neu?“.
+- Wie Geschwister-Apps: electron-builder, macOS dmg + zip (arm64 + x64), Windows NSIS x64, unsigniert (Mac ad-hoc). Update-Hinweis über GitHub Releases (`latest.yml`, `latest-mac.yml`). Version in package.json + CHANGELOG.md („Was ist neu?“), beide Apps immer gleiche Nummer.
+- Release: `gh workflow run release.yml -R Nomisimo/<App> --ref main`. Der Workflow baut, legt Tag `v<version>` und GitHub-Release mit Installern an (D-106). Nie `git push --tags` (Proxy lehnt ab). Ab Phase 16 ein Beta-Release am Ende jeder Phase.
 - Server-Image: GitHub Actions baut Docker-Image (ghcr.io/nomisimo/planer-lager-server).
+
+## 10. Browser-Version (Phase 16, ZUSATZ WEB-01–15)
+
+- **Gleiche App, zwei Plattformen**: `https://<server>/materialplaner/` und `/productionplaner/` liefern dieselbe Oberfläche wie Electron. Unterschiede nur in `packages/ui/src/plattform.js` (einziger Ort mit `window.lagerShell`): `info()`, `istWeb`, `anmeldungsArt` ("token" | "cookie"), `tokenLesen/tokenSchreiben` (Web: Cookie, kein Token), `drucken({breite_mm, hoehe_mm})` (Web: Druckfenster mit `@page size`, `window.print()`), `oeffneExtern`, `oeffneAndereApp(pfad)` (Web: `location.assign("/productionplaner/#/…")`, Strg/⌘ neuer Tab), `onDeepLink` (Web: `hashchange`), `kann(funktion)` (Web: false für kiosk, direktdruck, seriell, ordner → Knöpfe aus bzw. „Nur in der Desktop-App“).
+- **Anmeldung im Web**: `POST /api/v1/anmelden` mit `art: "web"` setzt HttpOnly-Cookie (Secure, SameSite=Lax, Pfad `/`), CSRF-Token in der Login-Antwort und `GET /api/v1/ich`; `@lager/client` schickt `X-CSRF-Token` bei allem außer GET/HEAD, `credentials: "same-origin"`. WebSocket über dasselbe Cookie. 2FA, R-08, R-10 unverändert. Abmelden meldet beide Web-Apps ab.
+- **Übergang**: Desktop „Im Browser öffnen“ → Handoff-Code → `/login?handoff=…` setzt Cookie, springt zur Ansicht. Browser „In Desktop-App öffnen“ → Deep-Link + Handoff (§4.1).
+- **Build**: `scripts/app-build.cjs` mit `ziel: "electron" | "web"`, App-Script `npm run build:web` → `dist-web/` (index.html ohne Inline-Script, `assets/app.<hash12>.js|css`, `manifest.webmanifest`, Icon). Browser-Ziele wie station-web. Kein Service-Worker-Cache für die API, Offline-Puffer (FA-22) auch im Browser.
+- **Auslieferung** (`statisch.js`): `/materialplaner/`, `/productionplaner/` (index no-store, CSP wie station-web, Assets immutable); `/` = Portal mit Kacheln nach Rechten (Materialplaner, Productionplaner, Arbeitsplatz, Anzeige, Desktop-Download); Quelle `WEB_APPS_DIR` (Entwicklung: Geschwister-Ordner `../<App>/dist-web`), fehlt ein Bundle → 503 mit Text. `/station`, `/anzeige`, `/login`, `/admin` unverändert.
+
+## 11. Tour (Phase 18, ZUSATZ TOUR-01–07)
+
+- Engine `packages/ui/src/tour/Tour.jsx` (Overlay mit Loch um den Anker, Blase mit Titel/Text/„Schritt x von y“, Zurück/Weiter/Beenden, Tasten → Enter ← Esc, `role="dialog"`). Schritte als Daten in `tour/touren.js`: `{ anker, art: "weiter"|"klick"|"eingabe", titel, text, vor, recht, nurDesktop, nurWeb }`, `anker` = `data-tour`; Bausteine haben eine `tour`-Prop. Fehlt ein Anker nach 1,5 s → Schritt überspringen + `console.warn`.
+- Keine Seiteneffekte (nur Navigation, Dialoge öffnen, Such-/Filtereingaben). Willkommen nach der ersten Anmeldung; erledigte Touren und „Willkommen gesehen“ am Benutzer auf dem Server. Hilfe-Seite mit Touren-Liste. Jede neue Seite bekommt ihre Tour-Schritte im selben Commit.
+
+## 12. Gleichzeitiges Arbeiten (Phase 17, ZUSATZ GLEICH-01–07)
+
+- **Optimistisches Sperren**: Spalte `version` an Kunde, Projekt, Job, Angebot, Position, Artikel, Gerät, Aufgabe, Ladezone, Vorlage, Einstellungen, Benutzer, Rolle. Speichern schickt `version`; zentraler Helfer in `packages/db` macht `UPDATE … WHERE id = $1 AND version = $2` und `version + 1`; sonst 409 mit „Das hat gerade <Name> geändert (<Uhrzeit>). Deine Eingaben sind noch da. Lade die neue Fassung und übernimm deine Änderungen.“ und `aktuell`.
+- **Oberfläche**: Live-Event für offenen Datensatz → Band „<Name> hat das gerade geändert. [Neu laden] [Meine Eingaben behalten]“; 409 → Vergleich „Deine Werte | Aktuelle Werte“ je Feld mit Übernehmen. Gelöscht woanders → „Wurde von <Name> gelöscht“, zurück zur Liste.
+- **Präsenz**: Namens-Chips im Projektkopf beider Apps (WebSocket-Hub, ohne DB, 30 s Timeout).
+

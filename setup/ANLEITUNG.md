@@ -59,7 +59,7 @@ Modell: **Opus 5.5** (die Subagents laufen automatisch auf Sonnet). Dann den Tex
 
 ## 8. Gut zu wissen
 - In einer Session mit mehreren Repos lädt die Cloud `CLAUDE.md`, `.claude/skills/` und `.claude/agents/` aller Repos. **Hooks und `.claude/settings.json` lädt sie dagegen nicht**, und Plugins werden in Cloud-Sessions nicht installiert. Darum liegt alles als Skill-Dateien im Repo, und Installationen macht das Setup-Script.
-- Der GitHub-Proxy der Cloud lässt **keine Tag-Pushes** zu. Releases (`git tag v0.1.0 && git push --tags`) machst du selbst, dann bauen die GitHub Actions dmg und exe.
+- Der GitHub-Proxy der Cloud lässt **keine Tag-Pushes** zu. Darum legt der Release-Workflow Tag und Release selbst an: `gh workflow run release.yml -R Nomisimo/<App> --ref main` (oder Actions › Release › „Run workflow“). Das macht Claude am Ende jeder Phase selbst.
 - Electron läuft in der VM als root, deshalb steht `ELECTRON_DISABLE_SANDBOX=1` in den Variablen. Das gilt nur für Tests, nicht für deine Builds.
 - Echte Scanner, Drucker und Mac-/Windows-Builds kann Claude in der Cloud nicht testen. Das steht dann ehrlich im BERICHT.
 

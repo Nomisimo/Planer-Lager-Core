@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Vergleicht die IDs der Spec (docs/spec/INDEX.md) mit den IDs in Testnamen aller drei Repos.
+// Vergleicht die IDs der Spec (docs/spec/INDEX.md + docs/spec/ZUSATZ.md) mit den IDs in Testnamen aller drei Repos.
 // Aufruf: node scripts/spec-abdeckung.js [--json]
 // Weitere Repos: LAGER_REPOS="../Materialplaner:../Productionplaner" (Standard: Geschwister-Ordner)
 "use strict";
@@ -12,9 +12,12 @@ const repos = (process.env.LAGER_REPOS || ["../Materialplaner", "../Productionpl
 repos.unshift(CORE);
 
 // Spec-IDs. E-x sind Entscheidungen, keine testbaren Anforderungen.
-const ID_RE = /\b(?:R-\d+[a-z]?|FA-\d+|NFA-\d+|T-\d+|UI-\d+)\b/g;
+const ID_RE = /\b(?:R-\d+[a-z]?|FA-\d+|NFA-\d+|T-\d+|UI-\d+|WEB-\d+|KLICK-\d+|NUTZER-\d+|GLEICH-\d+|TOUR-\d+|INT-\d+|REL-\d+|BUG-\d+)\b/g;
 const index = fs.readFileSync(path.join(CORE, "docs/spec/INDEX.md"), "utf8");
-const specIds = new Set(index.match(ID_RE) || []);
+// Zusatz-Anforderungen (Phasen 16–20) als eigene Liste, nicht in INDEX.md gemischt
+const zusatzDatei = path.join(CORE, "docs/spec/ZUSATZ.md");
+const zusatz = fs.existsSync(zusatzDatei) ? fs.readFileSync(zusatzDatei, "utf8") : "";
+const specIds = new Set([...(index.match(ID_RE) || []), ...(zusatz.match(ID_RE) || [])]);
 // R-11 hat Unterregeln R-11a–g; R-SCAN-n aus D-16 zählt zusätzlich, ist aber kein Muss.
 
 const IGNORIER = new Set(["node_modules", ".git", "dist", "dist-app", "dist-test", "core", "e2e/artefakte"]);

@@ -128,7 +128,45 @@ Hinter `[x]` kurz notieren: Datum, Repo(s), Testdatei(en). Max. 1 Zeile.
 - [x] `spec-pruefer` Endabnahme über alle Kapitel, Befunde behoben
 - [x] `ui-pruefer` alle Hauptseiten beider Apps in Hell + Dunkel + 1 weiteres Thema
 - [x] BERICHT.md final (was geprüft, was nicht – z. B. kein echter Scanner, kein echter Drucker)
-- [x] Release-Builds per CI lauffähig (14.11.: Windows + Mac arm64 + Mac Intel in beiden Apps grün, D-103) (Tag setzt der Nutzer, Proxy erlaubt keine Tag-Pushes)
+- [x] Release-Builds per CI lauffähig (14.11.: Windows + Mac arm64 + Mac Intel in beiden Apps grün, D-103) – Releases per `gh workflow run release.yml` (ZUSATZ Abschnitt 5; Workflow legt Tag + Release selbst an)
+
+## Phase 16 W – Browser-Version (ZUSATZ.md, ARCHITEKTUR §10)
+- [ ] C: Plattform-Schicht `packages/ui/src/plattform.js`, alle Aufrufer umgestellt, rg-Test (WEB-11), `kann()` + „Nur in der Desktop-App“ (WEB-08)
+- [ ] C: Web-Anmeldung per Cookie + CSRF, WebSocket über Cookie, Abmelden beider Web-Apps (WEB-01, WEB-09, WEB-12)
+- [ ] C+M+P: Build `ziel: web` → `dist-web/` (gehashte Assets, Manifest, Icon), `npm run build:web` (WEB-14)
+- [ ] C: Auslieferung `/materialplaner/`, `/productionplaner/`, Portal `/` nach Rechten, `WEB_APPS_DIR`, 503 ohne Bundle (WEB-10, WEB-15)
+- [ ] C: Web-Druck mit `@page` (WEB-04), Hash-Route + Rücksprung nach Login (WEB-06, WEB-07), Wechsel zwischen Web-Apps (WEB-02)
+- [ ] C: „Im Browser öffnen“ / „In Desktop-App öffnen“ per Handoff (WEB-13)
+- [ ] C: Docker-Stufe baut beide Web-Apps, Image-Build in der Core-CI, BETRIEB.md
+- [ ] E2E: Test-Electron ohne Preload als „nackter Browser“: WEB-01–10, WEB-03 Browser → Desktop live, WEB-05 keine CSP-Fehler; INT-07 (INT-01–06 Browser + Desktop)
+- [ ] Erste Erkundungsrunde `nutzer-tester` (max. 3 Personas), Funde als BUG-n
+- [ ] Phasenende: Suiten, CI grün, Abnahme, Beta-Release
+
+## Phase 17 N – Nutzertests + gleichzeitiges Arbeiten (ZUSATZ.md, ARCHITEKTUR §12)
+- [ ] Demo-Seed `--seed demo` (als „Beispiel“ markiert, vom Admin löschbar)
+- [ ] KLICK-01–06 Klick-Durchlauf (App × Plattform × Rolle), `klick-bericht.json`
+- [ ] NUTZER-01–08 Arbeitstage (beide Apps gleichzeitig, eine im Browser)
+- [ ] Subagent `.claude/agents/nutzer-tester.md` + Erkundungsrunde, BUG-Regeln im Skill `umsetzen`
+- [ ] GLEICH: Spalte `version` + zentraler Helfer in packages/db, 409 mit Text und `aktuell` (GLEICH-07)
+- [ ] GLEICH: Band bei Live-Änderung, Vergleich beim 409, „Wurde gelöscht“, Präsenz-Chips (GLEICH-01–06)
+- [ ] Phasenende: Suiten, CI grün, Abnahme, Beta-Release (nur mit grünem KLICK/NUTZER/GLEICH und ohne offenen FEHLER)
+
+## Phase 18 T – Tour (ZUSATZ.md, ARCHITEKTUR §11)
+- [ ] Engine Tour.jsx + touren.js, `tour`-Prop an Bausteinen
+- [ ] Willkommen + serverseitige Speicherung, Hilfe-Seite, Menü „Hilfe › Tour starten“
+- [ ] Touren Materialplaner, Productionplaner, Zusammenspiel, Arbeitsplatz-Web
+- [ ] TOUR-01–07, je Tour 1 Screenshot
+- [ ] Phasenende: Suiten, CI grün, Abnahme, Beta-Release
+
+## Phase 19 R – README, Lizenz, Release
+- [ ] READMEs Materialplaner, Productionplaner, Core (nur Fertiges, Befehle ausgeführt), `npm run screenshots` → docs/screenshots/
+- [ ] Lizenz Apache-2.0: LICENSE + NOTICE + package.json in allen drei Repos (REL-04)
+- [ ] „Was ist neu?“ aus CHANGELOG.md (REL-02), Update-Hinweis über GitHub-Releases (REL-03)
+- [ ] Release je Phase ab 16, BERICHT-Zeile je Release (REL-01)
+
+## Phase 20 – erneute Abschlussprüfung
+- [ ] Wie Phase 15 plus alle neuen IDs (WEB, KLICK, NUTZER, GLEICH, TOUR, INT, REL), `spec:abdeckung` 0 fehlend
+- [ ] GitHub-CI in allen drei Repos grün, veröffentlichtes Release mit Installern, READMEs vollständig
 
 ## Phase Z – nur wenn Budget übrig
 - [ ] Android-APK: station-web per Capacitor (wie Stromplaner/webapp), HID-Scanner + Kamera — bewusst nicht begonnen (optional, D-104)

@@ -18,6 +18,7 @@ Neubau von Grund auf. Ziel: **alle** Anforderungen der Spec (IST + SOLL P1/P2/P3
 ## Kernentscheidungen (fest)
 - **Ein zentraler Cloud-Server** (Node 22, PostgreSQL 16, Docker + Caddy/HTTPS). Beide Apps und Arbeitsplatz-Browser sind Clients. Kein eingebetteter Server, keine lokale Haupt-DB.
 - Electron + React 18 + esbuild (Single-HTML-Bundle) wie Netzwerkplaner. Plain JS (ESM) + JSDoc, kein TypeScript.
+- Beide Apps laufen als Electron-App UND im Browser (vom Lager-Server ausgeliefert). Gemeinsamer Code, Plattform-Unterschiede nur in `@lager/ui/plattform.js`.
 - Tests: `node --test`. E2E: Playwright `_electron` unter `xvfb-run`. Keine Playwright-Browser laden.
 - Geld: **Integer-Cent**, kaufmännisch runden (eigener Helper). Nie float für Beträge.
 - Zeit: Europe/Berlin, Anzeige TT.MM.JJJJ.

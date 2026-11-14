@@ -42,7 +42,8 @@ test("FA-01 FA-02 FA-03 FA-04 FA-16 Materialplaner: Kategorie + Artikel anlegen,
       await w.getByRole("cell", { name: "LA-0001" }).click();
       await w.getByRole("button", { name: "Vermisst" }).click();
       await w.getByRole("button", { name: "Gefunden" }).click();
-      await w.getByRole("cell", { name: /Vermisst → Im Lager/ }).waitFor();
+      await w.getByRole("cell", { name: "Wieder gefunden, zurück im Lager" }).waitFor();
+      await w.getByRole("cell", { name: "Als vermisst gemeldet" }).waitFor();
       assert.equal(await w.getByRole("cell", { name: "Lars Leitung" }).count() + await w.getByRole("cell", { name: "leitung" }).count() >= 1, true);
       await screenshot(w, "FA-03-geraetedetail");
       // Codefeld (R-22): „la1“ öffnet das Gerät

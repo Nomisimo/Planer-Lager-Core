@@ -124,10 +124,10 @@ Hinter `[x]` kurz notieren: Datum, Repo(s), Testdatei(en). Max. 1 Zeile.
 - [x] BT-SPP-Scanner (Web Serial statt serialport, D-102)
 
 ## Phase 15 – Abschluss
-- [ ] Volle Suite grün in allen 3 Repos, `spec:abdeckung` = 0 fehlend
-- [ ] `spec-pruefer` Endabnahme über alle Kapitel, Befunde behoben
-- [ ] `ui-pruefer` alle Hauptseiten beider Apps in Hell + Dunkel + 1 weiteres Thema
-- [ ] BERICHT.md final (was geprüft, was nicht – z. B. kein echter Scanner, kein echter Drucker)
+- [x] Volle Suite grün in allen 3 Repos, `spec:abdeckung` = 0 fehlend
+- [x] `spec-pruefer` Endabnahme über alle Kapitel, Befunde behoben
+- [x] `ui-pruefer` alle Hauptseiten beider Apps in Hell + Dunkel + 1 weiteres Thema
+- [x] BERICHT.md final (was geprüft, was nicht – z. B. kein echter Scanner, kein echter Drucker)
 - [ ] Release-Builds per CI lauffähig (Tag setzt der Nutzer, Proxy erlaubt keine Tag-Pushes)
 
 ## Phase Z – nur wenn Budget übrig

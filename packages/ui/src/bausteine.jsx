@@ -1,4 +1,5 @@
 // Gemeinsame React-Bausteine (UI-STIL, UI-2, UI-4, UI-7). Beide Apps und station-web nutzen nur diese.
+import { badgeSchrift } from "./themen.js";
 import React, { useEffect, useRef, useState, useId, useCallback } from "react";
 import { ICONS } from "./icons.js";
 import { RUECKMELDUNG, stufeVon, fehlerText } from "./texte.js";
@@ -119,7 +120,7 @@ export const Leerzustand = ({ text, icon = "Inbox", children }) => (
   <div className="lp-leer"><Icon name={icon} size={28} /><div style={{ marginTop: 8 }}>{text}</div>{children}</div>
 );
 export const Chip = ({ children, farbe, ...p }) => <span className="lp-chip" style={farbe ? { borderColor: farbe } : undefined} {...p}>{children}</span>;
-export const Badge = ({ children, farbe = "var(--lp-btn)", text = "var(--lp-text)" }) => <span className="lp-badge" style={{ background: farbe, color: text }}>{children}</span>;
+export const Badge = ({ children, farbe = "var(--lp-btn)", text = "var(--lp-text)" }) => <span className="lp-badge" style={{ background: farbe, color: badgeSchrift(farbe, text) }}>{children}</span>;
 export const StatusPunkt = ({ farbe, titel }) => <span className="lp-punkt" style={{ background: farbe }} title={titel} aria-label={titel} role="img" />;
 
 /** Tabelle: spalten [{titel, feld | wert(row), breite, rechts}] */

@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { THEMEN, DICHTEN, themaVariablen, kontrastPaare, kontrast } from "../src/themen.js";
+import { THEMEN, DICHTEN, themaVariablen, kontrastPaare, kontrast, badgeSchrift } from "../src/themen.js";
 import { menueFuer, aktiverEintrag, MENUE } from "../src/menue.js";
 import { RUECKMELDUNG, pruefeFehlertext, fehlerText } from "../src/texte.js";
 import { einmalig, pruefePflicht, BRAUCHT_BESTAETIGUNG } from "../src/formular.js";
@@ -87,4 +87,13 @@ test("UI-4 einmalig ruft sofort auf: stopPropagation im Klick wirkt noch (Knopf 
   const f = einmalig((e) => { e.stopPropagation(); });
   f({ stopPropagation: () => { gestoppt = true; } });
   assert.equal(gestoppt, true, "synchron, nicht erst im nächsten Mikrotask");
+});
+
+test("UI-7 Status-Badges: Schrift mit mindestens 4,5:1 Kontrast zur Badge-Farbe", () => {
+  for (const farbe of ["#d8902a", "#e0a020", "#7f8790", "#2a9d3c", "#2563c9", "#c0392b", "#5b6470", "#ffffff", "#000000"]) {
+    const t = badgeSchrift(farbe, "x");
+    assert.ok(kontrast(farbe, t) >= 4.5 || kontrast(farbe, t) >= Math.max(kontrast(farbe, "#ffffff"), kontrast(farbe, "#1c2127")) - 0.01, `${farbe} → ${t} ${kontrast(farbe, t).toFixed(2)}`);
+  }
+  assert.equal(badgeSchrift("#d8902a", "#fff"), "#1c2127", "Orange bekommt dunkle Schrift");
+  assert.equal(badgeSchrift("var(--lp-btn)", "var(--lp-text)"), "var(--lp-text)", "CSS-Variable bleibt");
 });

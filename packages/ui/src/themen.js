@@ -81,3 +81,14 @@ export function kontrastPaare(f) {
     [f.INFO, f.PANEL, "Info-Text auf Panel"], [f.TEXT, f.INPUT, "Eingabe"], [f.TEXT, f.BTN, "Text auf Knopf"],
   ];
 }
+
+/** UI-7: Schriftfarbe mit dem besseren Kontrast zur Hintergrundfarbe (#rgb/#rrggbb), sonst die übergebene. */
+export function badgeSchrift(farbe, text) {
+  const m = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(String(farbe || ""));
+  if (!m) return text;
+  const h = m[1].length === 3 ? m[1].replace(/./g, "$&$&") : m[1];
+  const lin = (i) => { const c = parseInt(h.slice(i, i + 2), 16) / 255; return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4; };
+  const L = 0.2126 * lin(0) + 0.7152 * lin(2) + 0.0722 * lin(4);
+  const weiss = 1.05 / (L + 0.05), dunkel = (L + 0.05) / (0.0144 + 0.05); // dunkel = #1c2127
+  return weiss >= dunkel ? "#ffffff" : "#1c2127";
+}

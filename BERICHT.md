@@ -11,6 +11,25 @@ Bekannte Fehler/Grenzen: <…>
 Annahmen: D-xx, D-yy
 ```
 
+## Phase 15 – Abschluss – 14.11.2026
+Gebaut: Lücke FA-05 geschlossen (Reservierungen je Artikel im wählbaren Zeitraum); Fehler UI-4 behoben (Knöpfe in klickbaren Tabellenzeilen öffneten beim Löschen zusätzlich den Bearbeiten-Dialog, weil die Aktion erst im nächsten Mikrotask lief); Server-Adresse in der installierten App auf der Anmeldeseite eintragbar (vorher nur per Umgebungsvariable); Installer per GitHub Actions für Windows x64 und macOS Apple Silicon + Intel (D-103); Sichtprüfungs-Test e2e/themen.test.js (Hauptseiten beider Apps in Hell, Dunkel, Grün/kompakt); Befunde der Sichtprüfung behoben: Status-Badges wählen die Schrift mit dem besseren Kontrast (Orange/Grau vorher weiß, < 4,5:1), abgeschnittene Auswahl „Projekte und Jobs“.
+Geprüft: `npm run spec:abdeckung` 166/166; Unit+API, alle 31+ E2E-Dateien einzeln, Materialplaner- und Productionplaner-Tests grün, Lint sauber; Endabnahme durch unabhängigen Prüfer (Stichprobe über alle Kapitel, Akzeptanztexte wörtlich geprüft für Verfügbarkeit, Rabatt, Verladen, Rückgabe, Arbeitsplatz, Sicherheit); Paket für Linux lokal gebaut und gestartet (Inhalt nur dist-app).
+Nicht geprüft: Installer auf echtem Windows-PC und Mac (nur CI-Bau); echter Etikettendrucker (FA-14 bleibt [~]); echte Handscanner (HID, Bluetooth-SPP, Netzwerk) – alle simuliert; echter Cloud-Host mit Domain; Safari/Firefox/Edge selbst.
+Bekannte Grenzen: Datumsfelder zeigen in der Test-VM den Platzhalter „dd.mm.yyyy“ (Chromium-Sprachdatei), Eingabe und Anzeige sind TT.MM.JJJJ; das Seitenmenü scrollt bei 900 px Fensterhöhe; Mac-App nicht bei Apple beglaubigt (erster Start per Rechtsklick → Öffnen); Android-APK (Phase Z) nicht gebaut.
+Annahmen: D-103
+
+## Phase 14 – SOLL P3 + Rest – 14.11.2026
+Gebaut: FA-08 Lagerorte (Artikel, abweichend je Gerät, Anzeige in Packliste und Packlisten-PDF); FA-09 Schadensdoku mit bis zu 10 Fotos, Projekt + Kunde, optional Reparatur; FA-28 Ansprechpartner + Kundenhistorie; FA-39 Projektvorlagen; FA-40 wiederkehrende Aufgaben, Glocke mit Live-Benachrichtigungen, E-Mail per SMTP (eigener kleiner Client); Kamera-Scan im Arbeitsplatz-Web (html5-qrcode lokal); Bluetooth-Scanner im seriellen Modus über Web Serial.
+Geprüft: Unit+API grün (u. a. lagerorte, kontakte, vorlagen mit Fake-SMTP-Server, Zeilenleser); E2E lagerorte, kontakte, vorlagen, kamera (künstliche Kamera mit QR-Video), seriell (echte Portliste von Electron, Codes über simulierten Port, Neuverbinden).
+Nicht geprüft: echter SMTP-Server eines Anbieters; echte Kamera eines Tablets; echter Bluetooth-Scanner.
+Annahmen: D-97–D-102
+
+## Phase 13 – SOLL P2 – 14.11.2026
+Gebaut: FA-06 Inventur, FA-07 Reparatur/Wartung (Status „bald“ ≤ 30 Tage), FA-20 Teilrückgabe/Nachpacken, FA-21 Lieferschein + Rückgabeprotokoll, FA-37 Personal, FA-38 Fahrzeuge, FA-55 Änderungsprotokoll (Datenbank-Trigger); FA-49 SOLL bestätigt.
+Geprüft: Unit+API und E2E der Phase grün; unabhängige Abnahme fand eine Lücke (FA-07 „bald fällig“), behoben.
+Nicht geprüft: Druck der PDFs auf Papier.
+Annahmen: D-92–D-96
+
 ## Phase 12 – Nahtlos (App-übergreifend) – 14.11.2026
 Gebaut: Projektseite in P zeigt Lager-Stand (Ladezone / verladen) live (D-91); Projekt-Detail liefert den Ladezonen-Namen.
 Geprüft: E2E e2e/nahtlos.test.js mit beiden Apps gleichzeitig: INT-02 Angebot in P annehmen → Packliste in M ohne Neuladen; INT-03 Packen + Verladen in M → P zeigt „Läuft“, Zone frei, „2 / 2“ gepackt; INT-04 Codefeld in P (Gerät) öffnet M beim Gerät mit Handoff, Codefeld in M (Projekt) öffnet P; INT-05 Netzwerk-Scanner bucht am Arbeitsplatz-Web (Browser), M-Geräteseite und P-Projektseite aktualisieren sich; INT-06 5 Scans offline, wiederverbinden → alle gebucht in Erfassungsreihenfolge, P zeigt „5 / 5“. INT-01 seit Phase 1. Unit+API alle grün (N+1-Zählung im Leistungstest jetzt stabil auf Client-Ebene).

@@ -167,3 +167,19 @@ test("FA-50 Sicherheitsprotokoll 3.15: Einträge nur anfügen (UPDATE/DELETE sch
   await assert.rejects(s.db.pool.query("UPDATE sicherheit_ereignis SET text = 'x'"), /nur neue Einträge/);
   await assert.rejects(s.db.pool.query("DELETE FROM sicherheit_ereignis"), /nur neue Einträge/);
 });
+
+test("WEB-09 Web-Sitzung ohne CSRF-Token → 403 mit verständlichem Text, mit Token erlaubt", async () => {
+  const s = await starteTestServer();
+  try {
+    await legeBenutzerAn(s.db.pool, { benutzername: "web1", passwort: PW, rolle: "Administrator" });
+    const r = await s.api("POST", "/api/v1/anmelden", { benutzername: "web1", passwort: PW, art: "web" });
+    assert.equal(r.status, 200);
+    assert.equal(r.json.token, undefined, "Browser bekommt kein Token, nur das Cookie");
+    const cookie = { Cookie: r.headers.get("set-cookie").split(";")[0] };
+    const ohne = await s.api("PUT", "/api/v1/ich/design", { modus: "dunkel" }, cookie);
+    assert.equal(ohne.status, 403);
+    assert.match(ohne.json.text, /Sitzung ist nicht mehr gültig\. Lade die Seite neu/);
+    const mit = await s.api("PUT", "/api/v1/ich/design", { modus: "dunkel" }, { ...cookie, "X-CSRF-Token": r.json.csrf });
+    assert.notEqual(mit.status, 403);
+  } finally { await s.ende(); }
+});

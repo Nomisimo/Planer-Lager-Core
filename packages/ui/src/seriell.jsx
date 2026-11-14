@@ -4,12 +4,14 @@ import React, { useEffect, useRef, useState } from "react";
 import { zeilenLeser, pruefeSeriell, SERIELL_BAUDRATEN } from "@lager/domain/scannen.js";
 import { Section, Feld, Auswahl, Toggle, Knopf, Meldung, Modal } from "./bausteine.jsx";
 import { hidEinstellungen } from "./huelle.jsx";
+import { plattform } from "./plattform.js";
+import { NurDesktop } from "./nurdesktop.jsx";
 
 export const SERIELL_KEY = "lager-seriell";
 const PORT_KEY = "lager-seriell-port";
 const NEUVERSUCH_MS = 5000;
 
-export const seriellVerfuegbar = () => typeof navigator !== "undefined" && !!navigator.serial;
+export const seriellVerfuegbar = () => plattform.kann("seriell") && typeof navigator !== "undefined" && !!navigator.serial;
 export function seriellEinstellungen() { try { return pruefeSeriell(JSON.parse(localStorage.getItem(SERIELL_KEY) || "{}")); } catch { return pruefeSeriell({}); } }
 const leseJson = (k) => { try { return JSON.parse(localStorage.getItem(k) || "null"); } catch { return null; } };
 const schreibe = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* privat */ } };
@@ -108,9 +110,10 @@ export function SeriellEinstellungen() {
     const h = (e) => setZ(e.detail);
     window.addEventListener("lager-seriell-status", h);
     // Portliste vom Hauptprozess (Electron zeigt selbst keine Auswahl)
-    const ab = window.lagerShell?.onSeriellAuswahl?.((liste) => setAuswahl(liste));
+    const ab = plattform.onSeriellAuswahl((liste) => setAuswahl(liste));
     return () => { window.removeEventListener("lager-seriell-status", h); ab?.(); };
   }, []);
+  if (plattform.istWeb) return <NurDesktop funktion="seriell" titel="Bluetooth-Scanner seriell (dieses Gerät)" />;
   if (!seriellVerfuegbar()) return null;
   const speichern = (x) => { const y = pruefeSeriell(x); schreibe(SERIELL_KEY, y); setW(y); window.dispatchEvent(new Event("lager-seriell")); };
   const waehlen = async () => {
@@ -125,7 +128,7 @@ export function SeriellEinstellungen() {
         : { level: "error", text: `Der Scanner ließ sich nicht wählen (${e?.message || e}). Prüfe die Kopplung und versuche es erneut.` });
     }
   };
-  const antworte = (portId) => { setAuswahl(null); window.lagerShell?.seriellGewaehlt?.(portId || ""); };
+  const antworte = (portId) => { setAuswahl(null); plattform.seriellGewaehlt(portId || ""); };
   return (
     <Section titel="Bluetooth-Scanner seriell (dieses Gerät)" icon="ScanLine">
       <p className="lp-hinweis" style={{ marginTop: 0, marginBottom: 8 }}>Für Scanner im Modus SPP (serieller Port) statt Tastatur. Ein Code je Zeile; Präfix, Suffix und Mindestlänge wie beim Handscanner.</p>

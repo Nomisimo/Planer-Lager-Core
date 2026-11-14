@@ -21,6 +21,27 @@ Ein zentraler Server für beide Apps und die Arbeitsplatz-Browser. Bestandteile 
 3. `https://<DOMAIN>/health` muss `{"ok":true,…}` liefern. In den Apps die Server-Adresse `https://<DOMAIN>` eintragen.
 4. Mit `ADMIN_BENUTZER`/`ADMIN_PASSWORT` anmelden, Zwei-Faktor einrichten (Pflicht für Administratoren im Netz, FA-54), danach `ADMIN_PASSWORT` aus `.env` entfernen.
 
+## Browser-Version (ARCHITEKTUR §10)
+
+Beide Apps laufen zusätzlich im Browser, ausgeliefert vom selben Server. Gleiches Konto, Live-Sync, Abmelden gilt für beide.
+
+| Adresse | Inhalt |
+|---|---|
+| `https://<DOMAIN>/` | Übersicht mit Kacheln (nur die Apps, für die die eigene Rolle Rechte hat) |
+| `https://<DOMAIN>/materialplaner/` | Materialplaner im Browser |
+| `https://<DOMAIN>/productionplaner/` | Productionplaner im Browser |
+| `https://<DOMAIN>/station` | Arbeitsplatz-Web (Lager-Arbeitsplatz, Anzeige-Bildschirm) |
+
+- Das Image baut die Browser-Versionen selbst: es holt beide App-Repos von GitHub und führt `npm run build:web` aus. Welche Fassung, legen die Build-Argumente fest (Standard `main`), z. B. ein Release-Tag:
+  ```sh
+  docker compose build --build-arg MATERIALPLANER_REF=v0.1.0-beta.1 --build-arg PRODUCTIONPLANER_REF=v0.1.0-beta.1 server
+  docker compose up -d
+  ```
+- Eigener Ablageort statt des Images: `WEB_APPS_DIR=/pfad` mit Unterordnern `materialplaner/` und `productionplaner/` (Inhalt von `dist-web/`).
+- Fehlt eine Browser-Version, zeigt die Adresse „… ist auf diesem Server nicht installiert“ (HTTP 503). Dann Image neu bauen.
+- Nur in der Desktop-App: Arbeitsplatz-Modus (Vollbild), Direktdruck auf den Etikettendrucker, Bluetooth-Scanner im seriellen Modus, Projektordner öffnen, Server-Adresse ändern. Im Browser druckt „Etikett drucken“ über das Druckfenster des Browsers.
+- Anmeldung im Browser per Sitzungscookie (HttpOnly, Secure, SameSite=Lax) und CSRF-Token. Aus der Desktop-App öffnet „Im Browser öffnen“ dieselbe Ansicht ohne neue Anmeldung.
+
 ## Sicherheit (NFA-01, NFA-02, FA-56)
 
 - Nur HTTPS. Der Server setzt HSTS und Secure-Cookies, sobald `PUBLIC_URL` mit `https://` beginnt.

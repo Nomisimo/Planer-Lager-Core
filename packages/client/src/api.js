@@ -12,7 +12,7 @@ export class ApiFehler extends Error {
 }
 
 /**
- * @param {{basis: string, token?: () => string|null, csrf?: () => string|null, beiAbmeldung?: (d: any) => void}} opt
+ * @param {{basis: string, token?: () => string|null, csrf?: () => string|null, credentials?: RequestCredentials, beiAbmeldung?: (d: any) => void}} opt
  */
 export function erstelleApi(opt) {
   const basis = opt.basis.replace(/\/+$/, "");
@@ -21,10 +21,10 @@ export function erstelleApi(opt) {
     const t = opt.token?.();
     if (t) kopf.Authorization = "Bearer " + t;
     const c = opt.csrf?.();
-    if (c && methode !== "GET") kopf["X-CSRF-Token"] = c;
+    if (c && methode !== "GET" && methode !== "HEAD") kopf["X-CSRF-Token"] = c;
     let daten = body;
     if (body !== undefined && !(body instanceof FormData) && !(body instanceof Blob)) { kopf["Content-Type"] = "application/json"; daten = JSON.stringify(body); }
-    const r = await fetch(basis + pfad, { method: methode, headers: kopf, body: daten, credentials: "include", signal: extra.signal });
+    const r = await fetch(basis + pfad, { method: methode, headers: kopf, body: daten, credentials: opt.credentials || "include", signal: extra.signal });
     if (extra.roh) { if (!r.ok) throw new ApiFehler(r.status, await r.json().catch(() => null)); return r; }
     const text = await r.text();
     let json = null;

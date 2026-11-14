@@ -1,5 +1,6 @@
 // App-Hülle beider Apps: Anmeldung, Kopfleiste, Seitenmenü (UI-1), Router, Live-Verbindung, Deep-Links, App-Schalter.
 import { Glocke } from "./glocke.jsx";
+import { plattform } from "./plattform.js";
 import { useSeriellerScanner } from "./seriell.jsx";
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { erstelleApi, Live } from "@lager/client";
@@ -55,14 +56,13 @@ export const navigiere = (pfad) => { window.location.hash = "#" + pfad; };
 /* ── Anmeldung inkl. Zwei-Faktor ─────────────────────────────────────────── */
 /** Server-Adresse in der App ändern (nur Electron, wenn nicht per LAGER_SERVER_URL fest). */
 function ServerAdresse({ info }) {
-  const shellApi = window.lagerShell;
   const [offen, setOffen] = useState(false);
   const [url, setUrl] = useState(info?.serverUrl || "");
   const [fehler, setFehler] = useState(null);
-  if (!shellApi?.serverSetzen || !info || info.serverFest) return null;
+  if (!plattform.kann("serverAdresse") || !info || info.serverFest) return null;
   const speichern = async () => {
     setFehler(null);
-    const r = await shellApi.serverSetzen(url);
+    const r = await plattform.serverSetzen(url);
     if (!r?.ok) setFehler(r?.text || "Die Adresse ließ sich nicht speichern.");
   };
   if (!offen) return <p className="lp-hinweis" data-testid="server-adresse">Server: {info.serverUrl} · <button type="button" className="lp-link" onClick={() => setOffen(true)}>ändern</button></p>;
@@ -84,10 +84,10 @@ function Anmeldung({ api, titel, onFertig, hinweis, info }) {
     setFehler(null);
     try {
       if (zwischen) {
-        const r = await api.post("/api/v1/anmelden/totp", { zwischenToken: zwischen, code: w.code, art: "app" });
+        const r = await api.post("/api/v1/anmelden/totp", { zwischenToken: zwischen, code: w.code, art: plattform.anmeldungsArt === "cookie" ? "web" : "app" });
         return onFertig(r);
       }
-      const r = await api.post("/api/v1/anmelden", { benutzername: w.benutzername, passwort: w.passwort, art: "app" });
+      const r = await api.post("/api/v1/anmelden", { benutzername: w.benutzername, passwort: w.passwort, art: plattform.anmeldungsArt === "cookie" ? "web" : "app" });
       if (r.zweiterFaktor) { setZwischen(r.zwischenToken); return; }
       onFertig(r);
     } catch (err) { setFehler(fehlerText(err)); }
@@ -171,11 +171,12 @@ export function AppHuelle({ app, seiten, onCode }) {
   const [design, setDesign] = useState(() => leseDesign() || {});
   const [darstellung, setDarstellung] = useState(false);
   const [menueOffen, setMenueOffen] = useState(false);
-  const tokenRef = useRef(null);
+  const tokenRef = useRef(null); // Desktop: Sitzungs-Token; Browser: "cookie" als Merker (Sitzung im HttpOnly-Cookie)
+  const csrfRef = useRef(null);
   const scanZiel = useRef(null);
   const kontextRef = useRef(null);
   const { pfad, query } = useHash();
-  const shellApi = window.lagerShell;
+  const web = plattform.istWeb;
 
   useEffect(() => {
     wendeDesignAn(design);
@@ -186,19 +187,46 @@ export function AppHuelle({ app, seiten, onCode }) {
     return () => mq.removeEventListener?.("change", f);
   }, [design]);
 
-  const api = useMemo(() => info && erstelleApi({ basis: info.serverUrl, token: () => tokenRef.current,
+  const bearer = () => (web ? null : tokenRef.current);
+  const api = useMemo(() => info && erstelleApi({ basis: info.serverUrl, token: bearer, csrf: () => csrfRef.current, credentials: web ? "same-origin" : "include",
     beiAbmeldung: (d) => { setHinweis(d?.text || null); setzeToken(null); } }), [info]);
-  const live = useMemo(() => info && token ? new Live({ basis: info.serverUrl, token: () => tokenRef.current }) : null, [info, token]);
+  const live = useMemo(() => info && token ? new Live({ basis: info.serverUrl, token: bearer }) : null, [info, token]);
   useEffect(() => { if (!live) return; live.start(); return () => live.stopp(); }, [live]);
 
-  const setzeToken = useCallback((t) => { tokenRef.current = t; setToken(t); shellApi?.tokenSchreiben(t || null); if (!t) setNutzer(null); }, [shellApi]);
+  /** Anmeldung übernehmen: Desktop speichert das Token, Browser merkt sich nur „angemeldet“ + CSRF-Token. */
+  const setzeToken = useCallback((t, csrf) => {
+    if (web && t) t = "cookie";
+    tokenRef.current = t; setToken(t);
+    if (csrf !== undefined || !t) csrfRef.current = csrf || null;
+    if (!web) plattform.tokenSchreiben(t || null);
+    if (!t) setNutzer(null);
+  }, []);
 
   // Start: Info + gespeichertes Token
   useEffect(() => {
     (async () => {
-      const i = shellApi ? await shellApi.info() : { serverUrl: location.origin, titel: self.titel, version: "web" };
-      setInfo(i);
-      const t = shellApi ? await shellApi.tokenLesen() : null;
+      const i = await plattform.info();
+      setInfo({ ...i, titel: i.titel || self.titel });
+      if (web) {
+        // WEB-13: „Im Browser öffnen“ aus der Desktop-App bringt einen Handoff-Code mit → Cookie-Sitzung, Code aus der Adresse entfernen
+        const code = new URLSearchParams(location.search).get("handoff");
+        if (code) {
+          try {
+            await fetch(`${i.serverUrl}/api/v1/handoff/einloesen`, { method: "POST", credentials: "same-origin",
+              headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify({ code, art: "web" }) });
+          } catch { /* dann normale Anmeldung */ }
+          history.replaceState(null, "", location.pathname + location.hash);
+        }
+        // Browser: besteht schon eine Cookie-Sitzung? (WEB-02: gilt für beide Web-Apps)
+        try {
+          const r = await fetch(`${i.serverUrl}/api/v1/ich`, { credentials: "same-origin", headers: { Accept: "application/json" } });
+          const j = r.ok ? await r.json() : null;
+          if (j?.nutzer) { csrfRef.current = j.csrf || null; tokenRef.current = "cookie"; setToken("cookie"); return; }
+        } catch { /* Server nicht erreichbar: Anmeldung zeigen */ }
+        tokenRef.current = null; setToken(null);
+        return;
+      }
+      const t = await plattform.tokenLesen();
       tokenRef.current = t; setToken(t || null);
     })();
   }, []);
@@ -214,7 +242,7 @@ export function AppHuelle({ app, seiten, onCode }) {
   // Nutzer laden, wenn Token da
   useEffect(() => {
     if (!api || !token) return;
-    api.get("/api/v1/ich").then((r) => { setNutzer(r.nutzer); setZweiFaktor(!!r.zweiFaktorEinrichten); if (r.nutzer.design && Object.keys(r.nutzer.design).length && !leseDesign()) setDesign(r.nutzer.design); },
+    api.get("/api/v1/ich").then((r) => { if (r.csrf) csrfRef.current = r.csrf; setNutzer(r.nutzer); setZweiFaktor(!!r.zweiFaktorEinrichten); if (r.nutzer.design && Object.keys(r.nutzer.design).length && !leseDesign()) setDesign(r.nutzer.design); },
       (e) => { if (e.status === 401) setzeToken(null); else setBanner(fehlerText(e)); });
     api.get("/api/v1/einstellungen/basis").then((b) => { setFirma(b.firma?.name || ""); if (!leseDesign() && b.design_standard) setDesign((d) => (Object.keys(d).length ? d : b.design_standard)); }, () => {});
   }, [api, token]);
@@ -225,27 +253,42 @@ export function AppHuelle({ app, seiten, onCode }) {
     if (!m || !api) return;
     const q = Object.fromEntries(new URLSearchParams(m[2] || ""));
     if (q.handoff && !tokenRef.current) {
-      try { const r = await api.post("/api/v1/handoff/einloesen", { code: q.handoff }); setzeToken(r.token); }
+      try { const r = await api.post("/api/v1/handoff/einloesen", { code: q.handoff, art: web ? "web" : "app" }); setzeToken(r.token || "cookie", r.csrf); }
       catch (e) { setHinweis(fehlerText(e)); }
     }
     navigiere(deepLinkZuPfad(m[1].split("/").filter(Boolean).map(decodeURIComponent)));
   }, [api, setzeToken]);
   useEffect(() => {
-    if (!api || !shellApi) return;
-    const ab = shellApi.onDeepLink(verarbeiteLink);
-    shellApi.bereit().then((wartend) => wartend.forEach(verarbeiteLink));
+    if (!api || web) return;
+    const ab = plattform.onDeepLink(verarbeiteLink);
+    plattform.bereit().then((wartend) => wartend.forEach(verarbeiteLink));
     return ab;
-  }, [api, shellApi, verarbeiteLink]);
+  }, [api, verarbeiteLink]);
 
   /** App-Schalter / Sprung in die andere App mit Kontext (ARCHITEKTUR §4.3). */
-  const oeffneAndereApp = useCallback(async (zielPfad = pfad) => {
+  const oeffneAndereApp = useCallback(async (zielPfad = pfad, { neuerTab = false } = {}) => {
+    if (web) {
+      // Browser: gleicher Server, das Sitzungs-Cookie gilt für beide Apps (WEB-02)
+      await plattform.oeffneAndereApp({ appId: andere.id, pfad: zielPfad, neuerTab });
+      return `/${andere.id}/#${zielPfad}`;
+    }
     let code = null;
     try { code = (await api.post("/api/v1/handoff")).code; } catch { /* ohne Handoff: andere App fragt nach Login */ }
     const link = `${andere.id}://${zielPfad.replace(/^\//, "")}${code ? `?handoff=${encodeURIComponent(code)}` : ""}`;
-    const ok = await shellApi?.oeffneExtern(link);
+    const ok = await plattform.oeffneAndereApp({ appId: andere.id, pfad: zielPfad, link });
     if (!ok) setBanner(`Der ${andere.titel} ist auf diesem Rechner nicht installiert oder ließ sich nicht öffnen. Installiere ihn oder frag den Admin.`);
     return link;
-  }, [api, pfad, andere, shellApi]);
+  }, [api, pfad, andere]);
+
+  /** WEB-13: dieselbe Ansicht im Browser öffnen, angemeldet per Handoff-Code (nur Desktop). */
+  const imBrowserOeffnen = useCallback(async () => {
+    let code = null;
+    try { code = (await api.post("/api/v1/handoff")).code; } catch { /* ohne Code: Browser fragt nach Login */ }
+    const url = `${String(info.serverUrl).replace(/\/+$/, "")}/${self.id}/${code ? `?handoff=${encodeURIComponent(code)}` : ""}#${pfad}`;
+    const ok = await plattform.oeffneExtern(url);
+    if (!ok) setBanner("Der Browser ließ sich nicht öffnen. Öffne die Adresse des Lager-Servers selbst im Browser.");
+    return url;
+  }, [api, info, pfad]);
 
   // UI-3 / ARCHITEKTUR §5: Handscanner (Tastatur) global erkennen, auch ohne Fokus; an die Scan-Seite oder das Codefeld.
   useHandscanner(scanZiel, (code) => { if (kontextRef.current) onCode?.(code, kontextRef.current); });
@@ -260,7 +303,7 @@ export function AppHuelle({ app, seiten, onCode }) {
   if (!info || token === undefined) return null;
   if (!token || (!nutzer && !zweiFaktor)) {
     if (token && !nutzer) return null; // lädt /ich
-    return <Anmeldung api={api} info={info} titel={`${self.titel} – Anmeldung`} hinweis={hinweis} onFertig={(r) => { setHinweis(null); setzeToken(r.token); }} />;
+    return <Anmeldung api={api} info={info} titel={`${self.titel} – Anmeldung`} hinweis={hinweis} onFertig={(r) => { setHinweis(null); setzeToken(r.token || "cookie", r.csrf); }} />;
   }
   if (zweiFaktor) return <ZweiFaktorEinrichten api={api} onFertig={() => { setZweiFaktor(false); api.get("/api/v1/ich").then((r) => setNutzer(r.nutzer)); }} />;
 
@@ -287,6 +330,7 @@ export function AppHuelle({ app, seiten, onCode }) {
             <button className="lp-btn lp-btn-klein" data-testid="app-schalter" title={`Zum ${andere.titel} wechseln (gleiche Stelle, ohne neue Anmeldung)`} onClick={() => oeffneAndereApp()}>
               <Icon name="ArrowLeftRight" size={14} />{andere.titel}
             </button>
+            {!web && <button className="lp-btn lp-btn-geist lp-btn-klein" data-testid="im-browser" title="Diese Ansicht im Browser öffnen (ohne neue Anmeldung)" aria-label="Im Browser öffnen" onClick={imBrowserOeffnen}><Icon name="Globe" size={14} /></button>}
             {zeit.timer && <TimerAnzeige zeit={zeit} navigiere={(p) => (app === "p" ? navigiere(p) : oeffneAndereApp(p))} />}
             <OnlineStatus live={live} />
             <Glocke />

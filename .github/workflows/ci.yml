@@ -65,3 +65,14 @@ jobs:
             Planer-Lager-Core/e2e/artefakte
             Planer-Lager-Core/e2e/artefakte-log.txt
           if-no-files-found: ignore
+  # ARCHITEKTUR §10: Server-Image baut station-web und die Browser-Versionen beider Apps
+  docker:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+      - run: docker build -t planer-lager-server .
+      - run: |
+          for a in materialplaner productionplaner; do
+            docker run --rm --entrypoint sh planer-lager-server -c "test -f /app/web/$a/index.html && ls /app/web/$a/assets | grep -E '^app\.[0-9a-f]{12}\.js$'"
+          done

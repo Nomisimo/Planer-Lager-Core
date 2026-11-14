@@ -12,6 +12,8 @@ export function configAusEnv(env = process.env) {
     hsts: https,
     vertraueProxy: env.LAGER_HINTER_PROXY === "1",
     dataDir: env.DATA_DIR || "./data",
+    // ARCHITEKTUR §10: Browser-Versionen beider Apps (<WEB_APPS_DIR>/materialplaner, …/productionplaner); leer = <core>/web
+    webAppsDir: env.WEB_APPS_DIR || "",
     // NFA-02 ALLOWED_HOSTS: aus LAGER_HOSTS (kommagetrennt), sonst Host aus PUBLIC_URL; leer = keine Prüfung (lokal)
     erlaubteHosts: (env.LAGER_HOSTS || (publicUrl ? new URL(publicUrl).hostname : "")).split(",").map((h) => h.trim().toLowerCase()).filter(Boolean),
     adminBenutzer: env.LAGER_ADMIN_BENUTZER || "",

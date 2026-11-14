@@ -247,12 +247,13 @@ export function authModul(router) {
   });
   router.post("/api/v1/handoff/einloesen", { oeffentlich: true }, async (ctx) => {
     const code = String(ctx.body?.code || "");
+    const art = ctx.body?.art === "web" ? "web" : "app"; // web: Cookie-Sitzung für die Browser-Version (WEB-13)
     const { rows } = await ctx.pool.query(`UPDATE handoff SET eingeloest = now()
       WHERE code_hash = $1 AND eingeloest IS NULL AND ablauf > now() RETURNING benutzer_id`, [sha(code)]);
     const text = "Der Anmelde-Link ist abgelaufen oder wurde schon benutzt. Melde dich bitte an.";
     if (!rows[0]) throw new HttpFehler(401, text, { ok: false, level: "error", text });
     const b = (await ctx.pool.query("SELECT id, benutzername, aktiv FROM benutzer WHERE id = $1", [rows[0].benutzer_id])).rows[0];
     if (!b?.aktiv) throw new HttpFehler(401, text, { ok: false, level: "error", text });
-    return anmeldungFertig(ctx, b, "app");
+    return anmeldungFertig(ctx, b, art);
   });
 }

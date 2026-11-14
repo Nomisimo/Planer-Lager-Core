@@ -98,3 +98,29 @@ export async function starteBrowser({ viewport = { width: 1280, height: 800 }, a
   const kontext = await browser.newContext({ viewport, locale: "de-DE", timezoneId: "Europe/Berlin", permissions: rechte });
   return merke({ browser, neueSeite: async () => (await browser.newContext({ viewport, locale: "de-DE", timezoneId: "Europe/Berlin" })).newPage(), seite: await kontext.newPage(), ende: () => browser.close() });
 }
+
+const webGebaut = new Set();
+/**
+ * Ordner mit den Browser-Versionen beider Apps (WEB_APPS_DIR-Aufbau) für starteServer({ config: { webAppsDir } }).
+ * Baut `npm run build:web` je App, außer E2E_OHNE_BUILD und dist-web existiert schon.
+ */
+export function webAppsDir() {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "lager-web-"));
+  for (const [name, appDir] of Object.entries(APP_DIRS)) {
+    const ziel = path.join(appDir, "dist-web");
+    if (!webGebaut.has(name) && (!process.env.E2E_OHNE_BUILD || !fs.existsSync(ziel))) {
+      execSync("node scripts/build.cjs --web", { cwd: appDir, env: { ...process.env, LAGER_CORE_DIR: CORE }, stdio: "pipe" });
+      webGebaut.add(name);
+    }
+    fs.symlinkSync(ziel, path.join(dir, name));
+  }
+  return dir;
+}
+
+/** Browser-Seite, die Konsolenfehler, Seitenfehler und CSP-Verstöße sammelt (WEB-05, KLICK-02). */
+export function sammleFehler(seite) {
+  const fehler = [];
+  seite.on("console", (m) => { if (m.type() === "error") fehler.push(m.text()); });
+  seite.on("pageerror", (e) => fehler.push(String(e?.message || e)));
+  return fehler;
+}

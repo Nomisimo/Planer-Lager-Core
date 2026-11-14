@@ -4,6 +4,7 @@ import { erstelleApp } from "./app.js";
 import { authModul, pruefeZugang } from "./auth.js";
 import { verwaltungModul } from "./verwaltung.js";
 import { sichereGrunddaten } from "./grunddaten.js";
+import { Hub } from "./hub.js";
 
 export const MODULE = [authModul, verwaltungModul];
 
@@ -13,5 +14,9 @@ export const MODULE = [authModul, verwaltungModul];
 export async function erstelleLagerServer({ pool, config = {}, migrieren = true }) {
   if (migrieren) await migriere(pool);
   await sichereGrunddaten(pool, { adminBenutzer: config.adminBenutzer, adminPasswort: config.adminPasswort });
-  return erstelleApp({ pool, config, module: MODULE, pruefeZugang });
+  const hub = new Hub(pool);
+  const app = erstelleApp({ pool, config, hub, module: MODULE, pruefeZugang });
+  hub.binde(app.server);
+  app.server.on("close", () => hub.schliesse());
+  return { ...app, hub };
 }

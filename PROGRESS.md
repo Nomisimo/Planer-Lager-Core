@@ -19,7 +19,7 @@ Hinter `[x]` kurz notieren: Datum, Repo(s), Testdatei(en). Max. 1 Zeile.
 - [x] C: Anmeldung R-04, R-08, R-09, R-10, R-11; Verweigerung R-05; Sicherheitsprotokoll 3.15 — 14.11., C, server/auth.test.js (R-11 Web-Umleitung folgt mit station-web, Phase 8)
 - [x] C: FA-54 TOTP (Pflicht Admin, hochgestuft wegen Cloud, D-01) — 14.11., C, domain/totp.test.js, server/auth.test.js
 - [x] C: Sicherheits-Header + CSRF für Cookie-Sitzungen (NFA-01) — 14.11., C, server/health+auth.test.js, domain/csv.test.js
-- [ ] C: WebSocket-Hub + Live-Events, `GET /health` mit Protokollversion
+- [x] C: WebSocket-Hub + Live-Events, `GET /health` mit Protokollversion — 14.11., C, server/hub.test.js, health.test.js
 - [ ] C: `@lager/ui`: Themes FA-52, UI-6, UI-7, Dichten, Bausteine aus docs/UI-STIL.md
 - [ ] M+P: App-Hülle: Login, Kopfleiste, Seitenmenü UI-1 (nur erlaubte Einträge, aktiver Eintrag nach längstem Präfix), Online-Status
 - [ ] M+P: Deep-Links, Single-Instance, Handoff-Login, App-Schalter (ARCHITEKTUR §4.1–4.3)

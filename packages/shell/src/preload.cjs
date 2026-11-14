@@ -5,6 +5,8 @@ contextBridge.exposeInMainWorld("lagerShell", {
   info: () => ipcRenderer.invoke("shell-info"),
   /** Meldet „Oberfläche bereit“ und liefert Deep-Links, die vorher ankamen. */
   bereit: () => ipcRenderer.invoke("shell-bereit"),
+  /** Server-Adresse ändern (gespeichert im Benutzerordner), lädt die Oberfläche neu. */
+  serverSetzen: (url) => ipcRenderer.invoke("server-setzen", url),
   tokenLesen: () => ipcRenderer.invoke("token-lesen"),
   tokenSchreiben: (t) => ipcRenderer.invoke("token-schreiben", t),
   oeffneExtern: (url) => ipcRenderer.invoke("shell-extern", url),

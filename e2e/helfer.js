@@ -38,6 +38,8 @@ export async function starteServer(extra = {}) {
   return { ...app, db, url, benutzer, async ende() { app.server.closeAllConnections?.(); await new Promise((r) => app.server.close(r)); await db.ende(); fs.rmSync(dataDir, { recursive: true, force: true }); }, dataDir };
 }
 
+/** Umgebung für die App; serverUrl null = ohne LAGER_SERVER_URL (Adresse wird in der App eingetragen). */
+const umgebung = (extra) => { const e = { ...process.env, ...extra }; if (!extra.LAGER_SERVER_URL) delete e.LAGER_SERVER_URL; return e; };
 /** Baut (falls nötig) und startet eine App. @param {"materialplaner"|"productionplaner"} name */
 const gebaut = new Set();
 export async function starteApp(name, serverUrl, { bauen = !process.env.E2E_OHNE_BUILD && !gebaut.has(name), argv = [] } = {}) {
@@ -48,7 +50,7 @@ export async function starteApp(name, serverUrl, { bauen = !process.env.E2E_OHNE
   const app = await _electron.launch({
     executablePath: require(path.join(dir, "node_modules", "electron")),
     args: ["--no-sandbox", dir, ...argv],
-    env: { ...process.env, ELECTRON_DISABLE_SANDBOX: "1", LAGER_SERVER_URL: serverUrl, LAGER_TEST: "1", LAGER_USER_DATA: userData },
+    env: umgebung({ ELECTRON_DISABLE_SANDBOX: "1", LAGER_SERVER_URL: serverUrl, LAGER_TEST: "1", LAGER_USER_DATA: userData }),
   });
   const win = await app.firstWindow();
   const ausgabe = [];
@@ -57,7 +59,7 @@ export async function starteApp(name, serverUrl, { bauen = !process.env.E2E_OHNE
   const externeLinks = () => ausgabe.join("").split("\n").filter((z) => z.startsWith("[shell-extern] ")).map((z) => z.slice(15).trim());
   /** Druckaufträge im Testmodus: {datei, groesse} (FA-10). */
   const druckauftraege = () => ausgabe.join("").split("\n").filter((z) => z.startsWith("[shell-druck] ")).map((z) => { const [datei, groesse] = z.slice(14).trim().split(" "); return { datei, groesse }; });
-  return { app, win, externeLinks, druckauftraege, async ende() { await app.close().catch(() => {}); fs.rmSync(userData, { recursive: true, force: true }); } };
+  return { app, win, userData, externeLinks, druckauftraege, async ende() { await app.close().catch(() => {}); fs.rmSync(userData, { recursive: true, force: true }); } };
 }
 
 export const screenshot = (win, name) => { fs.mkdirSync(ARTEFAKTE, { recursive: true }); return win.screenshot({ path: path.join(ARTEFAKTE, name + ".png") }); };

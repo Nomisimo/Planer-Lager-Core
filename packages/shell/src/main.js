@@ -16,7 +16,11 @@ const SPLASH = (titel, farbe) => `data:text/html;charset=utf-8,${encodeURICompon
 export function starteShell(cfg) {
   const test = process.env.LAGER_TEST === "1";
   if (process.env.LAGER_USER_DATA) app.setPath("userData", process.env.LAGER_USER_DATA);
-  const serverUrl = (process.env.LAGER_SERVER_URL || "http://localhost:8080").replace(/\/+$/, "");
+  // Server-Adresse: Umgebung LAGER_SERVER_URL (fest) > in der App eingetragen (userData/server.json) > localhost:8080
+  const serverFest = !!process.env.LAGER_SERVER_URL;
+  const serverDatei = () => path.join(app.getPath("userData"), "server.json");
+  const leseServer = () => { try { return JSON.parse(fs.readFileSync(serverDatei(), "utf8")).url || null; } catch { return null; } };
+  let serverUrl = (process.env.LAGER_SERVER_URL || "http://localhost:8080").replace(/\/+$/, "");
 
   if (!test && !app.requestSingleInstanceLock()) { app.quit(); return; }
   if (!test) {
@@ -39,7 +43,19 @@ export function starteShell(cfg) {
   app.on("second-instance", (_e, argv) => { const l = linkAusArgv(argv, cfg.protokoll); if (l) sendeLink(l); else if (win) win.focus(); });
   app.on("open-url", (e, url) => { e.preventDefault(); sendeLink(url); });
 
-  ipcMain.handle("shell-info", () => ({ id: cfg.id, titel: cfg.titel, version: cfg.version, serverUrl, test, plattform: process.platform }));
+  if (!serverFest) serverUrl = leseServer() || serverUrl;
+  ipcMain.handle("shell-info", () => ({ id: cfg.id, titel: cfg.titel, version: cfg.version, serverUrl, serverFest, test, plattform: process.platform }));
+  ipcMain.handle("server-setzen", (e, url) => {
+    if (serverFest) return { ok: false, text: "Die Server-Adresse ist über LAGER_SERVER_URL fest eingestellt. Ändere sie dort." };
+    const u = String(url || "").trim().replace(/\/+$/, "");
+    let ok = false;
+    try { const x = new URL(u); ok = /^https?:$/.test(x.protocol) && !!x.hostname && x.pathname === "/" && !x.search && !x.username; } catch { ok = false; }
+    if (!ok) return { ok: false, text: "Die Adresse sieht nicht richtig aus. Beispiel: https://lager.meinefirma.de" };
+    fs.writeFileSync(serverDatei(), JSON.stringify({ url: u }));
+    serverUrl = u;
+    setTimeout(() => e.sender.reload(), 50);
+    return { ok: true };
+  });
   ipcMain.handle("shell-bereit", () => { bereit = true; const l = wartend.splice(0); return l; });
   ipcMain.handle("shell-extern", (_e, url) => {
     // Nur eigene Protokolle und http(s) öffnen, nie Dateien.

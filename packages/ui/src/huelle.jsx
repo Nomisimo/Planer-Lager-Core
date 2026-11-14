@@ -53,7 +53,29 @@ function useHash() {
 export const navigiere = (pfad) => { window.location.hash = "#" + pfad; };
 
 /* ── Anmeldung inkl. Zwei-Faktor ─────────────────────────────────────────── */
-function Anmeldung({ api, titel, onFertig, hinweis }) {
+/** Server-Adresse in der App ändern (nur Electron, wenn nicht per LAGER_SERVER_URL fest). */
+function ServerAdresse({ info }) {
+  const shellApi = window.lagerShell;
+  const [offen, setOffen] = useState(false);
+  const [url, setUrl] = useState(info?.serverUrl || "");
+  const [fehler, setFehler] = useState(null);
+  if (!shellApi?.serverSetzen || !info || info.serverFest) return null;
+  const speichern = async () => {
+    setFehler(null);
+    const r = await shellApi.serverSetzen(url);
+    if (!r?.ok) setFehler(r?.text || "Die Adresse ließ sich nicht speichern.");
+  };
+  if (!offen) return <p className="lp-hinweis" data-testid="server-adresse">Server: {info.serverUrl} · <button type="button" className="lp-link" onClick={() => setOffen(true)}>ändern</button></p>;
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      <Feld label="Server-Adresse" hinweis="Bekommst du vom Admin, z. B. https://lager.meinefirma.de"><Eingabe value={url} onChange={(e) => setUrl(e.target.value)} /></Feld>
+      {fehler && <Meldung level="error" text={fehler} />}
+      <div style={{ display: "flex", gap: 8 }}><Knopf art="primaer" icon="Save" onClick={speichern}>Server speichern</Knopf><Knopf art="geist" onClick={() => setOffen(false)}>Abbrechen</Knopf></div>
+    </div>
+  );
+}
+
+function Anmeldung({ api, titel, onFertig, hinweis, info }) {
   const [w, setW] = useState({ benutzername: "", passwort: "", code: "" });
   const [zwischen, setZwischen] = useState(null);
   const [fehler, setFehler] = useState(hinweis || null);
@@ -83,6 +105,7 @@ function Anmeldung({ api, titel, onFertig, hinweis }) {
           {fehler && <Meldung level="error" text={fehler} />}
           <Knopf art="primaer" type="submit" icon="LogIn" onClick={absenden}>{zwischen ? "Code prüfen" : "Anmelden"}</Knopf>
         </form>
+        <div style={{ marginTop: 12 }}><ServerAdresse info={info} /></div>
       </Section>
     </div>
   );
@@ -237,7 +260,7 @@ export function AppHuelle({ app, seiten, onCode }) {
   if (!info || token === undefined) return null;
   if (!token || (!nutzer && !zweiFaktor)) {
     if (token && !nutzer) return null; // lädt /ich
-    return <Anmeldung api={api} titel={`${self.titel} – Anmeldung`} hinweis={hinweis} onFertig={(r) => { setHinweis(null); setzeToken(r.token); }} />;
+    return <Anmeldung api={api} info={info} titel={`${self.titel} – Anmeldung`} hinweis={hinweis} onFertig={(r) => { setHinweis(null); setzeToken(r.token); }} />;
   }
   if (zweiFaktor) return <ZweiFaktorEinrichten api={api} onFertig={() => { setZweiFaktor(false); api.get("/api/v1/ich").then((r) => setNutzer(r.nutzer)); }} />;
 

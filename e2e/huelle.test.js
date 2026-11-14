@@ -1,5 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import fs from "node:fs";
+import path from "node:path";
 import { starteServer, starteApp, screenshot, anmelden, warteBis } from "./helfer.js";
 
 test("UI-1 App-Hülle: Anmeldung, Seitenmenü nur mit erlaubten Einträgen, aktiver Eintrag, Online-Status, Darstellung", async () => {
@@ -56,5 +58,27 @@ test("INT-01 Login in P, Wechsel nach M ohne erneute Anmeldung (Handoff per Deep
       assert.equal(await m.win.getByTestId("anmeldung").count(), 0);
       await screenshot(m.win, "INT-01-materialplaner-nach-handoff");
     } finally { await m.ende(); }
+  } finally { await s.ende(); }
+});
+
+test("UI-5 Installierte App ohne LAGER_SERVER_URL: Server-Adresse beim Anmelden eintragen, im Benutzerordner gespeichert", async () => {
+  const s = await starteServer();
+  await s.benutzer("lager", "Lager / Techniker", "Lars Lager");
+  try {
+    const p = await starteApp("productionplaner", null);
+    try {
+      const w = p.win;
+      await w.getByTestId("server-adresse").getByText("http://localhost:8080").waitFor();
+      await w.getByRole("button", { name: "ändern" }).click();
+      await w.getByLabel("Server-Adresse").fill("kein server");
+      await w.getByRole("button", { name: "Server speichern" }).click();
+      await w.getByText("Die Adresse sieht nicht richtig aus.").waitFor();
+      await w.getByLabel("Server-Adresse").fill(`${s.url}/`);
+      await w.getByRole("button", { name: "Server speichern" }).click();
+      await w.getByTestId("server-adresse").getByText(s.url, { exact: false }).waitFor();
+      await anmelden(w, "lager");
+      const datei = JSON.parse(fs.readFileSync(path.join(p.userData, "server.json"), "utf8"));
+      assert.equal(datei.url, s.url, "ohne Schrägstrich am Ende gespeichert");
+    } finally { await p.ende(); }
   } finally { await s.ende(); }
 });

@@ -1,5 +1,6 @@
 // E2E-Hilfen: Testserver im Prozess + Electron-Apps per Playwright _electron (D-22).
 import { createRequire } from "node:module";
+import { after } from "node:test";
 import { execSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
@@ -10,6 +11,12 @@ import { erstelleLagerServer } from "@lager/server/server.js";
 import { legeBenutzerAn } from "@lager/server/grunddaten.js";
 
 export const PW = "Sicheres-Testpasswort-1";
+
+// Sicherheitsnetz gegen hängende Läufe: alles, was ein Test startet, wird am Dateiende geschlossen,
+// auch wenn der Test vor seinem try/finally scheitert (Server, Pools, Electron, Browser halten sonst den Prozess offen).
+const offen = new Set();
+const merke = (x) => { const ende = x.ende; let zu = false; x.ende = async () => { if (zu) return; zu = true; offen.delete(x); await ende.call(x); }; offen.add(x); return x; };
+after(async () => { for (const x of [...offen].reverse()) await Promise.race([x.ende().catch(() => {}), new Promise((r) => setTimeout(r, 10000))]); });
 
 const require = createRequire(import.meta.url);
 const HIER = path.dirname(fileURLToPath(import.meta.url));
@@ -35,7 +42,7 @@ export async function starteServer(extra = {}) {
   await new Promise((r) => app.server.listen(0, "127.0.0.1", r));
   const url = `http://127.0.0.1:${app.server.address().port}`;
   const benutzer = (benutzername, rolle = "Administrator", name) => legeBenutzerAn(db.pool, { benutzername, passwort: PW, rolle, name });
-  return { ...app, db, url, benutzer, async ende() { app.server.closeAllConnections?.(); await new Promise((r) => app.server.close(r)); await db.ende(); fs.rmSync(dataDir, { recursive: true, force: true }); }, dataDir };
+  return merke({ ...app, db, url, benutzer, async ende() { app.server.closeAllConnections?.(); await new Promise((r) => app.server.close(r)); await db.ende(); fs.rmSync(dataDir, { recursive: true, force: true }); }, dataDir });
 }
 
 /** Umgebung für die App; serverUrl null = ohne LAGER_SERVER_URL (Adresse wird in der App eingetragen). */
@@ -59,7 +66,7 @@ export async function starteApp(name, serverUrl, { bauen = !process.env.E2E_OHNE
   const externeLinks = () => ausgabe.join("").split("\n").filter((z) => z.startsWith("[shell-extern] ")).map((z) => z.slice(15).trim());
   /** Druckaufträge im Testmodus: {datei, groesse} (FA-10). */
   const druckauftraege = () => ausgabe.join("").split("\n").filter((z) => z.startsWith("[shell-druck] ")).map((z) => { const [datei, groesse] = z.slice(14).trim().split(" "); return { datei, groesse }; });
-  return { app, win, userData, externeLinks, druckauftraege, async ende() { await app.close().catch(() => {}); fs.rmSync(userData, { recursive: true, force: true }); } };
+  return merke({ app, win, userData, externeLinks, druckauftraege, async ende() { await app.close().catch(() => {}); fs.rmSync(userData, { recursive: true, force: true }); } });
 }
 
 export const screenshot = (win, name) => { fs.mkdirSync(ARTEFAKTE, { recursive: true }); return win.screenshot({ path: path.join(ARTEFAKTE, name + ".png") }); };
@@ -86,7 +93,8 @@ export async function anmelden(win, benutzername, passwort = PW) {
 /** Arbeitsplatz-Browser (Chromium, vorinstalliert) für station-web. Baut station-web vorher, außer E2E_OHNE_BUILD. */
 export async function starteBrowser({ viewport = { width: 1280, height: 800 }, args = [], rechte = [] } = {}) {
   if (!process.env.E2E_OHNE_BUILD) { const { baueStationWeb } = await import(path.join(CORE, "packages", "station-web", "build.js")); await baueStationWeb({ minify: false }); }
-  const browser = await playwright().chromium.launch({ args });
+  // CI: vorhandenes Chrome des Runners (E2E_CHROMIUM), VM: vorinstalliertes Playwright-Chromium
+  const browser = await playwright().chromium.launch({ args, ...(process.env.E2E_CHROMIUM ? { executablePath: process.env.E2E_CHROMIUM } : {}) });
   const kontext = await browser.newContext({ viewport, locale: "de-DE", timezoneId: "Europe/Berlin", permissions: rechte });
-  return { browser, neueSeite: async () => (await browser.newContext({ viewport, locale: "de-DE", timezoneId: "Europe/Berlin" })).newPage(), seite: await kontext.newPage(), ende: () => browser.close() };
+  return merke({ browser, neueSeite: async () => (await browser.newContext({ viewport, locale: "de-DE", timezoneId: "Europe/Berlin" })).newPage(), seite: await kontext.newPage(), ende: () => browser.close() });
 }

@@ -21,6 +21,7 @@ Ziel: alle Punkte in `Planer-Lager-Core/PROGRESS.md` auf `[x]`. Nicht anhalten, 
 6. **UI-Punkt?** Kurzer E2E oder Screenshot (Skill `e2e-electron`). Nicht jeden Punkt – spätestens am Phasenende.
 7. **Abhaken**: PROGRESS.md `[x]` + eine Zeile (Datum, Repos, Testdatei). Annahme getroffen? → ENTSCHEIDUNGEN.md.
 8. **Commit** je Repo: `feat(<ID>): <was>` bzw. `fix(<ID>): …`. Core geändert → Submodule-Zeiger in M und P mitziehen. Pushen.
+   **CI prüfen nach jedem Push**: `gh run list -R Nomisimo/<Repo> -L 3` (ohne angemeldetes `gh`: GitHub-MCP `actions_list` mit `list_workflow_runs`). Lauf rot oder länger als 30 min unterwegs → `gh run view <id> --log-failed | tail -60` (bzw. MCP `get_job_logs` mit `failed_only`), Ursache beheben, **bevor** es weitergeht.
 9. Nächster Punkt.
 
 ## Phasenende

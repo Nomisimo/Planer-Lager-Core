@@ -31,7 +31,7 @@ Beide Apps fühlen sich wie ein Produkt an: gleiches Konto, Login nur einmal (Ha
 - Skill `umsetzen` = Arbeitsschleife. Folge ihr ohne Rückfrage, Punkt für Punkt aus PROGRESS.md.
 - Unklar oder `[ENTSCHEIDUNG]`? Spec-Standard nehmen, in ENTSCHEIDUNGEN.md eintragen, weitermachen. **Nicht anhalten, um zu fragen.**
 - Blockiert (z. B. Netz, Hardware)? Eintragen, Punkt als `[~]` markieren, nächsten Punkt nehmen.
-- Fertig erst, wenn: alle Punkte `[x]`, `npm run spec:abdeckung` meldet 0 fehlende IDs, alle Unit-, API- und E2E-Tests grün, BERICHT.md ehrlich aktualisiert.
+- Fertig erst, wenn: alle Punkte `[x]`, `npm run spec:abdeckung` meldet 0 fehlende IDs (INDEX.md + ZUSATZ.md), alle Unit-, API- und E2E-Tests grün, **GitHub-CI in allen drei Repos grün** (nach jedem Push `gh run list -R Nomisimo/<Repo> -L 3` prüfen; rot oder > 30 min → Log ansehen, beheben), ein veröffentlichtes Release mit Installern, vollständige READMEs, BERICHT.md ehrlich aktualisiert.
 - Jeder Test trägt die Spec-ID im Namen: `test("R-22 normalisiert lt1 zu LT-0001", …)`.
 - Commit nach jedem erledigten Punkt, je betroffenem Repo. Nachricht: `feat(R-22): …` / `fix(T-09): …`. Push auf den Session-Branch.
 

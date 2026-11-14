@@ -37,3 +37,18 @@ export function dbFehler(e, texte = {}) {
   if (e.code === "23514") return fehler(400, texte.ungueltig || "Ein Wert ist ungültig. Prüfe die Eingaben.");
   return e;
 }
+
+/**
+ * R-49 Vermisst melden: Status Vermisst, Case leer, Projekt bleibt (Nachweis), Bewegung „Als vermisst gemeldet, Projekt X, zuletzt in Y“.
+ * Doppelte Meldung (oder Endzustand) ändert nichts → null. Sonst der Gerätecode. `where` ist "g.id = $1" oder "g.code = $1".
+ */
+export async function meldeVermisst(c, ctx, where, wert) {
+  const { rows: [g] } = await c.query(`SELECT g.id, g.code, g.status, g.projekt_id, p.nummer, t.code AS tasche FROM geraet g
+    LEFT JOIN projekt p ON p.id = g.projekt_id LEFT JOIN geraet t ON t.id = g.case_id WHERE ${where} FOR UPDATE OF g`, [wert]);
+  if (!g || g.status === "vermisst" || ["ausgemustert", "verkauft"].includes(g.status)) return g ? { ...g, unveraendert: true } : null;
+  await c.query("UPDATE geraet SET status = 'vermisst', case_id = NULL, version = version + 1 WHERE id = $1", [g.id]);
+  await bucheBewegung(c, { geraetId: g.id, projektId: g.projekt_id,
+    aktion: `Als vermisst gemeldet${g.nummer ? `, Projekt ${g.nummer}` : ""}${g.tasche ? `, zuletzt in ${g.tasche}` : ""}`, ...wer(ctx) });
+  ctx.hub?.sende({ typ: "geraet.geaendert", id: g.id, bereich: "geraete" });
+  return g;
+}

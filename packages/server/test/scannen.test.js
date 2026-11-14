@@ -176,7 +176,7 @@ test("T-11 R-60 R-14 R-57 Packen abgeschlossen & verladen; R-61 wieder öffnen",
   assert.deepEqual([y.status, y.gepackt_am, y.gepackt_von_name], ["laeuft", null, ""], "R-61 Status bleibt");
 });
 
-test("5.5 Rückgabe: zurück im Lager, vermisst → wieder aufgetaucht (T-14); Tasche zuerst, dann Inhalt mit Wechsel (R-46, T-12)", async () => {
+test("FA-18 5.5 Rückgabe: zurück im Lager, vermisst → wieder aufgetaucht (T-14); Tasche zuerst, dann Inhalt mit Wechsel (R-46, T-12)", async () => {
   const p = await projekt("Rückgabe");
   await q("UPDATE geraet SET case_id = NULL, projekt_id = NULL, status = 'lager'");
   const [t1, t2] = await codes(tasche.id);
@@ -215,6 +215,13 @@ test("5.5 Rückgabe: zurück im Lager, vermisst → wieder aufgetaucht (T-14); T
   assert.equal(wa.level, "warn");
   assert.match(wa.meldungen[0].text, /wieder aufgetaucht/);
   assert.equal((await q("SELECT status FROM geraet WHERE code = $1", [v.gemeldet[0]])).rows[0].status, "lager");
+  // FA-18 Rückgabeansicht: offen / vermisst / zurück
+  const st = (await lager("GET", `/api/v1/projekte/${p.id}/rueckgabe`)).json;
+  assert.deepEqual(st.vermisst.map((g) => g.code).sort(), v.gemeldet.slice(1).sort());
+  assert.ok(st.zurueck.some((g) => g.code === v.gemeldet[0] && g.aktion === "Wieder aufgetaucht"));
+  assert.ok(st.zurueck.some((g) => g.code === t1) && st.zurueck.some((g) => g.code === lampen[0]));
+  assert.equal(st.offen.length, 0, `alles zurück oder vermisst: ${st.offen.map((g) => g.code)}`);
+  assert.equal((await lager("GET", "/api/v1/projekte/999999/rueckgabe")).status, 404);
 });
 
 test("T-15 R-47 Funktionstest: bestanden → Bewegung; Mangel → Defekt, Notiz mit Datum, nicht mehr packbar; 404", async () => {

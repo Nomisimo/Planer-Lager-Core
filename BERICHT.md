@@ -11,6 +11,12 @@ Bekannte Fehler/Grenzen: <…>
 Annahmen: D-xx, D-yy
 ```
 
+## Phase 7 – Rückgabe – 14.11.2026
+Gebaut: FA-18 Rückgabeansicht je Projekt (Stand noch draußen/zurück/vermisst, Zurückscannen, aktive Tasche mit „Offene als vermisst melden“ und „Tasche beenden“, „Alle offenen als vermisst melden“), freie Rückgabe auf der Scan-Seite (Projekt ergibt sich aus dem Gerät), R-47 Funktionstest nach jedem Scan (bestanden/Mangel mit Notiz), R-49/R-50 auch für die Geräte-Knöpfe „Vermisst“/„Gefunden“ (Projekt bleibt, Case leer, „Gefunden“ nur bei Vermisst), API `GET /api/v1/projekte/:id/rueckgabe`, Deep-Link aus dem Productionplaner.
+Geprüft: Unit+API alle grün (neu: R-49/R-50-Test in stammdaten.test.js, FA-18 im Rückgabe-Test); E2E neu e2e/rueckgabe.test.js (T-12–T-15) grün. Screenshots: FA-18-rueckgabe, R-47-funktionstest.
+Nicht geprüft: Rückgabe am Arbeitsplatz-Browser (station-web kommt in Phase 8).
+Annahmen: D-67, D-68
+
 ## Phase 6 – Scannen, Packen, Verladen, Scanner – 14.11.2026
 Gebaut: Scan-Kern 5.5 (Schritte 1–9 in einer Transaktion, inkl. Rückgabe, vermisst → wieder aufgetaucht, aktive Tasche R-46), R-23 Projektcode → Packansicht, R-70 im Scan, Scan-API 7.2 (scan, pruefung = Funktionstest R-47, vermisst R-48/R-49), FA-19 Packstatus, R-60/R-61 Verladen/Wieder öffnen mit R-14, HID-Erkennung global (UI-3), Netzwerk-Scanner-Gateway TCP + HTTP mit Token, Verwaltung „Scanner“, FA-15 Scan-Seite (Modus, Projekt, Verlauf, Farbe, Ton), FA-17 Packansicht live mit Fortschritt und Verladen, FA-16 Sprung PP → Packansicht.
 Geprüft: Unit+API alle grün (neu: server/scannen.test.js 9, server/scanner.test.js, domain/scannen.test.js 5); E2E neu e2e/scannen.test.js (T-07–T-11, Handscanner, Netzwerk-Scanner) grün. Screenshots: FA-15, FA-17.

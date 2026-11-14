@@ -2,7 +2,7 @@
 import { transaktion } from "@lager/db";
 import { wendeArtAn, artVon, praefixVorschlag, praefixGueltig, normalisiereCode, pruefeArtikel, artikeltyp,
   bestandNiedrig, uebergangErlaubt, aktionText, loeschSperre, STATUS, MANUELLER_STATUS, pruefstatus } from "@lager/domain";
-import { fehler, nichtGefunden, seite, idParam, wer, bucheBewegung, dbFehler } from "./hilfen.js";
+import { fehler, nichtGefunden, seite, idParam, wer, bucheBewegung, dbFehler, meldeVermisst } from "./hilfen.js";
 import { vergibCodes, legeGeraeteAn } from "./geraetecodes.js";
 import { kabelFelder, bestelleEtiketten, offeneBestellung } from "./etiketten.js";
 export { vergibCodes, legeGeraeteAn };
@@ -257,8 +257,24 @@ export function stammdatenModul(router) {
     return wechsleStatus(ctx, idParam(ctx.params.id, "Dieses Gerät"), nach, { zusatz: String(ctx.body?.notiz || "").slice(0, 200) });
   });
   // geprueft/vermisst/gefunden: Bereich packen (Spec 7.1)
-  router.post("/api/v1/geraete/:id/vermisst", P, async (ctx) => wechsleStatus(ctx, idParam(ctx.params.id, "Dieses Gerät"), "vermisst", { zusatz: "als vermisst gemeldet" }));
-  router.post("/api/v1/geraete/:id/gefunden", P, async (ctx) => wechsleStatus(ctx, idParam(ctx.params.id, "Dieses Gerät"), "lager", { zusatz: "gefunden", projektLoesen: true }));
+  router.post("/api/v1/geraete/:id/vermisst", P, async (ctx) => transaktion(ctx.pool, async (c) => {
+    const g = await meldeVermisst(c, ctx, "g.id = $1", idParam(ctx.params.id, "Dieses Gerät"));
+    if (!g) throw nichtGefunden("Dieses Gerät");
+    if (g.unveraendert && g.status !== "vermisst") throw fehler(409, `Das Gerät ${g.code} ist „${STATUS[g.status]}“ und kann nicht als vermisst gemeldet werden.`);
+    return { ok: true, level: g.unveraendert ? "info" : "success", code: g.code, status: "vermisst",
+      text: g.unveraendert ? `${g.code} ist bereits als vermisst gemeldet.` : `${g.code} als vermisst gemeldet.` };
+  }));
+  // R-50 Gefunden: nur bei Vermisst → Im Lager, Projekt leer
+  router.post("/api/v1/geraete/:id/gefunden", P, async (ctx) => transaktion(ctx.pool, async (c) => {
+    const id = idParam(ctx.params.id, "Dieses Gerät");
+    const { rows: [g] } = await c.query("SELECT id, code, status, projekt_id FROM geraet WHERE id = $1 FOR UPDATE", [id]);
+    if (!g) throw nichtGefunden("Dieses Gerät");
+    if (g.status !== "vermisst") throw fehler(409, `Das Gerät ${g.code} ist „${STATUS[g.status]}“, nicht vermisst. „Gefunden“ gibt es nur für vermisste Geräte.`);
+    await c.query("UPDATE geraet SET status = 'lager', projekt_id = NULL, version = version + 1 WHERE id = $1", [id]);
+    await bucheBewegung(c, { geraetId: id, projektId: g.projekt_id, aktion: "Wieder gefunden, zurück im Lager", ...wer(ctx) });
+    ctx.hub?.sende({ typ: "geraet.geaendert", id, bereich: "geraete" });
+    return { ok: true, level: "success", text: `${g.code}: Wieder gefunden, zurück im Lager.`, code: g.code, status: "lager" };
+  }));
   router.post("/api/v1/geraete/:id/geprueft", P, async (ctx) => transaktion(ctx.pool, async (c) => {
     const id = idParam(ctx.params.id, "Dieses Gerät");
     const { rows: [g] } = await c.query(`UPDATE geraet SET letzte_pruefung = (now() AT TIME ZONE 'Europe/Berlin')::date, version = version + 1

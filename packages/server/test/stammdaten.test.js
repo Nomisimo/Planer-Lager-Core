@@ -80,7 +80,8 @@ test("R-18 Statuswechsel erzeugt Bewegung mit Aktion, Person, Zeit; R-30 jede Be
   const d = (await lager("GET", `/api/v1/geraete/${id}`)).json;
   assert.equal(d.status, "lager");
   assert.equal(d.bewegungen.length, 2);
-  assert.match(d.bewegungen[0].aktion, /Vermisst → Im Lager/);
+  assert.equal(d.bewegungen[0].aktion, "Wieder gefunden, zurück im Lager");
+  assert.equal(d.bewegungen[1].aktion, "Als vermisst gemeldet");
   assert.equal(d.bewegungen[0].benutzer, "lager");
   assert.ok(d.bewegungen[0].zeit);
   await assert.rejects(s.db.pool.query("UPDATE bewegung SET aktion = 'x'"), /nur neue Einträge/);
@@ -236,4 +237,25 @@ test("R-71 Art Kabel/Verbrauch: Prüfung der Felder; R-72 Verbrauch legt keine G
   assert.equal(p.laenge_m, null);
   const g = (await admin("POST", "/api/v1/artikel", { name: "Mischpult", kategorie_id: k.id })).json.artikel;
   assert.deepEqual([g.pruefpflichtig, g.pruef_intervall_monate], [true, 12]);
+});
+
+test("R-49 R-50 Gerät vermisst melden: Projekt bleibt, Case leer, doppelt ändert nichts; gefunden nur bei Vermisst", async () => {
+  const k = await neueKategorie("Kabel Daten", "KD");
+  const a = await neuerArtikel({ name: "DMX 10 m", kategorie_id: k.id, anzahl: 2, kennzeichnung: "qr" });
+  const [id, cs] = a.geraete.ids;
+  const p = { id: await testProjekt() };
+  const { rows: [{ nummer }] } = await s.db.pool.query("SELECT nummer FROM projekt WHERE id = $1", [p.id]);
+  await s.db.pool.query("UPDATE geraet SET status = 'gepackt', projekt_id = $1, case_id = $2 WHERE id = $3", [p.id, cs, id]);
+  assert.equal((await lager("POST", `/api/v1/geraete/${id}/gefunden`, {})).status, 409, "gefunden nur bei Vermisst");
+  const r = await lager("POST", `/api/v1/geraete/${id}/vermisst`, {});
+  assert.equal(r.status, 200);
+  const { rows: [g] } = await s.db.pool.query("SELECT status, projekt_id, case_id FROM geraet WHERE id = $1", [id]);
+  assert.deepEqual([g.status, g.projekt_id, g.case_id], ["vermisst", p.id, null]);
+  const d1 = (await lager("GET", `/api/v1/geraete/${id}`)).json;
+  assert.match(d1.bewegungen[0].aktion, new RegExp(`^Als vermisst gemeldet, Projekt ${nummer}, zuletzt in KD-`));
+  assert.match((await lager("POST", `/api/v1/geraete/${id}/vermisst`, {})).json.text, /bereits als vermisst/);
+  assert.equal((await lager("GET", `/api/v1/geraete/${id}`)).json.bewegungen.length, d1.bewegungen.length, "doppelt ändert nichts");
+  await lager("POST", `/api/v1/geraete/${id}/gefunden`, {});
+  const { rows: [h] } = await s.db.pool.query("SELECT status, projekt_id FROM geraet WHERE id = $1", [id]);
+  assert.deepEqual([h.status, h.projekt_id], ["lager", null]);
 });

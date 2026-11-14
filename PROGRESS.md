@@ -69,9 +69,9 @@ Hinter `[x]` kurz notieren: Datum, Repo(s), Testdatei(en). Max. 1 Zeile.
 - [x] E2E: T-07, T-08, T-09, T-10, T-11 — 14.11., e2e/scannen.test.js (T-06 braucht Ladezonen → Phase 8)
 
 ## Phase 7 – Rückgabe
-- [ ] C: R-46 Taschen, R-47 Funktionstest, R-48, R-49, R-50
-- [ ] M: FA-18 Rückgabeansicht + freie Rückgabe am Arbeitsplatz
-- [ ] E2E: T-12, T-13, T-14, T-15
+- [x] C: R-46 Taschen, R-47 Funktionstest, R-48, R-49, R-50 (Geräte-Routen vermisst/gefunden auf R-49/R-50 umgestellt, `GET /projekte/:id/rueckgabe`)
+- [x] M: FA-18 Rückgabeansicht `/projekte/:id/rueckgabe` + freie Rückgabe auf der Scan-Seite (Arbeitsplatz-Web folgt mit Phase 8)
+- [x] E2E: T-12, T-13, T-14, T-15 (e2e/rueckgabe.test.js)
 
 ## Phase 8 – Ladezonen, Arbeitsplätze, Anzeige
 - [ ] C: Ladezone 3.10, R-55, R-56, R-57, R-58 (darf Login nie verhindern), R-59

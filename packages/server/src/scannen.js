@@ -4,7 +4,7 @@ import {
   normalisiereCode, normalisiereProjektcode, SCAN_MODI, ZIEL, hoeher, levelUebersprungen, scanText, pruefHinweis, casePruefung,
   packlistenHinweis, packFortschritt, istGesperrt, STATUS, sollInhalt, pruefstatus, PROJEKT_STATUS,
 } from "@lager/domain";
-import { fehler, nichtGefunden, idParam, wer, bucheBewegung } from "./hilfen.js";
+import { fehler, nichtGefunden, idParam, wer, bucheBewegung, meldeVermisst } from "./hilfen.js";
 import { offeneBestellung } from "./etiketten.js";
 import { ladePackliste } from "./angebote.js";
 import { nachVerladen } from "./projekte.js";
@@ -165,11 +165,27 @@ export async function scanne(ctx, e) {
       ctx.hub?.sende({ typ: "geraet.geaendert", id: g.id, projekt: projektRef?.id, bereich: "geraete" });
       if (projektRef) ctx.hub?.sende({ typ: "packen.geaendert", projekt: projektRef.id, bereich: "packen" });
     }
-    return { level, text, meldungen, tasche: taschenAntwort, code: g.code, artikel_id: g.artikel_id, ist_case: g.ist_case, projekt: projektRef };
+    return { level, text, meldungen, gebucht, tasche: taschenAntwort, code: g.code, artikel_id: g.artikel_id, ist_case: g.ist_case, projekt: projektRef };
   });
 }
 
 /** FA-19 / FA-17: Packstand eines Projekts (Packliste + Fortschritt + Verladestatus). */
+/** FA-18: Rückgabestand je Projekt. offen = noch zugeordnet/gepackt, vermisst = bleibt am Projekt (R-49), zurueck = seit dem Projekt zurückgebucht. */
+export async function rueckgabeStand(db, projektId) {
+  const { rows: [p] } = await db.query(`SELECT p.id, p.nummer, p.name, p.status, p.beginn, p.ende, p.gepackt_am, k.name AS kunde, k.firma AS kunde_firma
+    FROM projekt p JOIN kunde k ON k.id = p.kunde_id WHERE p.id = $1`, [projektId]);
+  if (!p) throw nichtGefunden("Dieses Projekt");
+  const { rows: amProjekt } = await db.query(`SELECT g.id, g.code, g.status, a.name AS artikel, a.ist_case, t.code AS tasche FROM geraet g
+    JOIN artikel a ON a.id = g.artikel_id LEFT JOIN geraet t ON t.id = g.case_id
+    WHERE g.projekt_id = $1 AND g.status IN ('zugeordnet','gepackt','vermisst') ORDER BY g.code`, [projektId]);
+  const { rows: zurueck } = await db.query(`SELECT DISTINCT ON (g.id) g.id, g.code, g.status, a.name AS artikel, b.aktion, b.zeit FROM bewegung b
+    JOIN geraet g ON g.id = b.geraet_id JOIN artikel a ON a.id = g.artikel_id
+    WHERE b.projekt_id = $1 AND b.aktion IN ('Zurück im Lager','Wieder aufgetaucht') AND (g.projekt_id IS DISTINCT FROM $1)
+    ORDER BY g.id, b.zeit DESC`, [projektId]);
+  zurueck.sort((a, b) => String(b.zeit).localeCompare(String(a.zeit)));
+  return { projekt: p, offen: amProjekt.filter((g) => g.status !== "vermisst"), vermisst: amProjekt.filter((g) => g.status === "vermisst"), zurueck };
+}
+
 export async function packStatus(db, projektId) {
   const { rows: [p] } = await db.query(`SELECT p.id, p.nummer, p.name, p.status, p.beginn, p.ende, p.gepackt_am, p.gepackt_von_name, p.ladezone_id,
       k.name AS kunde, k.firma AS kunde_firma FROM projekt p JOIN kunde k ON k.id = p.kunde_id WHERE p.id = $1`, [projektId]);
@@ -188,6 +204,8 @@ export async function packStatus(db, projektId) {
 
 export function scanModul(router) {
   router.post("/api/v1/scan", P, async (ctx) => scanne(ctx, ctx.body || {}));
+  // FA-18 Rückgabeansicht: was ist noch draußen, was ist vermisst, was ist zurück
+  router.get("/api/v1/projekte/:id/rueckgabe", { ...P, stufe: "r" }, async (ctx) => rueckgabeStand(ctx.pool, idParam(ctx.params.id, "Dieses Projekt")));
   router.get("/api/v1/projekte/:id/packstatus", { ...P, stufe: "r" }, async (ctx) => packStatus(ctx.pool, idParam(ctx.params.id, "Dieses Projekt")));
 
   // 7.2 /api/pruefung: Funktionstest (R-47)
@@ -217,14 +235,8 @@ export function scanModul(router) {
     const codes = [...new Set((Array.isArray(ctx.body?.codes) ? ctx.body.codes : []).map(normalisiereCode))].slice(0, 500);
     const gemeldet = [];
     for (const code of codes) {
-      const { rows: [g] } = await c.query(`SELECT g.id, g.code, g.status, g.projekt_id, p.nummer, t.code AS tasche FROM geraet g
-        LEFT JOIN projekt p ON p.id = g.projekt_id LEFT JOIN geraet t ON t.id = g.case_id WHERE g.code = $1 FOR UPDATE OF g`, [code]);
-      if (!g || g.status === "vermisst" || ["ausgemustert", "verkauft"].includes(g.status)) continue; // R-49: doppelte Meldung ändert nichts
-      await c.query("UPDATE geraet SET status = 'vermisst', case_id = NULL, version = version + 1 WHERE id = $1", [g.id]);
-      await bucheBewegung(c, { geraetId: g.id, projektId: g.projekt_id,
-        aktion: `Als vermisst gemeldet${g.nummer ? `, Projekt ${g.nummer}` : ""}${g.tasche ? `, zuletzt in ${g.tasche}` : ""}`, ...wer(ctx) });
-      gemeldet.push(g.code);
-      ctx.hub?.sende({ typ: "geraet.geaendert", id: g.id, bereich: "geraete" });
+      const g = await meldeVermisst(c, ctx, "g.code = $1", code);
+      if (g && !g.unveraendert) gemeldet.push(g.code);
     }
     let tasche = null;
     if (ctx.body?.tasche) {

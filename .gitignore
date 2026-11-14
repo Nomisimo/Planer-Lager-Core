@@ -9,3 +9,4 @@ e2e/artefakte/
 .DS_Store
 lokal/
 e2e/.server-url
+packages/station-web/dist/

@@ -20,11 +20,11 @@ Hinter `[x]` kurz notieren: Datum, Repo(s), Testdatei(en). Max. 1 Zeile.
 - [x] C: FA-54 TOTP (Pflicht Admin, hochgestuft wegen Cloud, D-01) — 14.11., C, domain/totp.test.js, server/auth.test.js
 - [x] C: Sicherheits-Header + CSRF für Cookie-Sitzungen (NFA-01) — 14.11., C, server/health+auth.test.js, domain/csv.test.js
 - [x] C: WebSocket-Hub + Live-Events, `GET /health` mit Protokollversion — 14.11., C, server/hub.test.js, health.test.js
-- [ ] C: `@lager/ui`: Themes FA-52, UI-6, UI-7, Dichten, Bausteine aus docs/UI-STIL.md
-- [ ] M+P: App-Hülle: Login, Kopfleiste, Seitenmenü UI-1 (nur erlaubte Einträge, aktiver Eintrag nach längstem Präfix), Online-Status
-- [ ] M+P: Deep-Links, Single-Instance, Handoff-Login, App-Schalter (ARCHITEKTUR §4.1–4.3)
-- [ ] C: UI-2 Rückmeldungs-Bausteine (Farbe + Symbol + Text), UI-4 Formular-Verhalten, UI-5 Textregeln als Hilfsfunktionen + Test
-- [ ] C+M+P: UI-8 Versionskennung der Assets (Hash im Dateinamen) für station-web; Electron-Bundle versioniert
+- [x] C: `@lager/ui`: Themes FA-52, UI-6, UI-7, Dichten, Bausteine aus docs/UI-STIL.md — 14.11., C, ui/test/ui.test.js (Kontrast aller 8 Themen geprüft)
+- [x] M+P: App-Hülle: Login, Kopfleiste, Seitenmenü UI-1 (nur erlaubte Einträge, aktiver Eintrag nach längstem Präfix), Online-Status — 14.11., C(ui/huelle.jsx)+M+P, e2e/huelle.test.js
+- [x] M+P: Deep-Links, Single-Instance, Handoff-Login, App-Schalter (ARCHITEKTUR §4.1–4.3) — 14.11., C+M+P, shell/test/deeplink.test.js, e2e/huelle.test.js (INT-01)
+- [x] C: UI-2 Rückmeldungs-Bausteine (Farbe + Symbol + Text), UI-4 Formular-Verhalten, UI-5 Textregeln als Hilfsfunktionen + Test — 14.11., C, ui/test/ui.test.js
+- [x] C+M+P: UI-8 Versionskennung der Assets (Hash im Dateinamen) für station-web; Electron-Bundle versioniert — 14.11., C, server/test/statisch.test.js; Apps: meta lager-build + dist-app/build.json
 
 ## Phase 2 – Stammdaten
 - [ ] C: Kategorie 3.6 (Präfix-Vorschlag, letzte_nummer nur steigend)
@@ -102,7 +102,7 @@ Hinter `[x]` kurz notieren: Datum, Repo(s), Testdatei(en). Max. 1 Zeile.
 - [ ] C: NFA-06, NFA-07, NFA-08, NFA-09 prüfen und belegen
 
 ## Phase 12 – Nahtlos (App-übergreifende E2E)
-- [ ] INT-01 Login in P, Wechsel nach M ohne erneute Anmeldung
+- [x] INT-01 Login in P, Wechsel nach M ohne erneute Anmeldung — 14.11., e2e/huelle.test.js
 - [ ] INT-02 Angebot in P annehmen → Packliste in M erscheint live ohne Neuladen
 - [ ] INT-03 Packen + Verladen in M → P zeigt „Läuft“ + Zone frei live
 - [ ] INT-04 Codefeld in P mit Gerätecode → öffnet M beim Gerät; Codefeld in M mit Projektcode → öffnet P

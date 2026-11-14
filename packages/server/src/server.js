@@ -5,8 +5,9 @@ import { authModul, pruefeZugang } from "./auth.js";
 import { verwaltungModul } from "./verwaltung.js";
 import { sichereGrunddaten } from "./grunddaten.js";
 import { Hub } from "./hub.js";
+import { statischModul } from "./statisch.js";
 
-export const MODULE = [authModul, verwaltungModul];
+export const MODULE = [authModul, verwaltungModul, statischModul];
 
 /**
  * @param {{pool: import("pg").Pool, config?: object, migrieren?: boolean}} opt

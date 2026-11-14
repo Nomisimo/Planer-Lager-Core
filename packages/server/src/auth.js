@@ -2,6 +2,7 @@
 // zentrale Zugangsprüfung je Route (R-01–R-05).
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { darf, noetigeStufe, istAdminRechte, pruefeTotp, neuesTotpGeheimnis, totpUri } from "@lager/domain";
+import QRCode from "qrcode";
 import { HttpFehler } from "./router.js";
 import { protokolliere, clientIp } from "./sicherheit.js";
 import { pruefePasswortHash, DUMMY_HASH } from "./passwort-hash.js";
@@ -197,11 +198,21 @@ export function authModul(router) {
       zweiFaktorEinrichten: !!(ctx.config?.imNetz && ctx.nutzer.admin && !ctx.nutzer.totpAktiv) };
   });
 
+  // FA-52: persönliche Darstellung (Thema, Dichte, Hell/Dunkel)
+  router.put("/api/v1/ich/design", { bereich: "start", nurAngemeldet: true }, async (ctx) => {
+    const { thema, dichte, modus } = ctx.body || {};
+    const d = { thema: String(thema || "planer").slice(0, 20), dichte: String(dichte || "normal").slice(0, 20), modus: String(modus || "system").slice(0, 20) };
+    await ctx.pool.query("UPDATE benutzer SET design = $1 WHERE id = $2", [JSON.stringify(d), ctx.nutzer.id]);
+    return { ok: true, design: d };
+  });
+
   // FA-54: Einrichtung. Schritt 1 liefert Geheimnis + otpauth-URI, Schritt 2 bestätigt mit Code.
   router.post("/api/v1/ich/totp/einrichten", { bereich: "start", nurAngemeldet: true, zweiFaktorEinrichtung: true }, async (ctx) => {
     const geheimnis = neuesTotpGeheimnis();
     await ctx.pool.query("UPDATE benutzer SET totp_geheimnis = $1, totp_aktiv = false WHERE id = $2", [geheimnis, ctx.nutzer.id]);
-    return { ok: true, geheimnis, uri: totpUri(geheimnis, ctx.nutzer.benutzername) };
+    const uri = totpUri(geheimnis, ctx.nutzer.benutzername);
+    const qrSvg = await QRCode.toString(uri, { type: "svg", margin: 1, width: 180 });
+    return { ok: true, geheimnis, uri, qrSvg };
   });
   router.post("/api/v1/ich/totp/bestaetigen", { bereich: "start", nurAngemeldet: true, zweiFaktorEinrichtung: true }, async (ctx) => {
     const { rows } = await ctx.pool.query("SELECT totp_geheimnis FROM benutzer WHERE id = $1", [ctx.nutzer.id]);

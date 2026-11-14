@@ -6,7 +6,10 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { neueTestDb } from "@lager/db/testdb.js";
-import { erstelleApp } from "@lager/server/app.js";
+import { erstelleLagerServer } from "@lager/server/server.js";
+import { legeBenutzerAn } from "@lager/server/grunddaten.js";
+
+export const PW = "Sicheres-Testpasswort-1";
 
 const require = createRequire(import.meta.url);
 const HIER = path.dirname(fileURLToPath(import.meta.url));
@@ -26,26 +29,32 @@ export const APP_DIRS = {
 
 /** Startet einen Testserver mit frischem Schema. */
 export async function starteServer(extra = {}) {
-  const db = await neueTestDb();
-  const app = erstelleApp({ pool: db.pool, ...extra });
+  const db = await neueTestDb({ migrieren: false });
+  const app = await erstelleLagerServer({ pool: db.pool, config: extra.config || {} });
   await new Promise((r) => app.server.listen(0, "127.0.0.1", r));
   const url = `http://127.0.0.1:${app.server.address().port}`;
-  return { ...app, db, url, async ende() { app.server.closeAllConnections?.(); await new Promise((r) => app.server.close(r)); await db.ende(); } };
+  const benutzer = (benutzername, rolle = "Administrator", name) => legeBenutzerAn(db.pool, { benutzername, passwort: PW, rolle, name });
+  return { ...app, db, url, benutzer, async ende() { app.server.closeAllConnections?.(); await new Promise((r) => app.server.close(r)); await db.ende(); } };
 }
 
 /** Baut (falls nötig) und startet eine App. @param {"materialplaner"|"productionplaner"} name */
-export async function starteApp(name, serverUrl, { bauen = !process.env.E2E_OHNE_BUILD } = {}) {
+const gebaut = new Set();
+export async function starteApp(name, serverUrl, { bauen = !process.env.E2E_OHNE_BUILD && !gebaut.has(name), argv = [] } = {}) {
   const dir = APP_DIRS[name];
-  if (bauen) execSync("node scripts/build.cjs", { cwd: dir, env: { ...process.env, LAGER_CORE_DIR: CORE }, stdio: "pipe" });
+  if (bauen) { execSync("node scripts/build.cjs", { cwd: dir, env: { ...process.env, LAGER_CORE_DIR: CORE }, stdio: "pipe" }); gebaut.add(name); }
   const { _electron } = playwright();
   const userData = fs.mkdtempSync(path.join(os.tmpdir(), `lager-${name}-`));
   const app = await _electron.launch({
     executablePath: require(path.join(dir, "node_modules", "electron")),
-    args: ["--no-sandbox", dir],
+    args: ["--no-sandbox", dir, ...argv],
     env: { ...process.env, ELECTRON_DISABLE_SANDBOX: "1", LAGER_SERVER_URL: serverUrl, LAGER_TEST: "1", LAGER_USER_DATA: userData },
   });
   const win = await app.firstWindow();
-  return { app, win, async ende() { await app.close().catch(() => {}); fs.rmSync(userData, { recursive: true, force: true }); } };
+  const ausgabe = [];
+  app.process().stdout.on("data", (d) => ausgabe.push(String(d)));
+  /** Vom Hauptprozess geöffnete externe Links (Testmodus schreibt sie nach stdout). */
+  const externeLinks = () => ausgabe.join("").split("\n").filter((z) => z.startsWith("[shell-extern] ")).map((z) => z.slice(15).trim());
+  return { app, win, externeLinks, async ende() { await app.close().catch(() => {}); fs.rmSync(userData, { recursive: true, force: true }); } };
 }
 
 export const screenshot = (win, name) => { fs.mkdirSync(ARTEFAKTE, { recursive: true }); return win.screenshot({ path: path.join(ARTEFAKTE, name + ".png") }); };
@@ -59,4 +68,12 @@ export async function warteBis(fn, { timeout = 10000, intervall = 50 } = {}) {
     if (Date.now() > ende) throw new Error("Zeitüberschreitung beim Warten");
     await new Promise((r) => setTimeout(r, intervall));
   }
+}
+
+/** Meldet in der App-Oberfläche an. */
+export async function anmelden(win, benutzername, passwort = PW) {
+  await win.getByLabel("Benutzername").fill(benutzername);
+  await win.getByLabel("Passwort").fill(passwort);
+  await win.getByRole("button", { name: "Anmelden" }).click();
+  await win.getByTestId("benutzer").waitFor({ timeout: 10000 });
 }

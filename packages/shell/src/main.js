@@ -1,6 +1,7 @@
 // Gemeinsamer Electron-Hauptprozess für Materialplaner und Productionplaner.
 // Wird je App mit esbuild nach dist-app/main.cjs gebündelt (siehe scripts/app-build.cjs).
-import { app, BrowserWindow, ipcMain, shell } from "electron";
+import { app, BrowserWindow, ipcMain, shell, safeStorage } from "electron";
+import fs from "node:fs";
 import path from "node:path";
 import { linkAusArgv } from "./deeplink.js";
 
@@ -45,6 +46,21 @@ export function starteShell(cfg) {
     if (!/^(https?|materialplaner|productionplaner):\/\//i.test(String(url))) return false;
     if (test) { process.stdout.write(`[shell-extern] ${url}\n`); return true; }
     return shell.openExternal(url).then(() => true, () => false);
+  });
+
+  // Sitzungs-Token verschlüsselt im Benutzerordner (safeStorage = Schlüsselbund/DPAPI).
+  const tokenDatei = () => path.join(app.getPath("userData"), "sitzung.bin");
+  ipcMain.handle("token-lesen", () => {
+    try {
+      const roh = fs.readFileSync(tokenDatei());
+      return safeStorage.isEncryptionAvailable() && roh[0] !== 0x7b ? safeStorage.decryptString(roh) : JSON.parse(roh.toString()).t;
+    } catch { return null; }
+  });
+  ipcMain.handle("token-schreiben", (_e, token) => {
+    if (!token) { fs.rmSync(tokenDatei(), { force: true }); return true; }
+    const daten = safeStorage.isEncryptionAvailable() ? safeStorage.encryptString(token) : Buffer.from(JSON.stringify({ t: token }));
+    fs.writeFileSync(tokenDatei(), daten, { mode: 0o600 });
+    return true;
   });
 
   const erstelleFenster = () => {

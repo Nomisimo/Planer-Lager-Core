@@ -7,8 +7,11 @@ import { HttpFehler } from "./router.js";
 import { protokolliere, clientIp } from "./sicherheit.js";
 import { pruefePasswortHash, DUMMY_HASH } from "./passwort-hash.js";
 import { verteileBeimAnmelden } from "./zonen.js";
+import { pruefeStation } from "./station.js";
 
 export const SITZUNG_STUNDEN = 12;              // R-10
+export const GERAET_TAGE = 400;                 // Arbeitsplatz/Anzeige: bleibt wochenlang angemeldet (R-59), gleitend
+export const sitzungSekunden = (art) => (art === "geraet" ? GERAET_TAGE * 86400 : SITZUNG_STUNDEN * 3600);
 export const SPERRE_MINUTEN = 15;               // R-08
 export const MAX_FEHL_BENUTZER = 5, MAX_FEHL_IP = 20;
 export const HANDOFF_SEKUNDEN = 60;
@@ -59,7 +62,7 @@ export async function ladeSitzung(pool, token) {
   const z = rows[0];
   if (!z) return null;
   const alter = Date.now() - new Date(z.letzte_aktivitaet).getTime();
-  if (!z.aktiv || alter > SITZUNG_STUNDEN * 3600_000) {
+  if (!z.aktiv || alter > sitzungSekunden(z.art) * 1000) {
     await pool.query("DELETE FROM sitzung WHERE token_hash = $1", [z.token_hash]);
     return { abgelaufen: true };
   }
@@ -89,7 +92,7 @@ export async function pruefeZugang(ctx) {
   const n = s.nutzer;
   ctx.nutzer = n;
   // R-10 gleitend: Cookie-Laufzeit bei Aktivität erneuern (höchstens 1× pro Minute, wie die Sitzung).
-  if (t.quelle === "cookie" && s.erneuert) setzeCookie(ctx, t.token, SITZUNG_STUNDEN * 3600);
+  if (t.quelle === "cookie" && s.erneuert) setzeCookie(ctx, t.token, sitzungSekunden(n.sitzungArt));
   ctx.sitzung = { tokenHash: s.zeile.token_hash, quelle: t.quelle };
   if (n.sitzungArt === "zwischen" && !route.zwischen) throw new HttpFehler(401, TEXT.anmelden, { ok: false, level: "error", text: TEXT.anmelden, zweiterFaktor: true });
   if (ctx.config?.imNetz && n.admin && !n.totpAktiv && !route.zweiFaktorEinrichtung && n.sitzungArt !== "zwischen")
@@ -100,7 +103,7 @@ export async function pruefeZugang(ctx) {
     const h = ctx.req.headers["x-csrf-token"];
     if (!h || !s.zeile.csrf || !gleich(h, s.zeile.csrf)) throw new HttpFehler(403, TEXT.csrf, { ok: false, level: "error", text: TEXT.csrf });
   }
-  if (ctx.pruefeArbeitsplatz) await ctx.pruefeArbeitsplatz(ctx);
+  if (n.sitzungArt === "geraet") await pruefeStation(ctx); // R-11a–d
   if (route.nurAngemeldet) return;
   const stufe = route.stufe || noetigeStufe(methode, ctx.url.pathname);
   if (!darf(n.rechte, route.bereich, stufe)) {
@@ -110,15 +113,15 @@ export async function pruefeZugang(ctx) {
   }
 }
 
-async function erstelleSitzung(pool, benutzerId, art, ip, geraet) {
+export async function erstelleSitzung(pool, benutzerId, art, ip, geraet) {
   const token = neuerToken();
-  const csrf = art === "web" ? neuerToken() : null;
+  const csrf = art === "web" || art === "geraet" ? neuerToken() : null;
   await pool.query("INSERT INTO sitzung (token_hash, benutzer_id, art, csrf, ip, geraet) VALUES ($1, $2, $3, $4, $5, $6)",
     [sha(token), benutzerId, art, csrf, ip, String(geraet || "").slice(0, 200)]);
   return { token, csrf };
 }
 
-function setzeCookie(ctx, token, maxAgeS) {
+export function setzeCookie(ctx, token, maxAgeS) {
   const secure = ctx.config?.secureCookies ? "; Secure" : "";
   ctx.res.setHeader("Set-Cookie", `${COOKIE}=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAgeS}${secure}`); // R-10
 }

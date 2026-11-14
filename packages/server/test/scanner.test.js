@@ -58,8 +58,9 @@ test("ARCHITEKTUR §5 Netzwerk-Scanner: Verwaltung, HTTP-Push mit Token, TCP per
     assert.equal(x.letzter_code, "LI-0003");
     assert.ok(x.letzter_kontakt);
     // Arbeitsplatz-Zuordnung: Abo per arbeitsplatz
-    await admin("PUT", `/api/v1/verwaltung/scanner/${a.scanner.id}`, { arbeitsplatz_id: 5 });
-    const ws3 = await verbinde(s.url, lager.token, { arbeitsplatz: 5 });
+    const ap = (await admin("POST", "/api/v1/verwaltung/arbeitsplaetze", { name: "Rampe", art: "rueckgabe" })).json.id;
+    await admin("PUT", `/api/v1/verwaltung/scanner/${a.scanner.id}`, { arbeitsplatz_id: ap });
+    const ws3 = await verbinde(s.url, lager.token, { arbeitsplatz: ap });
     await s.api("POST", "/api/v1/scanner/eingang", { token: a.token, code: "LI-0004" });
     assert.ok(await warte(() => ws3.nachrichten.some((n) => n.code === "LI-0004")));
     // neuer Token macht den alten ungültig; unbekannter TCP-Absender

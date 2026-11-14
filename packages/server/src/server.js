@@ -14,8 +14,9 @@ import { angeboteModul } from "./angebote.js";
 import { scanModul } from "./scannen.js";
 import { scannerModul, starteTcpGateway } from "./scanner.js";
 import { zonenModul } from "./zonen.js";
+import { stationModul } from "./station.js";
 
-export const MODULE = [authModul, verwaltungModul, stammdatenModul, etikettenModul, kundenModul, projekteModul, angeboteModul, scanModul, scannerModul, zonenModul, statischModul];
+export const MODULE = [authModul, verwaltungModul, stammdatenModul, etikettenModul, kundenModul, projekteModul, angeboteModul, scanModul, scannerModul, zonenModul, stationModul, statischModul];
 
 /**
  * @param {{pool: import("pg").Pool, config?: object, migrieren?: boolean}} opt

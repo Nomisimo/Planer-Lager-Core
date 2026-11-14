@@ -8,6 +8,7 @@ import { fehlerText } from "./texte.js";
 import { Icon, Knopf, Feld, Eingabe, Meldung, Modal, Section, Auswahl, Seite } from "./bausteine.jsx";
 import STIL from "./stil.css";
 import { hidErkenner, pruefeHid } from "@lager/domain/scannen.js";
+import { planungsKontext, HERZSCHLAG_S, dauerText } from "@lager/domain/planung.js";
 
 /** Handscanner-Einstellungen dieses Geräts (ARCHITEKTUR §5), localStorage. */
 export const HID_KEY = "lager-hid";
@@ -223,6 +224,8 @@ export function AppHuelle({ app, seiten, onCode }) {
 
   // UI-3 / ARCHITEKTUR §5: Handscanner (Tastatur) global erkennen, auch ohne Fokus; an die Scan-Seite oder das Codefeld.
   useHandscanner(scanZiel, (code) => { if (kontextRef.current) onCode?.(code, kontextRef.current); });
+  // R-63 Planungszeit: Timer-Zustand + Herzschlag in beiden Apps (Sprung in den Materialplaner stoppt auf Nicht-Planungsseiten)
+  const zeit = usePlanungszeit(api, live, nutzer, pfad);
 
   const abmelden = async () => { try { await api.post("/api/v1/abmelden"); } catch { /* egal */ } setzeToken(null); };
   const designAendern = (d) => { setDesign(d); try { localStorage.setItem(DESIGN_KEY, JSON.stringify(d)); } catch { /* privat */ } api?.put("/api/v1/ich/design", d).catch(() => {}); };
@@ -242,7 +245,7 @@ export function AppHuelle({ app, seiten, onCode }) {
   // R-05: Seite eines Bereichs ohne Recht → „Zugriff verweigert“ mit Rolle (statt leerer Seite).
   const pfadEintrag = aktiverEintrag(pfad, MENUE.flatMap((g) => g.eintraege));
   const verweigert = pfadEintrag && !alle.some((e) => e.pfad === pfadEintrag.pfad);
-  const kontext = { api, live, nutzer, info, pfad, query, navigiere, oeffneAndereApp, app, firma, setBanner, scanZiel };
+  const kontext = { api, live, nutzer, info, pfad, query, navigiere, oeffneAndereApp, app, firma, setBanner, scanZiel, zeit };
   kontextRef.current = kontext;
 
   return (
@@ -257,6 +260,7 @@ export function AppHuelle({ app, seiten, onCode }) {
             <button className="lp-btn lp-btn-klein" data-testid="app-schalter" title={`Zum ${andere.titel} wechseln (gleiche Stelle, ohne neue Anmeldung)`} onClick={() => oeffneAndereApp()}>
               <Icon name="ArrowLeftRight" size={14} />{andere.titel}
             </button>
+            {zeit.timer && <TimerAnzeige zeit={zeit} navigiere={(p) => (app === "p" ? navigiere(p) : oeffneAndereApp(p))} />}
             <OnlineStatus live={live} />
             <button className="lp-btn lp-btn-geist lp-btn-klein" title="Darstellung" aria-label="Darstellung" onClick={() => setDarstellung(true)}><Icon name="Palette" size={14} /></button>
             <span className="lp-meta" data-testid="benutzer">{nutzer.name || nutzer.benutzername} · {nutzer.rolle}</span>
@@ -279,6 +283,7 @@ export function AppHuelle({ app, seiten, onCode }) {
         </nav>
         <main className="lp-inhalt">
           {banner && <div style={{ marginBottom: 12 }}><Meldung level="warning" text={banner} onSchliessen={() => setBanner(null)} /></div>}
+          {zeit.meldung && <div style={{ marginBottom: 12 }} data-testid="zeit-meldung"><Meldung level="info" text={zeit.meldung} onSchliessen={() => zeit.setMeldung(null)} /></div>}
           {verweigert ? <ZugriffVerweigert rolle={nutzer.rolle} />
             : treffer ? <treffer.Komponente params={treffer.params} query={query} key={pfad} />
             : <Seite titel="Seite nicht gefunden"><Meldung level="error" text="Diese Seite gibt es in dieser App nicht. Wähle links einen Menüpunkt." /></Seite>}
@@ -305,6 +310,63 @@ export function ZugriffVerweigert({ rolle }) {
     <Seite titel="Zugriff verweigert">
       <Meldung level="error" text={`Dafür fehlt dir die Berechtigung. Deine Rolle „${rolle}“ darf diese Seite nicht öffnen. Wenn du sie brauchst, frag den Admin.`} />
     </Seite>
+  );
+}
+
+/**
+ * R-62–R-64 Planungszeit-Timer: lädt den eigenen Timer, schickt alle 30 s und bei jedem Seitenwechsel einen Herzschlag
+ * mit dem Seitenkontext (Projekt / neutral / keine Planung) und ob seitdem eine Eingabe war. Der Server entscheidet über den Stopp.
+ */
+function usePlanungszeit(api, live, nutzer, pfad) {
+  const darf = !!api && !!nutzer && (nutzer.admin || ["r", "w"].includes(nutzer.rechte?.zeiten));
+  const [timer, setTimer] = useState(null);
+  const [meldung, setMeldung] = useState(null);
+  const seite = useRef({ pfad: null, projekt: null }); // usePlanungsProjekt: Projekt einer Seite ohne Projekt im Pfad
+  const aktiv = useRef(true);
+  const pfadRef = useRef(pfad); pfadRef.current = pfad;
+  const timerRef = useRef(null); timerRef.current = timer;
+  const laden = useCallback(() => { if (darf) api.get("/api/v1/zeit/timer").then((r) => { setTimer(r.timer); if (r.text) setMeldung(r.text); }, () => {}); }, [api, darf]);
+  useEffect(() => { laden(); }, [laden]);
+  useEffect(() => { if (!live || !darf) return; return live.on("zeit", () => laden()); }, [live, darf, laden]);
+  const ping = useCallback(async () => {
+    if (!darf || !timerRef.current) return;
+    const p = pfadRef.current;
+    const k = planungsKontext(p, seite.current.pfad === p ? seite.current.projekt : null);
+    const a = aktiv.current; aktiv.current = false;
+    try { const r = await api.post("/api/v1/zeit/ping", { ...k, aktiv: a }); setTimer(r.timer); if (r.gestoppt) setMeldung(r.text); } catch { /* nächster Versuch */ }
+  }, [api, darf]);
+  // Seitenwechsel: kurz warten, damit eine Seite ihr Projekt melden kann (z. B. Angebot), dann Herzschlag
+  useEffect(() => { aktiv.current = true; const t = setTimeout(ping, 800); return () => clearTimeout(t); }, [pfad, ping]);
+  const laeuft = !!timer;
+  useEffect(() => {
+    if (!laeuft) return;
+    const t = setInterval(ping, HERZSCHLAG_S * 1000);
+    const r = () => { aktiv.current = true; };
+    for (const e of ["keydown", "pointerdown", "wheel"]) window.addEventListener(e, r, true);
+    return () => { clearInterval(t); for (const e of ["keydown", "pointerdown", "wheel"]) window.removeEventListener(e, r, true); };
+  }, [laeuft, ping]);
+  const starte = useCallback(async (projekt) => { const r = await api.post("/api/v1/zeit/start", { projekt }); setTimer(r.timer); setMeldung(null); aktiv.current = true; return r; }, [api]);
+  const stoppe = useCallback(async () => { const r = await api.post("/api/v1/zeit/stopp", {}); setTimer(null); setMeldung(r.text); return r; }, [api]);
+  return { darf, timer, starte, stoppe, meldung, setMeldung, seite, ping };
+}
+
+/** Seite meldet ihr Projekt für die Planungszeit (R-63), wenn der Pfad es nicht enthält. */
+export function usePlanungsProjekt(projektId) {
+  const { zeit, pfad } = useLager() || {};
+  useEffect(() => { if (zeit && projektId) { zeit.seite.current = { pfad, projekt: Number(projektId) }; zeit.ping(); } }, [zeit?.ping, pfad, projektId]);
+}
+
+function TimerAnzeige({ zeit, navigiere }) {
+  const [jetzt, setJetzt] = useState(Date.now());
+  useEffect(() => { const t = setInterval(() => setJetzt(Date.now()), 15_000); return () => clearInterval(t); }, []);
+  const min = Math.max(0, Math.floor((jetzt - new Date(zeit.timer.laeuft_seit).getTime()) / 60000));
+  return (
+    <span className="lp-timer" data-testid="timer">
+      <button className="lp-btn lp-btn-klein" title={`Planungszeit für ${zeit.timer.projekt.nummer} ${zeit.timer.projekt.name}`} onClick={() => navigiere(`/projekte/${zeit.timer.projekt.id}`)}>
+        <Icon name="Timer" size={14} />{zeit.timer.projekt.nummer} · {dauerText(min)}
+      </button>
+      <button className="lp-btn lp-btn-klein" aria-label="Planungszeit stoppen" title="Planungszeit stoppen" onClick={() => zeit.stoppe().catch(() => {})}><Icon name="Pause" size={14} /></button>
+    </span>
   );
 }
 

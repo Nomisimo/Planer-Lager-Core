@@ -169,3 +169,7 @@ a{color:var(--lp-link)}
 .lp-anzeige-qr svg { width: 100%; height: 100%; display: block; }
 .lp-anzeige-nr { font-size: 1.6rem; }
 .lp-anzeige-name { font-size: 1.3rem; }
+
+/* Planungszeit-Timer in der Kopfleiste (R-63) */
+.lp-timer { display: inline-flex; gap: 4px; align-items: center; }
+.lp-timer .lp-btn:first-child { border-color: var(--lp-accent); }

@@ -19,3 +19,4 @@ export * from "./angebot.js";
 export * from "./scannen.js";
 export * from "./zonen.js";
 export * from "./station.js";
+export * from "./planung.js";

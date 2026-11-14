@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { starteServer, starteApp, screenshot, anmelden } from "./helfer.js";
 
-test("FA-01 FA-02 FA-03 FA-04 FA-16 Materialplaner: Kategorie + Artikel anlegen, Warnzeichen Mindestbestand, Gerät vermisst/gefunden mit Verlauf", async () => {
+test("FA-01 FA-02 FA-03 FA-04 FA-05 FA-16 Materialplaner: Kategorie + Artikel anlegen, Warnzeichen Mindestbestand, Gerät vermisst/gefunden mit Verlauf", async () => {
   const s = await starteServer();
   await s.benutzer("leitung", "Lagerleitung", "Lars Leitung");
   try {
@@ -50,6 +50,26 @@ test("FA-01 FA-02 FA-03 FA-04 FA-16 Materialplaner: Kategorie + Artikel anlegen,
       await w.getByTestId("codefeld").fill("la1");
       await w.getByTestId("codefeld").press("Enter");
       await w.getByRole("heading", { name: "LA-0001" }).waitFor();
+      // FA-05 Reservierungen (vorgemerkt/fest) im Zeitraum auf der Material-Detailseite
+      const q = (sql, v) => s.db.pool.query(sql, v);
+      const { rows: [art] } = await q("SELECT id FROM artikel WHERE name = 'K12 Topteil'");
+      const { rows: [kd] } = await q("INSERT INTO kunde (name) VALUES ('Stadt') RETURNING id");
+      for (const [nr, beginn, status, menge] of [["P-2027-001", "2027-08-10", "angenommen", 2], ["P-2027-002", "2027-10-01", "versendet", 3]]) {
+        const { rows: [p] } = await q("INSERT INTO projekt (nummer, art, name, kunde_id, status, beginn, ende) VALUES ($1, 'projekt', $2, $4, 'bestaetigt', $3, $3::date + 2) RETURNING id", [nr, `Fest ${nr}`, beginn, kd.id]);
+        const { rows: [a] } = await q("INSERT INTO angebot (nummer, projekt_id, status) VALUES ($1, $2, $3) RETURNING id", [nr.replace("P", "A"), p.id, status]);
+        await q("INSERT INTO angebot_position (angebot_id, pos, art, artikel_id, menge) VALUES ($1, 1, 'miete', $2, $3)", [a.id, art.id, menge]);
+      }
+      await w.getByRole("navigation", { name: "Hauptmenü" }).getByText("Material", { exact: true }).click();
+      await w.getByRole("cell", { name: "K12 Topteil" }).click();
+      const res = w.getByRole("heading", { name: "Reservierungen" }).locator("xpath=../..");
+      await res.getByRole("cell", { name: "P-2027-001 Fest P-2027-001" }).waitFor();
+      await res.getByRole("cell", { name: "P-2027-002 Fest P-2027-002" }).waitFor();
+      assert.deepEqual(await res.getByRole("cell", { name: /^(fest|vorgemerkt)$/ }).allTextContents(), ["fest", "vorgemerkt"]);
+      await res.getByLabel("Von").fill("2027-09-01");
+      await res.getByRole("cell", { name: "P-2027-001 Fest P-2027-001" }).waitFor({ state: "detached" });
+      await res.getByLabel("Bis").fill("2027-09-30");
+      await res.getByText("Keine Reservierungen.").waitFor();
+      await screenshot(w, "FA-05-reservierungen");
     } finally { await m.ende(); }
   } finally { await s.ende(); }
 });

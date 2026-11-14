@@ -475,8 +475,13 @@ export function angeboteModul(router) {
   // FA-05/FA-42 Reservierungsübersicht je Artikel (vorgemerkt/fest), nur aktuelle und künftige.
   router.get("/api/v1/artikel/:id/reservierungen", { bereich: "material", stufe: "r" }, async (ctx) => {
     const id = idParam(ctx.params.id, "Dieser Artikel");
+    // Optional Zeitraum ?von=JJJJ-MM-TT&bis=JJJJ-MM-TT: überlappende Reservierungen (ohne Termin zählen immer)
+    const iso = (v, name) => { if (v == null || v === "") return null; if (!/^\d{4}-\d{2}-\d{2}$/.test(String(v)) || Number.isNaN(Date.parse(v))) throw fehler(400, `„${name}“ ist kein gültiges Datum. Nutze TT.MM.JJJJ.`); return String(v); };
+    const von = iso(ctx.query.von, "Von"), bis = iso(ctx.query.bis, "Bis");
+    if (von && bis && bis < von) throw fehler(400, "„Bis“ liegt vor „Von“. Tausche die Daten.");
     const { rows } = await ctx.pool.query(`SELECT r.*, r.menge::float8 AS menge FROM reservierung r
-      WHERE r.artikel_id = $1 AND (r.bis IS NULL OR r.bis >= (now() AT TIME ZONE 'Europe/Berlin')::date) ORDER BY r.von NULLS FIRST, r.projekt_nummer`, [id]);
+      WHERE r.artikel_id = $1 AND (r.bis IS NULL OR r.bis >= COALESCE($2::date, (now() AT TIME ZONE 'Europe/Berlin')::date))
+        AND ($3::date IS NULL OR r.von IS NULL OR r.von <= $3::date) ORDER BY r.von NULLS FIRST, r.projekt_nummer`, [id, von, bis]);
     return rows.map((r) => ({ ...r, von_text: r.von ? datumAnzeige(r.von) : "ohne Termin", bis_text: r.bis ? datumAnzeige(r.bis) : "ohne Termin" }));
   });
 

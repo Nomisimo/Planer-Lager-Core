@@ -61,7 +61,7 @@ test("T-01 T-02 T-03 R-73 FA-13 Kabel-Assistent bestellt 3 Etiketten, Lieferung 
   } finally { await s.ende(); }
 });
 
-test("FA-10 FA-11 FA-12 R-72 Etikettendruck mit Seitengröße der Vorlage, Designer verschieben/drehen/speichern, Kabelfarben", async () => {
+test("FA-10 FA-11 FA-12 FA-14 R-72 Etikettendruck mit Seitengröße der Vorlage (FA-14 ohne echtes Gerät), Designer verschieben/drehen/speichern, Kabelfarben", async () => {
   const s = await starteServer();
   await s.benutzer("leitung", "Lagerleitung");
   await s.db.pool.query("INSERT INTO kategorie (name, praefix) VALUES ('Scheinwerfer', 'SW'), ('DMX-Kabel', 'DK')");

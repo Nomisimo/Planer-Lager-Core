@@ -76,7 +76,7 @@ test("FA-41 R-28 R-28b Positionen speichern: Summen, Folgetag vom Angebot, Menge
   await admin("PUT", "/api/v1/verwaltung/einstellungen", { kleinunternehmer: false });
 });
 
-test("T-04 FA-43 4.2 Versenden: neue Fassung, PDF im Projektordner Angebote/, Projekt „Angebot gesendet“, Material vorgemerkt; erneut versenden archiviert", async () => {
+test("T-04 FA-43 FA-05 4.2 Versenden: neue Fassung, PDF im Projektordner Angebote/, Projekt „Angebot gesendet“, Material vorgemerkt; erneut versenden archiviert", async () => {
   const p = await projekt({ beginn: "2027-08-10", ende: "2027-08-12" });
   const a = await angebot(p);
   assert.equal((await buero("POST", `/api/v1/angebote/${a.id}/status`, { status: "versendet" })).status, 400, "ohne Positionen");
@@ -94,6 +94,13 @@ test("T-04 FA-43 4.2 Versenden: neue Fassung, PDF im Projektordner Angebote/, Pr
   // vorgemerkt (R-24 b)
   const res = (await admin("GET", `/api/v1/artikel/${akku.id}/reservierungen`)).json;
   assert.deepEqual(res.map((x) => [x.projekt_nummer, x.menge, x.fest, x.von_text]), [[p.nummer, 2, false, "10.08.2027"]]);
+  // FA-05 Zeitraum: überlappend ja, davor/danach nein, ungültig → 400
+  const zr = async (q) => (await admin("GET", `/api/v1/artikel/${akku.id}/reservierungen?${q}`));
+  assert.equal((await zr("von=2027-08-01&bis=2027-08-10")).json.length, 1);
+  assert.equal((await zr("von=2027-08-01&bis=2027-08-09")).json.length, 0, "endet vor Beginn");
+  assert.equal((await zr("von=2028-01-01")).json.length, 0, "beginnt nach Ende");
+  assert.equal((await zr("von=kaputt")).status, 400);
+  assert.equal((await zr("von=2027-09-01&bis=2027-08-01")).status, 400);
   const liste = (await admin("GET", "/api/v1/artikel?q=Akku")).json.zeilen;
   assert.equal(liste[0].reserviert, 2, "Materialliste zeigt Reservierung");
   // erneut versenden → Fassung 2, Fassung 1 archiviert mit PDF

@@ -21,6 +21,14 @@ test("T-01 T-02 T-03 R-73 FA-13 Kabel-Assistent bestellt 3 Etiketten, Lieferung 
       await w.getByLabel("5 m ankreuzen", { exact: true }).check();
       assert.equal(await w.getByLabel("Preis 5 m", { exact: true }).inputValue(), "2,50", "Meterpreis füllt Zeilenpreis vor");
       await w.getByLabel("Stückzahl 5 m", { exact: true }).fill("3");
+      // eigene Länge (R-73 „und eigene“): ungültig → Meldung, gültig → neue Zeile mit Preis aus Meterpreis
+      await w.getByLabel("Eigene Länge (m)").fill("0");
+      await w.getByRole("button", { name: "Länge hinzufügen" }).click();
+      await w.getByText("Gib eine Länge größer als 0 ein").waitFor();
+      await w.getByLabel("Eigene Länge (m)").fill("12,5");
+      await w.getByRole("button", { name: "Länge hinzufügen" }).click();
+      assert.equal(await w.getByLabel("Preis 12,5 m", { exact: true }).inputValue(), "6,25");
+      await w.getByLabel("12,5 m ankreuzen", { exact: true }).uncheck();
       await w.getByLabel("Kennzeichnung").selectOption("bestellen");
       await screenshot(w, "R-73-kabel-assistent");
       await w.getByRole("button", { name: "1 Kabel-Artikel anlegen" }).click();
@@ -108,6 +116,13 @@ test("FA-10 FA-11 FA-12 R-72 Etikettendruck mit Seitengröße der Vorlage, Desig
       await w.mouse.move(box.x + 36, box.y + 20, { steps: 4 });
       await w.mouse.up();
       assert.equal(await w.getByLabel("X (mm)").inputValue(), "4", "2 mm verschoben (8 px/mm), Raster 0,5");
+      // Vergrößern über den Griff: +2 mm Breite und Höhe
+      const griff = await w.locator(".lp-designer-griff").boundingBox();
+      await w.mouse.move(griff.x + 6, griff.y + 6);
+      await w.mouse.down();
+      await w.mouse.move(griff.x + 22, griff.y + 22, { steps: 4 });
+      await w.mouse.up();
+      assert.equal(await w.getByLabel("Breite (mm)", { exact: true }).last().inputValue(), "27");
       await w.getByRole("button", { name: "Code (Text) auswählen" }).click();
       await w.getByRole("button", { name: "Drehen" }).click();
       assert.equal(await w.getByLabel("Drehung (Grad)").inputValue(), "90");
@@ -116,7 +131,7 @@ test("FA-10 FA-11 FA-12 R-72 Etikettendruck mit Seitengröße der Vorlage, Desig
       await w.getByRole("button", { name: "Speichern" }).click();
       await w.getByText("Vorlage gespeichert.").waitFor();
       const { rows: [v] } = await s.db.pool.query("SELECT elemente FROM etikett_vorlage WHERE name = 'Kopie von Standard 62×29'");
-      assert.deepEqual([v.elemente[0].x, v.elemente[1].dreh], [4, 90]);
+      assert.deepEqual([v.elemente[0].x, v.elemente[0].b, v.elemente[0].h, v.elemente[1].dreh], [4, 27, 27, 90]);
     } finally { await m.ende(); }
   } finally { await s.ende(); }
 });

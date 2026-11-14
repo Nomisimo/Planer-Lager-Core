@@ -16,6 +16,7 @@ Gebaut: eigener Code-128-Encoder, QR (qrcode), Etiketten-Vorlagen 3.13 mit Stand
 Geprüft: Unit+API alle grün (neu: server/etiketten.test.js 8 Tests, domain/etiketten.test.js); E2E T-01, T-02, T-03, FA-10/11/12, R-72 grün (e2e/etiketten.test.js); Druck im Testmodus als PDF geprüft (2 Seiten à 62×29 mm). Screenshots erzeugt: R-73-kabel-assistent, T-02, T-03, FA-10, FA-11.
 Nicht geprüft: echter Etikettendrucker (FA-14 braucht Hardware, offen), Druckdialog unter macOS/Windows.
 Bekannte Fehler/Grenzen: Logo-Element bleibt leer, bis in der Verwaltung ein Firmenlogo hinterlegt werden kann (Phase 11). Designer-Vorschau nutzt ein Platzhalter-QR (Server-Vorschau mit echtem QR vorhanden).
+spec-pruefer Phase 3: 0 Fehler, 10 Testlücken; geschlossen: Größen-Griff (E2E), eigene Länge (E2E), R-73 Zeilenpreis-Rundung, R-72 „keine“/Verbrauch, UI-5-Text R-67. Offen gelassen: PDF-Inhalt (nur Format geprüft), Kabelfarben-Hinweis nur per API getestet, R-70 muss im Scan-Kern (Phase 5) mitgenutzt werden.
 Annahmen: D-42–D-49
 
 ## Phase 2 – Material, Geräte, Kunden – 14.11.2026

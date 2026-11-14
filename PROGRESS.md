@@ -60,7 +60,7 @@ Hinter `[x]` kurz notieren: Datum, Repo(s), Testdatei(en). Max. 1 Zeile.
 - [ ] E2E: T-04, T-05
 
 ## Phase 6 – Scannen, Packen, Verladen, Scanner
-- [ ] C: Scan-Algorithmus Spec 5.5 komplett (Schritte 1–9, eine Transaktion), R-23
+- [ ] C: Scan-Algorithmus Spec 5.5 komplett (Schritte 1–9, eine Transaktion), R-23 (Schritt 2: R-70 `offeneBestellung` aus server/src/etiketten.js nutzen)
 - [ ] C: Scan-API 7.2 (`/api/scan`, `/api/pruefung`, `/api/vermisst`), FA-19 Status-API
 - [ ] C+M: HID-Scanner-Erkennung (ARCHITEKTUR §5) + UI-3
 - [ ] C: Netzwerk-Scanner-Gateway (TCP + HTTP), Verwaltung „Scanner“, Zuordnung zu Arbeitsplatz

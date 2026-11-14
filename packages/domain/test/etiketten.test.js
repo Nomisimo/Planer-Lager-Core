@@ -71,3 +71,11 @@ test("R-67 Bestellung prüfen; EB-JJJJ-NNN; Status offen/teilweise/geliefert; R-
   assert.equal(csvCode("KS-0001", true), "KS0001");
   assert.equal(lieferSchluessel("ks0001"), lieferSchluessel("KS-0001"));
 });
+
+test("R-73 Zeilenpreis = Länge × Meterpreis kaufmännisch gerundet; 12 Standardlängen", async () => {
+  const { zeilenpreis, STANDARD_LAENGEN } = await import("../src/kabel.js");
+  assert.equal(zeilenpreis(7.5, 33), 248, "7,5 × 0,33 € = 2,475 € → 2,48 €");
+  assert.equal(zeilenpreis(0.5, 25), 13);
+  assert.equal(zeilenpreis(5, null), null);
+  assert.deepEqual(STANDARD_LAENGEN, [0.5, 1, 2, 3, 5, 7.5, 10, 15, 20, 25, 30, 50]);
+});

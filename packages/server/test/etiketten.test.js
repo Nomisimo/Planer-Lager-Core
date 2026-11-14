@@ -90,6 +90,11 @@ test("R-67 FA-13 Bestellung über 5 Kabel: 5 reservierte, aufeinanderfolgende Co
   assert.equal(n.status, 200);
   assert.deepEqual(n.json.bestellung.codes, ["XL-0006", "XL-0007"]);
   assert.equal(n.json.geraete, null);
+  // R-72 „keine“ und Verbrauch mit Kennzeichnung: weder Geräte noch Bestellung
+  const keine = (await admin("POST", "/api/v1/artikel", { name: "XLR 30 m", kategorie_id: k.id, anzahl: 2, kennzeichnung: "keine" })).json;
+  assert.deepEqual([keine.geraete, keine.bestellung], [null, null]);
+  const vk = (await admin("POST", "/api/v1/artikel", { name: "Kabelbinder", kategorie_id: k.id, verbrauch: true, anzahl: 5, kennzeichnung: "bestellen" })).json;
+  assert.deepEqual([vk.geraete, vk.bestellung], [null, null]);
   const zweite = (await admin("GET", "/api/v1/etiketten/bestellungen")).json.zeilen.map((b) => b.nummer);
   assert.equal(new Set(zweite).size, zweite.length, "Bestellnummern eindeutig");
 });

@@ -116,7 +116,7 @@ export function pruefeBestellung(positionen, artikel) {
     const a = artikel.get(p.artikel_id);
     if (!a) return "Ein Artikel der Bestellung existiert nicht mehr. Lade die Seite neu.";
     if (!Number.isInteger(p.menge) || p.menge < 1 || p.menge > 500) return `Menge für „${a.name}“ muss zwischen 1 und 500 liegen.`;
-    if (a.verbrauch || a.ist_leistung) return `„${a.name}“ ist Verbrauch oder Leistung und bekommt keine Etiketten.`;
+    if (a.verbrauch || a.ist_leistung) return `„${a.name}“ ist Verbrauch oder Leistung und bekommt keine Etiketten. Wähle einen Artikel mit Einzelgeräten.`;
     if (!a.praefix) return `Die Kategorie von „${a.name}“ hat kein Kürzel. Lege zuerst ein Präfix fest.`;
   }
   return null;

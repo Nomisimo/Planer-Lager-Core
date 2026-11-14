@@ -16,8 +16,9 @@ import { scannerModul, starteTcpGateway } from "./scanner.js";
 import { zonenModul } from "./zonen.js";
 import { stationModul } from "./station.js";
 import { zeitModul } from "./zeit.js";
+import { uebersichtModul } from "./uebersicht.js";
 
-export const MODULE = [authModul, verwaltungModul, stammdatenModul, etikettenModul, kundenModul, projekteModul, angeboteModul, scanModul, scannerModul, zonenModul, stationModul, zeitModul, statischModul];
+export const MODULE = [authModul, verwaltungModul, stammdatenModul, etikettenModul, kundenModul, projekteModul, angeboteModul, scanModul, scannerModul, zonenModul, stationModul, zeitModul, uebersichtModul, statischModul];
 
 /**
  * @param {{pool: import("pg").Pool, config?: object, migrieren?: boolean}} opt

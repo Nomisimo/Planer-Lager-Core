@@ -99,7 +99,7 @@ Hinter `[x]` kurz notieren: Datum, Repo(s), Testdatei(en). Max. 1 Zeile.
 ## Phase 11 – Cloud-Betrieb, Offline, Leistung
 - [x] C: `deploy/` docker-compose (caddy, server, postgres), Healthcheck, FA-56, NFA-02 (HTTPS/HSTS/Secure-Cookies)
 - [x] C: Verschlüsselte Sicherungen + Wiederherstellungstest (NFA-04)
-- [ ] C+M+P: FA-22 Offline-Puffer (hochgestuft) inkl. Anzeige wartender Scans
+- [x] C+M+P: FA-22 Offline-Puffer (hochgestuft) inkl. Anzeige wartender Scans
 - [ ] C: NFA-05 Leistung mit Seed 5.000 Geräte / 500 Projekte, N+1 vermeiden
 - [ ] C: NFA-06, NFA-07, NFA-08, NFA-09 prüfen und belegen
 

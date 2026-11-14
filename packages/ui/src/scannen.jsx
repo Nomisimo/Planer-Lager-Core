@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { Knopf, Auswahl, Icon } from "./bausteine.jsx";
 import { useLager, useLive, useScanZiel } from "./huelle.jsx";
 import { fehlerText } from "./texte.js";
+import { istOffline, merkeScan, wartend, beiAenderung, sendeWartende } from "./offline.js";
 
 const FARBE = { ok: "var(--lp-ok, #2e9d47)", warn: "var(--lp-warn, #b26a00)", error: "var(--lp-err, #c0392b)" };
 const LEVEL_TEXT = { ok: "Gebucht", warn: "Gebucht mit Hinweis", error: "Nicht gebucht" };
@@ -36,6 +37,17 @@ export function ScanPanel({ modus, projektId = null, angebotId = null, tasche = 
   const feld = useRef(null);
   const warteschlange = useRef(Promise.resolve());
   const zustand = useRef({});
+  const [warten, setWarten] = useState(wartend); // FA-22
+  useEffect(() => beiAenderung(setWarten), []);
+  const nachgebucht = (r) => { r.zeit = new Date(); setVerlauf((v) => [r, ...v].slice(0, 50)); zustand.current.onErgebnis?.(r); };
+  const sendeNach = () => sendeWartende(api, nachgebucht).catch(() => {});
+  const offen = warten > 0;
+  useEffect(() => {
+    if (!offen) return;
+    const t = setInterval(sendeNach, 5000);
+    window.addEventListener("online", sendeNach);
+    return () => { clearInterval(t); window.removeEventListener("online", sendeNach); };
+  }, [offen, api]);
   zustand.current = { modus, projektId, angebotId, tasche, ton, onErgebnis };
 
   useEffect(() => { api.get("/api/v1/scanner/auswahl").then(setScannerListe, () => setScannerListe([])); }, [api]);
@@ -51,8 +63,14 @@ export function ScanPanel({ modus, projektId = null, angebotId = null, tasche = 
       setLaeuft(true);
       const start = performance.now();
       let r;
-      try { r = await api.post("/api/v1/scan", { code: c, modus: z.modus, projekt: z.projektId, angebot: z.angebotId, tasche: z.tasche }); }
-      catch (e) { r = { level: "error", text: fehlerText(e), meldungen: [], code: c }; }
+      const body = { code: c, modus: z.modus, projekt: z.projektId, angebot: z.angebotId, tasche: z.tasche };
+      if (wartend()) await sendeWartende(api, nachgebucht).catch(() => {}); // Reihenfolge: ältere Offline-Scans zuerst
+      const offlineText = (n) => `Offline: ${c} gespeichert. Wird gebucht, sobald die Verbindung wieder da ist (${n} ${n === 1 ? "wartet" : "warten"}).`;
+      if (wartend()) r = { level: "warn", text: offlineText(merkeScan(body)), meldungen: [], code: c, offline: true };
+      else {
+        try { r = await api.post("/api/v1/scan", body); }
+        catch (e) { r = istOffline(e) ? { level: "warn", text: offlineText(merkeScan(body)), meldungen: [], code: c, offline: true } : { level: "error", text: fehlerText(e), meldungen: [], code: c }; }
+      }
       r.dauer = Math.round(performance.now() - start);
       r.zeit = new Date();
       setVerlauf((v) => [r, ...v].slice(0, 50));
@@ -83,6 +101,12 @@ export function ScanPanel({ modus, projektId = null, angebotId = null, tasche = 
           optionen={scannerListe.map((s) => ({ wert: String(s.id), titel: s.name }))} /></div>}
         {laeuft && <span className="lp-meta"><Icon name="Loader2" size={14} /> bucht …</span>}
       </div>
+      {warten > 0 && (
+        <div className="lp-meldung" data-testid="offline-warten" role="status" style={{ borderColor: FARBE.warn, marginTop: 8, display: "flex", gap: 8, alignItems: "center" }}>
+          <Icon name="AlertTriangle" size={16} /> <span style={{ flex: 1 }}>Offline – {warten} {warten === 1 ? "Scan wartet" : "Scans warten"} auf die Verbindung.</span>
+          <Knopf klein onClick={sendeNach}>Jetzt senden</Knopf>
+        </div>
+      )}
       {letzte && (
         <div className="lp-scan-ergebnis" data-testid="scan-ergebnis" data-level={letzte.level} data-dauer={letzte.dauer} role="status" aria-live="assertive" style={{ borderColor: FARBE[letzte.level] }}>
           <div className="lp-scan-balken" style={{ background: FARBE[letzte.level] }}>

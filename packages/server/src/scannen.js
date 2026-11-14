@@ -203,7 +203,24 @@ export async function packStatus(db, projektId) {
 }
 
 export function scanModul(router) {
-  router.post("/api/v1/scan", P, async (ctx) => scanne(ctx, ctx.body || {}));
+  router.post("/api/v1/scan", P, async (ctx) => {
+    const b = ctx.body || {};
+    const off = b.offline;
+    if (!off) return scanne(ctx, b);
+    // FA-22: offline erfasster Scan, in Reihenfolge nachgebucht; dieselbe ID bucht nur einmal
+    const id = String(off.id || "");
+    const erfasst = new Date(off.zeit);
+    if (!/^[\w-]{8,64}$/.test(id) || Number.isNaN(erfasst.getTime())) throw fehler(400, "Offline-Scan ohne gültige Kennung. Scanne den Code erneut.");
+    const { rows: [alt] } = await ctx.pool.query("SELECT ergebnis FROM scan_offline WHERE id = $1", [id]);
+    if (alt) return { ...alt.ergebnis, schon: true };
+    const uhr = erfasst.toLocaleTimeString("de-DE", { timeZone: "Europe/Berlin", hour: "2-digit", minute: "2-digit" });
+    let r;
+    try { r = await scanne(ctx, b); }
+    catch (e) { if (!e.status || e.status >= 500) throw e; r = { level: "error", text: e.extra?.text || e.message, meldungen: [], code: b.code }; }
+    r = { ...r, text: `Nachgebucht (offline erfasst ${uhr}): ${r.text}`, offline: true };
+    await ctx.pool.query("INSERT INTO scan_offline (id, benutzer_id, erfasst, ergebnis) VALUES ($1, $2, $3, $4) ON CONFLICT (id) DO NOTHING", [id, ctx.nutzer?.id || null, erfasst, JSON.stringify(r)]);
+    return r;
+  });
   // FA-18 Rückgabeansicht: was ist noch draußen, was ist vermisst, was ist zurück
   router.get("/api/v1/projekte/:id/rueckgabe", { ...P, stufe: "r" }, async (ctx) => rueckgabeStand(ctx.pool, idParam(ctx.params.id, "Dieses Projekt")));
   router.get("/api/v1/projekte/:id/packstatus", { ...P, stufe: "r" }, async (ctx) => packStatus(ctx.pool, idParam(ctx.params.id, "Dieses Projekt")));

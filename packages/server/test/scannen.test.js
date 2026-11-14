@@ -245,3 +245,23 @@ test("T-15 R-47 Funktionstest: bestanden → Bewegung; Mangel → Defekt, Notiz 
   assert.equal((await lager("POST", "/api/v1/pruefung", { code: c, ergebnis: "mangel", notiz: "x" })).status, 409, "ausgemustert bleibt ausgemustert");
   await q("UPDATE geraet SET status = 'lager', notizen = '' WHERE code = $1", [c]);
 });
+
+test("FA-22 Offline-Puffer: nachgebuchter Scan mit Erfassungszeit, gleiche Kennung bucht nur einmal, Fehler kommen als Rot zurück", async () => {
+  const p = await projekt("Offline-Fest");
+  await mitAngebot(p, [{ artikel_id: akku.id, menge: 1 }]);
+  const [c] = await codes(akku.id);
+  const offline = { id: "test-offline-0001", zeit: new Date(Date.now() - 10 * 60_000).toISOString() };
+  const r1 = (await scan(c, "packen", p.id, { offline })).json;
+  assert.equal(r1.level, "ok", r1.text);
+  assert.match(r1.text, /^Nachgebucht \(offline erfasst \d{2}:\d{2}\): /);
+  const r2 = (await scan(c, "packen", p.id, { offline })).json;
+  assert.equal(r2.schon, true, "Wiederholung bucht nicht doppelt");
+  assert.equal((await q("SELECT count(*)::int AS n FROM bewegung b JOIN geraet g ON g.id = b.geraet_id WHERE g.code = $1 AND b.projekt_id = $2", [c, p.id])).rows[0].n, 1);
+  const r3 = (await scan("LI-9999", "packen", p.id, { offline: { id: "test-offline-0002", zeit: new Date().toISOString() } })).json;
+  assert.equal(r3.level, "error");
+  assert.match(r3.text, /^Nachgebucht/);
+  assert.equal((await scan(c, "packen", p.id, { offline: { id: "x", zeit: "gestern" } })).status, 400);
+  const { rows } = await q("SELECT id, erfasst < gebucht AS spaeter FROM scan_offline ORDER BY id");
+  assert.deepEqual(rows.map((r) => r.id), ["test-offline-0001", "test-offline-0002"]);
+  assert.equal(rows[0].spaeter, true);
+});

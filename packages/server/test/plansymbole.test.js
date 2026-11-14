@@ -22,6 +22,12 @@ test("FA-53 Plan-Symbole: Bibliothek bei jeder Artikeländerung neu, SVG je Arti
   await warte(() => fs.existsSync(datei) && fs.readFileSync(datei, "utf8").includes("Robe T1 Profile"));
   await admin("PUT", `/api/v1/artikel/${a.id}`, { name: "Robe T2 Profile" });
   await warte(() => fs.readFileSync(datei, "utf8").includes("Robe T2 Profile"));
+  await s.db.pool.query("INSERT INTO artikel (name, kategorie_id, verbrauch) VALUES ('Gaffa-Tape', $1, true)", [k.id]);
+  await s.db.pool.query("INSERT INTO artikel (name, kategorie_id, ist_leistung) VALUES ('Aufbau', $1, true)", [k.id]);
+  await s.db.pool.query("INSERT INTO artikel (name, kategorie_id, aktiv) VALUES ('Alt-Lampe', $1, false)", [k.id]);
+  const alle = (await lager("GET", "/api/v1/plansymbole")).json.zeilen.map((x) => x.name);
+  assert.deepEqual(alle.sort(), ["Gaffa-Tape", "Robe T2 Profile"], "auch Verbrauch; keine Leistungen, keine inaktiven (D-85)");
+  await s.db.pool.query("DELETE FROM artikel WHERE name IN ('Gaffa-Tape', 'Aufbau', 'Alt-Lampe')");
   const l = (await lager("GET", "/api/v1/plansymbole")).json;
   assert.equal(l.zeilen[0].piktogramm, "movinghead");
   assert.match(l.zeilen[0].svg, /<svg/);

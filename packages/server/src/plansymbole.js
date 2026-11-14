@@ -10,9 +10,10 @@ const R = { bereich: "material", stufe: "r" };
 export const BIBLIOTHEK = "Symbolbibliothek.graphml";
 const ordner = (config) => path.join(datenOrdner(config), "plansymbole");
 
+/** D-85: alle aktiven Artikel mit Gegenstand (auch Verbrauch); Leistungen haben kein Plan-Symbol, inaktive fallen heraus. */
 async function ladeArtikel(db) {
   const { rows } = await db.query(`SELECT a.id, a.name, a.plansymbol, a.ist_case, a.laenge_m, a.aktiv, k.name AS kategorie
-    FROM artikel a JOIN kategorie k ON k.id = a.kategorie_id WHERE a.aktiv AND NOT a.ist_leistung AND NOT a.verbrauch ORDER BY k.name, a.name`);
+    FROM artikel a JOIN kategorie k ON k.id = a.kategorie_id WHERE a.aktiv AND NOT a.ist_leistung ORDER BY k.name, a.name`);
   return rows;
 }
 

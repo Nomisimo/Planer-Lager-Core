@@ -43,4 +43,12 @@ test("NFA-03 Löschkonzept: ohne Projekte löschen, mit Belegen erst nach Frist 
   assert.equal((await q("SELECT count(*)::int AS n FROM projekt WHERE kunde_id = $1", [alt])).rows[0].n, 1, "Belege bleiben");
   assert.equal((await admin("POST", `/api/v1/kunden/${alt}/anonymisieren`, { bestaetigung: "ANONYMISIEREN" })).status, 409);
   assert.equal((await admin("GET", "/api/v1/verwaltung/loeschfristen")).json.length, 0);
+  // Protokoll über Zugriffe
+  await buero("GET", `/api/v1/kunden/${jung}`);
+  const prot = (await q("SELECT art, benutzer, text FROM sicherheit_ereignis WHERE text ~ 'Kunde' ORDER BY id")).rows.map((r) => `${r.art}:${r.benutzer}:${r.text}`);
+  assert.ok(prot.includes(`aktion:buero:Datenauskunft Kunde ${alt}`));
+  assert.ok(prot.includes(`aktion:admin10:Kunde ${alt} anonymisiert (NFA-03)`));
+  assert.ok(prot.includes(`zugriff:buero:Kunde ${jung} angesehen`));
+  // ohne Projekte: ganz löschen
+  assert.equal((await buero("DELETE", `/api/v1/kunden/${ohne}`)).status, 200);
 });

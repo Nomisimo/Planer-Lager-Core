@@ -25,6 +25,9 @@ test("FA-35 FA-36 Startseite mit Kacheln/Diese Woche/meine Aufgaben, Suche nach 
       await w.getByTestId("woche-rueckgaben").getByText(/1 Geräte draußen/).waitFor();
       await w.getByTestId("meine-aufgaben").getByText(/Rigging klären/).waitFor();
       await screenshot(w, "FA-35-start-productionplaner");
+      // Schnellzugriff
+      await w.getByRole("heading", { name: "Schnellzugriff" }).locator("xpath=../..").getByRole("button", { name: "Kalender" }).click();
+      await w.getByRole("heading", { name: "Kalender", exact: true }).first().waitFor();
       await w.getByRole("navigation", { name: "Hauptmenü" }).getByText("Suche", { exact: true }).click();
       await w.getByLabel("Suchbegriff").fill("stadtfest");
       await w.getByRole("button", { name: "Suchen" }).click();

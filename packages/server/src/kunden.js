@@ -98,6 +98,7 @@ export function kundenModul(router) {
     const id = idParam(ctx.params.id, "Dieser Kunde");
     const { rows: [k] } = await ctx.pool.query("SELECT * FROM kunde WHERE id = $1", [id]);
     if (!k) throw nichtGefunden("Diesen Kunden");
+    await protokolliere(ctx.pool, "zugriff", { benutzer: ctx.nutzer.benutzername, ip: clientIp(ctx), text: `Kunde ${id} angesehen` }); // NFA-03 Protokoll über Zugriffe
     const projekte = await tabelleDa(ctx.pool, "projekt")
       ? (await ctx.pool.query("SELECT id, nummer, name, status, beginn, ende FROM projekt WHERE kunde_id = $1 ORDER BY nummer DESC", [id])).rows : [];
     const angebote = await tabelleDa(ctx.pool, "angebot")

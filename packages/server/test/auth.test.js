@@ -41,7 +41,7 @@ test("R-03 Bereich verwaltung nur für Admin (Büro mit vielen Rechten wird abge
   assert.equal((await admin("GET", "/api/v1/verwaltung/benutzer")).status, 200);
 });
 
-test("R-08 Sperre nach 5 Fehlversuchen je Benutzer, auch bei richtigem Passwort; Meldung verrät nichts", async () => {
+test("R-08 T-18 Sperre nach 5 Fehlversuchen je Benutzer, auch bei richtigem Passwort; Meldung verrät nichts", async () => {
   await legeBenutzerAn(s.db.pool, { benutzername: "sperrtest", passwort: PW, rolle: "Lager / Techniker" });
   for (let i = 0; i < 5; i++) {
     const r = await s.api("POST", "/api/v1/anmelden", { benutzername: "sperrtest", passwort: "falsch-falsch" });

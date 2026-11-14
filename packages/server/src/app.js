@@ -26,15 +26,42 @@ async function leseBody(req) {
 /**
  * @param {{pool: import("pg").Pool, config?: object, module?: ((r: Router, d: object) => void)[]}} deps
  */
+/** Schutz-Header (NFA-01, NFA-02) für jede Antwort. Seiten-CSP setzt station-web selbst strenger/lockerer. */
+export function setzeSchutzHeader(res, config = {}) {
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("Referrer-Policy", "same-origin");
+  res.setHeader("X-Frame-Options", "DENY");
+  res.setHeader("Permissions-Policy", "camera=(self), microphone=(), geolocation=(), payment=(), usb=()");
+  res.setHeader("Content-Security-Policy", "default-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'; object-src 'none'");
+  res.setHeader("Cross-Origin-Opener-Policy", "same-origin");
+  if (config.hsts) res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+}
+
+/** Einfaches Rate-Limit je Adresse (gleitendes Minutenfenster). */
+export function erstelleRateLimit(maxProMinute = 600) {
+  const fenster = new Map();
+  return (ip) => {
+    const jetzt = Date.now();
+    let e = fenster.get(ip);
+    if (!e || jetzt - e.start > 60_000) { e = { start: jetzt, n: 0 }; fenster.set(ip, e); }
+    e.n++;
+    if (fenster.size > 10_000) for (const [k, v] of fenster) if (jetzt - v.start > 60_000) fenster.delete(k);
+    return e.n <= maxProMinute;
+  };
+}
+
 export function erstelleApp(deps) {
   const router = new Router();
   const kontext = { ...deps, router };
   router.get("/health", { oeffentlich: true }, () => ({ ok: true, protokoll: PROTOKOLL_VERSION, zeit: new Date().toISOString() }));
   for (const m of deps.module || []) m(router, kontext);
 
+  const limit = erstelleRateLimit(deps.config?.rateLimit || 600);
   const server = http.createServer(async (req, res) => {
     const url = new URL(req.url || "/", "http://x");
+    setzeSchutzHeader(res, deps.config);
     try {
+      if (!limit(req.socket.remoteAddress || "")) throw new HttpFehler(429, "Zu viele Anfragen in kurzer Zeit. Warte eine Minute und versuche es erneut.");
       const fund = router.finde(req.method || "GET", url.pathname);
       if (!("route" in fund)) {
         throw new HttpFehler(fund.pfadBekannt ? 405 : 404, fund.pfadBekannt

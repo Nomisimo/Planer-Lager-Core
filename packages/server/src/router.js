@@ -22,7 +22,7 @@ export class Router {
   add(methode, pfad, recht, handler) {
     const namen = [];
     const re = new RegExp("^" + pfad.replace(/\/:(\w+)/g, (_m, n) => { namen.push(n); return "/([^/]+)"; }) + "/?$");
-    this.routen.push({ methode, pfad, bereich: recht.bereich ?? null, stufe: recht.stufe ?? null,
+    this.routen.push({ ...recht, methode, pfad, bereich: recht.bereich ?? null, stufe: recht.stufe ?? null,
       oeffentlich: !!recht.oeffentlich, arbeitsplatz: !!recht.arbeitsplatz, handler, re, namen });
   }
   get(p, r, h) { this.add("GET", p, r, h); }

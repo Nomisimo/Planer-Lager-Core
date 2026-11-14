@@ -14,11 +14,11 @@ Hinter `[x]` kurz notieren: Datum, Repo(s), Testdatei(en). Max. 1 Zeile.
 - [x] C+M+P: GitHub-Actions CI (Unit+API mit postgres-Service, E2E mit xvfb) — 14.11., .github/workflows/ci.yml (Lauf unbestätigt, s. D-25)
 
 ## Phase 1 – Grundgerüst Server + App-Hüllen
-- [ ] C: Einstellungen (Spec 3.14, genau 1 Datensatz), FA-48 Grundteil
-- [ ] C: Rollen + Rechte 2.1, R-06, R-07, Route-Registry R-01, R-02, R-03
-- [ ] C: Anmeldung R-04, R-08, R-09, R-10, R-11; Verweigerung R-05; Sicherheitsprotokoll 3.15
-- [ ] C: FA-54 TOTP (Pflicht Admin, hochgestuft wegen Cloud, D-01)
-- [ ] C: Sicherheits-Header + CSRF für Cookie-Sitzungen (NFA-01)
+- [x] C: Einstellungen (Spec 3.14, genau 1 Datensatz), FA-48 Grundteil — 14.11., C, domain/einstellungen.test.js, server/verwaltung.test.js
+- [x] C: Rollen + Rechte 2.1, R-06, R-07, Route-Registry R-01, R-02, R-03 — 14.11., C, domain/rechte.test.js, server/auth+verwaltung.test.js
+- [x] C: Anmeldung R-04, R-08, R-09, R-10, R-11; Verweigerung R-05; Sicherheitsprotokoll 3.15 — 14.11., C, server/auth.test.js (R-11 Web-Umleitung folgt mit station-web, Phase 8)
+- [x] C: FA-54 TOTP (Pflicht Admin, hochgestuft wegen Cloud, D-01) — 14.11., C, domain/totp.test.js, server/auth.test.js
+- [x] C: Sicherheits-Header + CSRF für Cookie-Sitzungen (NFA-01) — 14.11., C, server/health+auth.test.js, domain/csv.test.js
 - [ ] C: WebSocket-Hub + Live-Events, `GET /health` mit Protokollversion
 - [ ] C: `@lager/ui`: Themes FA-52, UI-6, UI-7, Dichten, Bausteine aus docs/UI-STIL.md
 - [ ] M+P: App-Hülle: Login, Kopfleiste, Seitenmenü UI-1 (nur erlaubte Einträge, aktiver Eintrag nach längstem Präfix), Online-Status

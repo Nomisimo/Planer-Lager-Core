@@ -31,6 +31,10 @@ const PRUEFUNG = {
   zeit_prozent_planung: [ZAHL(0, 100), "Planungsanteil muss zwischen 0 und 100 % liegen."],
   zeit_basis_stundensatz: [ZAHL(0, 10_000_000), "Stundensatz muss ein Betrag ab 0 sein."],
   backup_behalten: [ZAHL(1, 365), "Behalte mindestens 1 und höchstens 365 Sicherungen."],
+  design_standard: [(v) => v && typeof v === "object" && (!v.thema || ["planer", "blau", "gruen", "violett", "orange", "petrol", "grau", "kontrast"].includes(v.thema))
+    && (!v.dichte || ["kompakt", "normal", "gross"].includes(v.dichte)) && (!v.modus || ["system", "hell", "dunkel"].includes(v.modus)), "Wähle Thema, Abstände und Hell/Dunkel aus der Liste."],
+  etikett_format: [(v) => typeof v === "string" && /^\d{1,3}x\d{1,3}$/.test(v), "Etikettenformat bitte als Breite x Höhe in mm angeben, z. B. 62x29."],
+  backup_zweitordner: [(v) => typeof v === "string" && v.length <= 500, "Der Zweitort ist zu lang. Kürze die Angabe."],
   zeit_artikel: [(v) => v === null || Number.isInteger(v), "Wähle einen Artikel für die Zeiterfassung aus der Liste."],
 };
 

@@ -73,6 +73,21 @@ test("R-08 Sperre je Adresse nach 20 Fehlversuchen", async () => {
   await s.db.pool.query("DELETE FROM anmelde_versuch WHERE ip = '127.0.0.1'");
 });
 
+test("R-08 15-Minuten-Fenster: ältere Fehlversuche zählen nicht; falscher 2FA-Code zählt mit", async () => {
+  await legeBenutzerAn(s.db.pool, { benutzername: "fenster1", passwort: PW, rolle: "Lager / Techniker" });
+  await s.db.pool.query("INSERT INTO anmelde_versuch (benutzername, ip, erfolg, zeit) SELECT 'fenster1', '10.1.1.1', false, now() - interval '16 minutes' FROM generate_series(1, 5)");
+  assert.equal((await s.api("POST", "/api/v1/anmelden", { benutzername: "fenster1", passwort: PW })).status, 200);
+});
+
+test("R-10 Cookie wird bei Aktivität erneuert (gleitend)", async () => {
+  await legeBenutzerAn(s.db.pool, { benutzername: "gleit1", passwort: PW, rolle: "Lager / Techniker" });
+  const w = await s.api("POST", "/api/v1/anmelden", { benutzername: "gleit1", passwort: PW, art: "web" });
+  const cookie = w.headers.get("set-cookie").split(";")[0];
+  await s.db.pool.query("UPDATE sitzung SET letzte_aktivitaet = now() - interval '2 hours' WHERE benutzer_id = (SELECT id FROM benutzer WHERE benutzername = 'gleit1')");
+  const r = await s.api("GET", "/api/v1/ich", undefined, { Cookie: cookie });
+  assert.match(r.headers.get("set-cookie") || "", /Max-Age=43200/);
+});
+
 test("R-10 Sitzung läuft 12 Stunden nach letzter Aktivität ab; Web-Cookie HttpOnly + SameSite=Lax", async () => {
   await legeBenutzerAn(s.db.pool, { benutzername: "zeit1", passwort: PW, rolle: "Lager / Techniker" });
   const w = await s.api("POST", "/api/v1/anmelden", { benutzername: "zeit1", passwort: PW, art: "web" });
@@ -139,7 +154,16 @@ test("Handoff: Einmal-Code 60 s gültig und nur einmal einlösbar", async () => 
   assert.equal((await s.api("POST", "/api/v1/handoff/einloesen", { code: h2.json.code })).status, 401);
 });
 
-test("Sicherheitsprotokoll 3.15: Einträge nur anfügen (UPDATE/DELETE scheitern)", async () => {
+test("FA-50 Sicherheitsprotokoll: letzte 30 Tage, filterbar nach Art und Benutzer", async () => {
+  const admin = await s.als("protokolladmin");
+  const r = await admin("GET", "/api/v1/verwaltung/sicherheit/protokoll?art=verweigert");
+  assert.equal(r.status, 200);
+  assert.ok(r.json.length >= 1 && r.json.every((e) => e.art === "verweigert"));
+  const b = await admin("GET", "/api/v1/verwaltung/sicherheit/protokoll?benutzer=lager1");
+  assert.ok(b.json.every((e) => e.benutzer.includes("lager1")));
+});
+
+test("FA-50 Sicherheitsprotokoll 3.15: Einträge nur anfügen (UPDATE/DELETE scheitern)", async () => {
   await assert.rejects(s.db.pool.query("UPDATE sicherheit_ereignis SET text = 'x'"), /nur neue Einträge/);
   await assert.rejects(s.db.pool.query("DELETE FROM sicherheit_ereignis"), /nur neue Einträge/);
 });

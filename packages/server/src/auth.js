@@ -62,8 +62,9 @@ export async function ladeSitzung(pool, token) {
     await pool.query("DELETE FROM sitzung WHERE token_hash = $1", [z.token_hash]);
     return { abgelaufen: true };
   }
-  if (alter > 60_000) await pool.query("UPDATE sitzung SET letzte_aktivitaet = now() WHERE token_hash = $1", [z.token_hash]);
-  return { zeile: z, nutzer: nutzerAus(z) };
+  const erneuert = alter > 60_000;
+  if (erneuert) await pool.query("UPDATE sitzung SET letzte_aktivitaet = now() WHERE token_hash = $1", [z.token_hash]);
+  return { zeile: z, nutzer: nutzerAus(z), erneuert };
 }
 
 const verweigert = (rolle) => new HttpFehler(403, TEXT.verweigert, { ok: false, level: "error", text: TEXT.verweigert, rolle });
@@ -86,6 +87,8 @@ export async function pruefeZugang(ctx) {
   }
   const n = s.nutzer;
   ctx.nutzer = n;
+  // R-10 gleitend: Cookie-Laufzeit bei Aktivität erneuern (höchstens 1× pro Minute, wie die Sitzung).
+  if (t.quelle === "cookie" && s.erneuert) setzeCookie(ctx, t.token, SITZUNG_STUNDEN * 3600);
   ctx.sitzung = { tokenHash: s.zeile.token_hash, quelle: t.quelle };
   if (n.sitzungArt === "zwischen" && !route.zwischen) throw new HttpFehler(401, TEXT.anmelden, { ok: false, level: "error", text: TEXT.anmelden, zweiterFaktor: true });
   if (ctx.config?.imNetz && n.admin && !n.totpAktiv && !route.zweiFaktorEinrichtung && n.sitzungArt !== "zwischen")

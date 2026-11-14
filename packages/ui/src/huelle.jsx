@@ -2,7 +2,7 @@
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { erstelleApi, Live } from "@lager/client";
 import { themaVariablen, THEMEN, DICHTEN, MODI } from "./themen.js";
-import { menueFuer, aktiverEintrag } from "./menue.js";
+import { menueFuer, aktiverEintrag, MENUE } from "./menue.js";
 import { passeMuster, zerlegeHash, deepLinkZuPfad } from "./router.js";
 import { fehlerText } from "./texte.js";
 import { Icon, Knopf, Feld, Eingabe, Meldung, Modal, Section, Auswahl, Seite } from "./bausteine.jsx";
@@ -142,7 +142,14 @@ export function AppHuelle({ app, seiten, onCode }) {
   const { pfad, query } = useHash();
   const shellApi = window.lagerShell;
 
-  useEffect(() => { wendeDesignAn(design); }, [design]);
+  useEffect(() => {
+    wendeDesignAn(design);
+    // UI-6: „Wie das System“ folgt einem Wechsel sofort.
+    let mq; try { mq = window.matchMedia("(prefers-color-scheme: dark)"); } catch { return; }
+    const f = () => wendeDesignAn(design);
+    mq.addEventListener?.("change", f);
+    return () => mq.removeEventListener?.("change", f);
+  }, [design]);
 
   const api = useMemo(() => info && erstelleApi({ basis: info.serverUrl, token: () => tokenRef.current,
     beiAbmeldung: (d) => { setHinweis(d?.text || null); setzeToken(null); } }), [info]);
@@ -220,6 +227,9 @@ export function AppHuelle({ app, seiten, onCode }) {
   const aktiv = aktiverEintrag(pfad, alle);
   let treffer = null;
   for (const s of seiten) { const p = passeMuster(s.muster, pfad); if (p) { treffer = { ...s, params: p }; break; } }
+  // R-05: Seite eines Bereichs ohne Recht → „Zugriff verweigert“ mit Rolle (statt leerer Seite).
+  const pfadEintrag = aktiverEintrag(pfad, MENUE.flatMap((g) => g.eintraege));
+  const verweigert = pfadEintrag && !alle.some((e) => e.pfad === pfadEintrag.pfad);
   const kontext = { api, live, nutzer, info, pfad, query, navigiere, oeffneAndereApp, app, firma, setBanner };
 
   return (
@@ -256,7 +266,8 @@ export function AppHuelle({ app, seiten, onCode }) {
         </nav>
         <main className="lp-inhalt">
           {banner && <div style={{ marginBottom: 12 }}><Meldung level="warning" text={banner} onSchliessen={() => setBanner(null)} /></div>}
-          {treffer ? <treffer.Komponente params={treffer.params} query={query} key={pfad} />
+          {verweigert ? <ZugriffVerweigert rolle={nutzer.rolle} />
+            : treffer ? <treffer.Komponente params={treffer.params} query={query} key={pfad} />
             : <Seite titel="Seite nicht gefunden"><Meldung level="error" text="Diese Seite gibt es in dieser App nicht. Wähle links einen Menüpunkt." /></Seite>}
         </main>
         {darstellung && <DarstellungDialog design={design} onAendern={designAendern} onSchliessen={() => setDarstellung(false)} />}
@@ -272,5 +283,14 @@ export function CodeFeld({ onCode }) {
     <form onSubmit={(e) => { e.preventDefault(); if (w.trim()) { onCode?.(w.trim()); setW(""); } }} role="search">
       <input className="lp-input lp-codefeld" placeholder="Code / Nummer …" aria-label="Code oder Nummer öffnen" value={w} onChange={(e) => setW(e.target.value)} data-testid="codefeld" />
     </form>
+  );
+}
+
+/** R-05: „Zugriff verweigert“ mit Rolle. Auch von Seiten nutzbar, wenn die API 403 meldet. */
+export function ZugriffVerweigert({ rolle }) {
+  return (
+    <Seite titel="Zugriff verweigert">
+      <Meldung level="error" text={`Dafür fehlt dir die Berechtigung. Deine Rolle „${rolle}“ darf diese Seite nicht öffnen. Wenn du sie brauchst, frag den Admin.`} />
+    </Seite>
   );
 }

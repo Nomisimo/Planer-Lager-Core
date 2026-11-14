@@ -13,6 +13,8 @@ test("FA-48 Einstellungen: Standardwerte laut 3.14 und Prüfung beim Speichern",
   assert.equal(mitStandard({ firma: { name: "X" } }).firma.ort, "");
   assert.equal(pruefeEinstellungen({ angebot_gueltig_tage: 0 }, EINSTELLUNGEN_STANDARD).ok, false);
   assert.equal(pruefeEinstellungen({ tag_stunden_erweitert: 6 }, EINSTELLUNGEN_STANDARD).ok, false);
+  assert.equal(pruefeEinstellungen({ design_standard: { thema: "pink" } }, EINSTELLUNGEN_STANDARD).ok, false);
+  assert.equal(pruefeEinstellungen({ etikett_format: "groß" }, EINSTELLUNGEN_STANDARD).ok, false);
   assert.equal(pruefeEinstellungen({ unbekannt: 1 }, EINSTELLUNGEN_STANDARD).ok, false);
   const ok = pruefeEinstellungen({ angebot_gueltig_tage: 30, firma: { name: "Verleih GmbH" } }, EINSTELLUNGEN_STANDARD);
   assert.equal(ok.ok, true);

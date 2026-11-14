@@ -90,3 +90,14 @@ test("R-65 R-66 FA-46 Nachbuchen, Satz aus Posten â€žTechnische Projektleitungâ€
   assert.equal((await q("SELECT count(*)::int AS n FROM rechnung_position WHERE zeiteintrag_id = $1", [n.json.id])).rows[0].n, 0);
   assert.equal((await lager("GET", "/api/v1/zeit/eintraege")).status, 403);
 });
+
+test("R-64 D-77 gleichzeitiger Doppelstart ergibt genau einen Timer; Lauf unter 60 s wird verworfen", async () => {
+  await buero("POST", "/api/v1/zeit/stopp", {});
+  const vorher = (await q("SELECT count(*)::int AS n FROM zeiteintrag")).rows[0].n;
+  const r = await Promise.all([buero("POST", "/api/v1/zeit/start", { projekt: p1.id }), buero("POST", "/api/v1/zeit/start", { projekt: p1.id })]);
+  assert.deepEqual(r.map((x) => x.status), [200, 200]);
+  assert.equal((await q("SELECT count(*)::int AS n FROM zeiteintrag WHERE laeuft_seit IS NOT NULL")).rows[0].n, 1);
+  await q("UPDATE zeiteintrag SET laeuft_seit = now() - interval '40 seconds' WHERE laeuft_seit IS NOT NULL");
+  assert.match((await buero("POST", "/api/v1/zeit/stopp", {})).json.text, /unter einer Minute/);
+  assert.equal((await q("SELECT count(*)::int AS n FROM zeiteintrag")).rows[0].n, vorher, "40 s nicht gebucht");
+});

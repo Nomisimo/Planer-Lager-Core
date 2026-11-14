@@ -35,7 +35,7 @@ async function vormerken(c, z) {
 /** Laufenden Timer beenden (Ende = Zeitpunkt). Unter 1 Minute wird verworfen. Liefert den Eintrag oder null. */
 async function beende(c, t, ende) {
   const minuten = timerMinuten(t.laeuft_seit, ende);
-  if (minuten < 1) { await c.query("DELETE FROM zeiteintrag WHERE id = $1", [t.id]); return null; }
+  if (new Date(ende).getTime() - new Date(t.laeuft_seit).getTime() < 60_000) { await c.query("DELETE FROM zeiteintrag WHERE id = $1", [t.id]); return null; }
   const { rows: [z] } = await c.query(`UPDATE zeiteintrag SET laeuft_seit = NULL, zuletzt_aktiv = $1, minuten = $2,
       datum = ($3::timestamptz AT TIME ZONE 'Europe/Berlin')::date, betrag = $4 WHERE id = $5 RETURNING *, datum::text AS datum`,
   [ende, minuten, t.laeuft_seit, zeitBetrag(minuten, t.satz_basis, t.prozent), t.id]);
@@ -60,6 +60,7 @@ export function zeitModul(router) {
   router.post("/api/v1/zeit/start", W, async (ctx) => {
     const projektId = idParam(ctx.body?.projekt, "Dieses Projekt");
     const r = await transaktion(ctx.pool, async (c) => {
+      await c.query("SELECT id FROM benutzer WHERE id = $1 FOR UPDATE", [ctx.nutzer.id]); // R-64: gleichzeitige Starts nacheinander
       const { rows: [p] } = await c.query("SELECT id, nummer, name, status FROM projekt WHERE id = $1", [projektId]);
       if (!p) throw nichtGefunden("Dieses Projekt");
       if (["abgeschlossen", "storniert"].includes(p.status)) throw fehler(409, `${p.nummer} ist abgeschlossen oder storniert. Trage Planungszeit dort über „Nachbuchen“ ein.`);

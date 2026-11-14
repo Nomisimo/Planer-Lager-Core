@@ -9,9 +9,9 @@ Hinter `[x]` kurz notieren: Datum, Repo(s), Testdatei(en). Max. 1 Zeile.
 - [x] C: npm workspaces (domain, db, server, client, ui, station-web), esbuild, `node --test`, eslint-frei — 14.11., C, eslint.config.cjs
 - [x] C: `scripts/db-test.sh` (PostgreSQL starten, Test-DB anlegen), Migrations-Runner, `npm test` grün mit 1 Dummy-Test — 14.11., C, packages/db/test/migrate.test.js
 - [x] C: `scripts/spec-abdeckung.js` (IDs aus docs/spec/INDEX.md vs. Testnamen in allen 3 Repos) + `npm run spec:abdeckung`  — 14.11., C, lag im Kit, npm-Skript ergänzt
-- [ ] M+P: Electron-Gerüst wie Netzwerkplaner (main/preload/renderer, build.js mit Alias `@lager/*`, Splash), Core als Submodule `core/`
-- [ ] C: E2E-Rauchtest: Testserver + beide Apps starten unter `xvfb-run`, Screenshot je App
-- [ ] C+M+P: GitHub-Actions CI (Unit+API mit postgres-Service, E2E mit xvfb)
+- [x] M+P: Electron-Gerüst wie Netzwerkplaner (main/preload/renderer, build.js mit Alias `@lager/*`, Splash), Core als Submodule `core/` — 14.11., M+P+C(@lager/shell, scripts/app-build.cjs), test/app-config.test.js
+- [x] C: E2E-Rauchtest: Testserver + beide Apps starten unter `xvfb-run`, Screenshot je App — 14.11., C, e2e/rauchtest.test.js
+- [x] C+M+P: GitHub-Actions CI (Unit+API mit postgres-Service, E2E mit xvfb) — 14.11., .github/workflows/ci.yml (Lauf unbestätigt, s. D-25)
 
 ## Phase 1 – Grundgerüst Server + App-Hüllen
 - [ ] C: Einstellungen (Spec 3.14, genau 1 Datensatz), FA-48 Grundteil

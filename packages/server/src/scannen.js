@@ -1,5 +1,6 @@
 // Scannen (Spec 5.5, 7.2), Packstatus (FA-19), Funktionstest/Vermisst-API (7.2), Verladen (R-60, R-61).
 import { transaktion } from "@lager/db";
+import { erfasseVerladen } from "./durchgaenge.js";
 import {
   normalisiereCode, normalisiereProjektcode, SCAN_MODI, ZIEL, hoeher, levelUebersprungen, scanText, pruefHinweis, casePruefung,
   packlistenHinweis, packFortschritt, istGesperrt, STATUS, sollInhalt, pruefstatus, PROJEKT_STATUS,
@@ -274,13 +275,14 @@ export function scanModul(router) {
       await c.query(`UPDATE projekt SET gepackt_am = now(), gepackt_von_id = $1, gepackt_von_name = $2, ladezone_id = NULL, zone_seit = NULL,
         version = version + 1, geaendert = now() WHERE id = $3`, [ctx.nutzer?.id || null, ctx.mitarbeiter?.name || ctx.nutzer?.name || ctx.nutzer?.benutzername || "", id]);
       const status = await nachVerladen(c, id); // R-14
-      return { p, status };
+      const durchgang = await erfasseVerladen(c, ctx, id); // FA-20/FA-21
+      return { p, status, durchgang };
     });
     ctx.hub?.sende({ typ: "projekt.geaendert", id, bereich: "projekte" });
     ctx.hub?.sende({ typ: "packen.geaendert", projekt: id, bereich: "packen" });
     if (r.p.ladezone_id) ctx.hub?.sende({ typ: "zone.geaendert", id: r.p.ladezone_id, bereich: "zonen", auchFuer: ["anzeige", "packen"] });
-    return { ok: true, level: "success", status: r.status,
-      text: `${r.p.nummer} verladen${r.p.ladezone_id ? ", Ladezone frei" : ""}${r.status === "laeuft" ? ", Status „Läuft“" : ""}.` };
+    return { ok: true, level: "success", status: r.status, durchgang: r.durchgang.id,
+      text: `${r.p.nummer} verladen${r.p.ladezone_id ? ", Ladezone frei" : ""}${r.status === "laeuft" ? ", Status „Läuft“" : ""}.${r.durchgang.nr > 1 ? ` Nachlieferung ${r.durchgang.nr - 1}: ${r.durchgang.neu} Gerät(e) neu.` : ""} Lieferschein steht bereit.` };
   });
   router.post("/api/v1/projekte/:id/packen-oeffnen", P, async (ctx) => {
     const id = idParam(ctx.params.id, "Dieses Projekt");

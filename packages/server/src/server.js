@@ -21,8 +21,9 @@ import { systemModul, beimStart } from "./system.js";
 import { autoSicherung } from "./sicherung.js";
 import { plansymboleModul, beobachteArtikel } from "./plansymbole.js";
 import { inventurModul } from "./inventur.js";
+import { durchgaengeModul } from "./durchgaenge.js";
 
-export const MODULE = [authModul, verwaltungModul, stammdatenModul, etikettenModul, kundenModul, projekteModul, angeboteModul, scanModul, scannerModul, zonenModul, stationModul, zeitModul, uebersichtModul, systemModul, plansymboleModul, inventurModul, statischModul];
+export const MODULE = [authModul, verwaltungModul, stammdatenModul, etikettenModul, kundenModul, projekteModul, angeboteModul, scanModul, scannerModul, zonenModul, stationModul, zeitModul, uebersichtModul, systemModul, plansymboleModul, inventurModul, durchgaengeModul, statischModul];
 
 /**
  * @param {{pool: import("pg").Pool, config?: object, migrieren?: boolean}} opt

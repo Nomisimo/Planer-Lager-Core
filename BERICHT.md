@@ -11,6 +11,12 @@ Bekannte Fehler/Grenzen: <…>
 Annahmen: D-xx, D-yy
 ```
 
+## Phase 8 – Ladezonen, Arbeitsplätze, Anzeige – 14.11.2026 (ohne Kiosk-Fenster)
+Gebaut: Ladezonen 3.10 mit Verwaltung, Zuweisen/Freigeben, Prioritätsliste, automatischer Verteilung per Knopf und beim Anmelden (R-55–R-58), Seite „Ladezonen“ im Materialplaner; Arbeitsplätze und Mitarbeiter (Verwaltung → Arbeitsplätze) mit Einrichtungscode; Arbeitsplatz-Web unter /station: Sperrbildschirm mit Namen + PIN, 5 falsche PINs → 30 s, Sperrzeit, ERLAUBT-Muster, Packplatz mit Projekt der Zone, Rückgabeplatz mit Tasche und Funktionstest (Tasten 1/2), Mitarbeiter an jeder Buchung; Anzeige-Bildschirm mit QR, live. Netzwerk-Scanner jetzt mit echtem Fremdschlüssel auf den Arbeitsplatz.
+Geprüft: Unit+API alle grün (neu: domain zonen/station, server zonen/station); E2E neu e2e/ladezonen.test.js (T-06, T-21), e2e/arbeitsplatz.test.js (T-16 im echten Browser) grün. Screenshots: FA-23-ladezonen, FA-25-arbeitsplaetze, T-16-sperrbildschirm, R-11g-funktionstest, FA-24-anzeige.
+Nicht geprüft: Kiosk-Fenster im Materialplaner (offen), echter Fernseher/Touchscreen.
+Annahmen: D-69–D-74
+
 ## Phase 7 – Rückgabe – 14.11.2026
 Gebaut: FA-18 Rückgabeansicht je Projekt (Stand noch draußen/zurück/vermisst, Zurückscannen, aktive Tasche mit „Offene als vermisst melden“ und „Tasche beenden“, „Alle offenen als vermisst melden“), freie Rückgabe auf der Scan-Seite (Projekt ergibt sich aus dem Gerät), R-47 Funktionstest nach jedem Scan (bestanden/Mangel mit Notiz), R-49/R-50 auch für die Geräte-Knöpfe „Vermisst“/„Gefunden“ (Projekt bleibt, Case leer, „Gefunden“ nur bei Vermisst), API `GET /api/v1/projekte/:id/rueckgabe`, Deep-Link aus dem Productionplaner.
 Geprüft: Unit+API alle grün (neu: R-49/R-50-Test in stammdaten.test.js, FA-18 im Rückgabe-Test); E2E neu e2e/rueckgabe.test.js (T-12–T-15) grün. Screenshots: FA-18-rueckgabe, R-47-funktionstest.

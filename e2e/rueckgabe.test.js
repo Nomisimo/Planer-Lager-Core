@@ -78,7 +78,7 @@ test("T-12 T-13 T-14 T-15 FA-18 R-46 R-47 R-48 R-49 Materialplaner: Rückgabeans
       await w.getByLabel("Funktionstest nach jedem Scan").check();
       await scanne("LI-0001");
       await ergebnis.getByText("LI-0001 Akku – Zurück im Lager").waitFor();
-      await w.getByRole("button", { name: "Mangel", exact: true }).click();
+      await w.getByRole("button", { name: "Mangel (2)", exact: true }).click();
       await w.getByLabel("Was ist kaputt?").fill("Kontakt locker");
       await w.getByRole("button", { name: "Mangel speichern" }).click();
       await w.getByText("LI-0001 ist jetzt „Defekt“ und kann nicht gepackt werden, bis es repariert ist.").waitFor();
@@ -88,8 +88,10 @@ test("T-12 T-13 T-14 T-15 FA-18 R-46 R-47 R-48 R-49 Materialplaner: Rückgabeans
       assert.equal(await letzteBewegung("LI-0001"), "Mangel bei Rückgabe: Kontakt locker");
       // Funktionstest „bestanden“
       await scanne("LI-0013");
-      await w.getByRole("button", { name: "Bestanden", exact: true }).click();
+      await w.getByRole("button", { name: "In Ordnung (1)", exact: true }).waitFor();
+      await w.keyboard.press("1"); // R-11g Taste 1 im leeren Scanfeld
       await w.getByText("LI-0013: Funktionstest bestanden.").waitFor();
+      assert.equal(await w.getByTestId("scanfeld").inputValue(), "", "Ziffer bleibt nicht im Feld");
       assert.equal(await letzteBewegung("LI-0013"), "Funktionstest bestanden");
       await screenshot(w, "R-47-funktionstest");
     } finally { await a.ende(); }

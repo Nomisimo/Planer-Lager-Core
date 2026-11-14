@@ -117,7 +117,7 @@ export function stationModul(router) {
     if (r.falsch) {
       await protokolliere(ctx.pool, "fehlversuch", { benutzer: `Arbeitsplatz ${ctx.arbeitsplatz.name}`, ip: clientIp(ctx), text: `Falsche PIN für ${r.name} (R-11c)` });
       const text = r.falsch.gesperrtBis ? `5 falsche PINs in Folge. Warte ${PIN_WARTE_SEKUNDEN} Sekunden und versuche es dann erneut.` : `Falsche PIN. Noch ${r.falsch.rest} Versuch(e), dann musst du kurz warten.`;
-      throw fehler(r.falsch.gesperrtBis ? 429 : 401, text, { wartezeit: r.falsch.gesperrtBis ? PIN_WARTE_SEKUNDEN : 0, felder: { pin: "PIN prüfen" } });
+      throw fehler(r.falsch.gesperrtBis ? 429 : 400, text, { wartezeit: r.falsch.gesperrtBis ? PIN_WARTE_SEKUNDEN : 0, felder: { pin: "PIN prüfen" } });
     }
     return { ...(await zustand(ctx, ctx.arbeitsplatz.id)), level: "success", text: `Hallo ${r.ok.name}!` };
   });

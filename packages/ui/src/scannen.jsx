@@ -22,9 +22,10 @@ function piep(level) {
 
 /**
  * @param {{modus: string, projektId?: number|null, angebotId?: number|null, tasche?: string|null,
- *   onErgebnis?: (r: any) => void, gross?: boolean, deaktiviert?: string|null}} props
+ *   onErgebnis?: (r: any) => void, gross?: boolean, deaktiviert?: string|null, arbeitsplatzId?: number|null}} props
+ * arbeitsplatzId: Netzwerk-Scanner, die diesem Arbeitsplatz zugeordnet sind, buchen hier (ARCHITEKTUR §5).
  */
-export function ScanPanel({ modus, projektId = null, angebotId = null, tasche = null, onErgebnis, gross = false, deaktiviert = null }) {
+export function ScanPanel({ modus, projektId = null, angebotId = null, tasche = null, onErgebnis, gross = false, deaktiviert = null, arbeitsplatzId = null }) {
   const { api, live } = useLager();
   const [code, setCode] = useState("");
   const [verlauf, setVerlauf] = useState([]);
@@ -39,6 +40,7 @@ export function ScanPanel({ modus, projektId = null, angebotId = null, tasche = 
 
   useEffect(() => { api.get("/api/v1/scanner/auswahl").then(setScannerListe, () => setScannerListe([])); }, [api]);
   useEffect(() => { if (live && netzScanner) live.abonniere({ scanner: Number(netzScanner) }); else if (live) live.abonniere({ scanner: null }); }, [live, netzScanner]);
+  useEffect(() => { if (live && arbeitsplatzId) live.abonniere({ arbeitsplatz: arbeitsplatzId }); }, [live, arbeitsplatzId]);
 
   const buche = (roh) => {
     const c = String(roh || "").trim();
@@ -60,7 +62,7 @@ export function ScanPanel({ modus, projektId = null, angebotId = null, tasche = 
     });
   };
   useScanZiel(buche);
-  useLive(["scanner"], (ev) => { if (ev.typ === "scanner.code" && Number(netzScanner) === ev.scanner) buche(ev.code); });
+  useLive(["scanner"], (ev) => { if (ev.typ === "scanner.code" && (Number(netzScanner) === ev.scanner || (arbeitsplatzId && ev.arbeitsplatz === arbeitsplatzId))) buche(ev.code); });
   useEffect(() => { feld.current?.focus(); }, [modus, projektId]);
 
   const letzte = verlauf[0];

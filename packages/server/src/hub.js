@@ -56,14 +56,14 @@ export class Hub {
 
   /**
    * Sendet ein Ereignis {typ, id?, version?, bereich, ...} an alle mit Leserecht auf `bereich`.
-   * @param {{typ: string, bereich: string, id?: any, version?: any}} ev
+   * @param {{typ: string, bereich: string, auchFuer?: string[], id?: any, version?: any}} ev
    * @param {(ws: any) => boolean} [filter] zusätzliche Auswahl (z. B. nur ein Arbeitsplatz)
    */
   sende(ev, filter) {
     const text = JSON.stringify({ ...ev, nr: ++this.zaehler });
     for (const ws of this.clients) {
       if (!ws.nutzer || ws.readyState !== 1) continue;
-      if (!darf(ws.nutzer.rechte, ev.bereich, "r")) continue;
+      if (![ev.bereich, ...(ev.auchFuer || [])].some((b) => darf(ws.nutzer.rechte, b, "r"))) continue; // auchFuer: weitere Bereiche (z. B. Anzeige)
       if (filter && !filter(ws)) continue;
       ws.send(text);
     }

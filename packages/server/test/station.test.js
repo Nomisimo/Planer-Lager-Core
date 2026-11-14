@@ -78,7 +78,7 @@ test("T-16 R-11a R-11b R-11c R-11d R-11f Arbeitsplatz: gesperrt (423), Entsperre
   // R-11c: 5 falsche PINs → 30 s Wartezeit, auch die richtige PIN geht dann nicht
   for (let i = 1; i <= 4; i++) {
     const r = await f("POST", "/api/v1/station/entsperren", { mitarbeiter: lea.id, pin: "0000" });
-    assert.equal(r.status, 401);
+    assert.equal(r.status, 400);
     assert.match(r.json.text, new RegExp(`Noch ${5 - i} Versuch`));
   }
   const fuenf = await f("POST", "/api/v1/station/entsperren", { mitarbeiter: lea.id, pin: "0000" });

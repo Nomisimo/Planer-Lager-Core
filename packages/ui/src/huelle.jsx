@@ -17,6 +17,8 @@ export const PROTOKOLL_ERWARTET = 1;
 const APPS = { m: { id: "materialplaner", titel: "Materialplaner" }, p: { id: "productionplaner", titel: "Productionplaner" } };
 
 const Ctx = createContext(null);
+/** Kontext für eigene Hüllen (Arbeitsplatz-Web): { api, live, nutzer, navigiere, scanZiel, … }. */
+export const LagerKontext = Ctx;
 /** Zugriff auf api, live, nutzer, navigiere, pfad, query, oeffneAndereApp … */
 export const useLager = () => useContext(Ctx);
 
@@ -220,22 +222,7 @@ export function AppHuelle({ app, seiten, onCode }) {
   }, [api, pfad, andere, shellApi]);
 
   // UI-3 / ARCHITEKTUR §5: Handscanner (Tastatur) global erkennen, auch ohne Fokus; an die Scan-Seite oder das Codefeld.
-  useEffect(() => {
-    let e = hidErkenner(hidEinstellungen());
-    const neu = () => { e = hidErkenner(hidEinstellungen()); };
-    const k = (ev) => {
-      const el = document.activeElement;
-      if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.tagName === "SELECT" || el.isContentEditable)) return; // Feld nimmt die Eingabe selbst
-      const code = e.taste(ev.key, ev.timeStamp || performance.now());
-      if (!code) return;
-      ev.preventDefault();
-      if (scanZiel.current) scanZiel.current(code);
-      else if (kontextRef.current) onCode?.(code, kontextRef.current);
-    };
-    window.addEventListener("keydown", k, true);
-    window.addEventListener("lager-hid", neu);
-    return () => { window.removeEventListener("keydown", k, true); window.removeEventListener("lager-hid", neu); };
-  }, [onCode]);
+  useHandscanner(scanZiel, (code) => { if (kontextRef.current) onCode?.(code, kontextRef.current); });
 
   const abmelden = async () => { try { await api.post("/api/v1/abmelden"); } catch { /* egal */ } setzeToken(null); };
   const designAendern = (d) => { setDesign(d); try { localStorage.setItem(DESIGN_KEY, JSON.stringify(d)); } catch { /* privat */ } api?.put("/api/v1/ich/design", d).catch(() => {}); };
@@ -319,6 +306,31 @@ export function ZugriffVerweigert({ rolle }) {
       <Meldung level="error" text={`Dafür fehlt dir die Berechtigung. Deine Rolle „${rolle}“ darf diese Seite nicht öffnen. Wenn du sie brauchst, frag den Admin.`} />
     </Seite>
   );
+}
+
+/**
+ * UI-3: globaler Handscanner-Listener. Schnelle Tastenfolge + Enter außerhalb von Eingabefeldern = Scan.
+ * Geht an das registrierte Scan-Ziel (useScanZiel), sonst an `sonst(code)`.
+ */
+export function useHandscanner(scanZiel, sonst) {
+  const sonstRef = useRef(sonst);
+  sonstRef.current = sonst;
+  useEffect(() => {
+    let e = hidErkenner(hidEinstellungen());
+    const neu = () => { e = hidErkenner(hidEinstellungen()); };
+    const k = (ev) => {
+      const el = document.activeElement;
+      if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.tagName === "SELECT" || el.isContentEditable)) return; // Feld nimmt die Eingabe selbst
+      const code = e.taste(ev.key, ev.timeStamp || performance.now());
+      if (!code) return;
+      ev.preventDefault();
+      if (scanZiel.current) scanZiel.current(code);
+      else sonstRef.current?.(code);
+    };
+    window.addEventListener("keydown", k, true);
+    window.addEventListener("lager-hid", neu);
+    return () => { window.removeEventListener("keydown", k, true); window.removeEventListener("lager-hid", neu); };
+  }, [scanZiel]);
 }
 
 /** Lädt bei Live-Ereignissen des Präfixes neu (ohne Neuladen der Seite). */

@@ -76,10 +76,11 @@ Hinter `[x]` kurz notieren: Datum, Repo(s), Testdatei(en). Max. 1 Zeile.
 ## Phase 8 – Ladezonen, Arbeitsplätze, Anzeige
 - [x] C: Ladezone 3.10, R-55, R-56, R-57, R-58 (darf Login nie verhindern), R-59 (API `/api/v1/anzeige/zonen` mit QR)
 - [x] M: FA-23 Zonen verwalten + Prioritätsliste (Seite /zonen)
-- [ ] W: FA-24 Anzeige-Bildschirm in station-web
-- [ ] C: station-web: R-11a, R-11b, R-11c, R-11d, R-11e, R-11f, R-11g, HTTP 423
-- [ ] M: FA-25 Arbeitsplätze + Mitarbeiter verwalten, Kiosk-Modus
-- [ ] E2E: T-06 (aus Phase 6 verschoben), T-16, T-21
+- [x] W: FA-24 Anzeige-Bildschirm in station-web (Arbeitsplatz der Art „anzeige“, QR, live + jede Minute)
+- [x] C: station-web: R-11a, R-11b, R-11c, R-11d, R-11e, R-11f, R-11g, HTTP 423
+- [x] M: FA-25 Arbeitsplätze + Mitarbeiter verwalten (Verwaltung → Arbeitsplätze, Einrichtungscode)
+- [ ] M: Kiosk-Modus (Electron-Vollbildfenster lädt /station)
+- [x] E2E: T-06 (aus Phase 6 verschoben), T-16, T-21 (e2e/ladezonen.test.js, e2e/arbeitsplatz.test.js)
 
 ## Phase 9 – Planungszeit
 - [ ] C: Zeiteintrag 3.5, R-62, R-63, R-64, R-65, R-66 + Schnittstelle Rechnungsentwurf (Kap. 11)

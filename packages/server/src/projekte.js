@@ -172,7 +172,7 @@ export function projekteModul(router) {
           version = version + 1, geaendert = now() WHERE id = $12 RETURNING *`,
       [w.art, w.uebergeordnet_id || null, w.gewerk, w.name, w.kunde_id, w.status, w.beginn, w.ende, w.ort, w.notizen, zoneFrei, id]);
       ctx.hub?.sende({ typ: "projekt.geaendert", id, version: p.version, bereich: "projekte" });
-      if (zoneFrei && alt.ladezone_id) ctx.hub?.sende({ typ: "zone.geaendert", id: alt.ladezone_id, bereich: "zonen" });
+      if (zoneFrei && alt.ladezone_id) ctx.hub?.sende({ typ: "zone.geaendert", id: alt.ladezone_id, bereich: "zonen", auchFuer: ["anzeige", "packen"] });
       return { ok: true, level: "success", text: "Gespeichert.", projekt: p };
     } catch (e) {
       if (e.code === "P0001") throw fehler(400, `${e.message}. Wähle ein Projekt als Oberprojekt.`);
@@ -189,7 +189,7 @@ export function projekteModul(router) {
     await c.query(`UPDATE projekt SET status = $1, ladezone_id = CASE WHEN $2 THEN NULL ELSE ladezone_id END, zone_seit = CASE WHEN $2 THEN NULL ELSE zone_seit END,
       version = version + 1, geaendert = now() WHERE id = $3`, [nach, frei, id]);
     ctx.hub?.sende({ typ: "projekt.geaendert", id, bereich: "projekte" });
-    if (frei && alt.ladezone_id) ctx.hub?.sende({ typ: "zone.geaendert", id: alt.ladezone_id, bereich: "zonen" });
+    if (frei && alt.ladezone_id) ctx.hub?.sende({ typ: "zone.geaendert", id: alt.ladezone_id, bereich: "zonen", auchFuer: ["anzeige", "packen"] });
     return { ok: true, level: "success", text: `${alt.nummer}: ${PROJEKT_STATUS[nach]}${frei && alt.ladezone_id ? ". Ladezone freigegeben" : ""}.`, status: nach };
   }));
   // FA-30 „Jobs anlegen“: mehrere Jobs nach Gewerk auf einmal

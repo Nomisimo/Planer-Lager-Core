@@ -6,7 +6,7 @@ import { fehler, nichtGefunden, idParam, dbFehler } from "./hilfen.js";
 import { ladeEinstellungen } from "./verwaltung.js";
 
 const R = { bereich: "zonen", stufe: "r" };
-const W = { bereich: "zonen" };
+const W = { bereich: "zonen", auchFuer: ["anzeige", "packen"] };
 const V = { bereich: "verwaltung" };
 const OFFEN = "p.status NOT IN ('abgeschlossen','storniert')";
 
@@ -47,7 +47,7 @@ export async function verteile(pool, hub) {
     for (const v of plan) await c.query("UPDATE projekt SET ladezone_id = $1, zone_seit = now(), version = version + 1 WHERE id = $2 AND ladezone_id IS NULL", [v.zoneId, v.projektId]);
     return plan;
   });
-  if (zuweisungen.length) hub?.sende({ typ: "zone.geaendert", bereich: "zonen" });
+  if (zuweisungen.length) hub?.sende({ typ: "zone.geaendert", bereich: "zonen", auchFuer: ["anzeige", "packen"] });
   return zuweisungen;
 }
 
@@ -80,7 +80,7 @@ export function zonenModul(router) {
     const projektId = idParam(ctx.body?.projekt, "Dieses Projekt");
     const r = await transaktion(ctx.pool, (c) => weiseZu(c, projektId, zoneId));
     if (r.nichts) return { ok: true, level: "info", text: `${r.p.nummer} ist schon in ${r.z.bezeichnung}.` };
-    ctx.hub?.sende({ typ: "zone.geaendert", id: zoneId, alt: r.alt, projekt: projektId, bereich: "zonen" });
+    ctx.hub?.sende({ typ: "zone.geaendert", id: zoneId, alt: r.alt, projekt: projektId, bereich: "zonen", auchFuer: ["anzeige", "packen"] });
     return { ok: true, level: "success", text: `${r.p.nummer} ist jetzt in ${r.z.bezeichnung}${r.alt ? " (vorherige Zone frei)" : ""}.` };
   });
   // R-57 Freigeben
@@ -89,7 +89,7 @@ export function zonenModul(router) {
     const { rows: [p] } = await ctx.pool.query(`UPDATE projekt n SET ladezone_id = NULL, zone_seit = NULL, version = n.version + 1 FROM projekt a
       WHERE n.id = a.id AND n.id = $1 RETURNING n.nummer, a.ladezone_id AS alt`, [id]);
     if (!p) throw nichtGefunden("Dieses Projekt");
-    if (p.alt) ctx.hub?.sende({ typ: "zone.geaendert", id: p.alt, projekt: id, bereich: "zonen" });
+    if (p.alt) ctx.hub?.sende({ typ: "zone.geaendert", id: p.alt, projekt: id, bereich: "zonen", auchFuer: ["anzeige", "packen"] });
     return { ok: true, level: "success", text: p.alt ? `Ladezone von ${p.nummer} freigegeben.` : `${p.nummer} hatte keine Ladezone.` };
   });
   // R-58 per Knopf
@@ -122,7 +122,7 @@ export function zonenModul(router) {
         : await ctx.pool.query("INSERT INTO ladezone (bezeichnung, flaeche_m2, plaetze, beschreibung, aktiv, reihenfolge) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id",
           [w.bezeichnung, w.flaeche_m2, w.plaetze, w.beschreibung, w.aktiv, w.reihenfolge]);
       if (!z) throw nichtGefunden("Diese Ladezone");
-      ctx.hub?.sende({ typ: "zone.geaendert", id: z.id, bereich: "zonen" });
+      ctx.hub?.sende({ typ: "zone.geaendert", id: z.id, bereich: "zonen", auchFuer: ["anzeige", "packen"] });
       return { ok: true, level: "success", id: z.id, text: id ? "Ladezone gespeichert." : `Ladezone ${w.bezeichnung} angelegt.` };
     } catch (e) {
       throw dbFehler(e, { doppelt: `Eine Ladezone „${w.bezeichnung}“ gibt es schon. Wähle einen anderen Namen.` });
@@ -134,7 +134,7 @@ export function zonenModul(router) {
     const id = idParam(ctx.params.id, "Diese Ladezone");
     const { rows: [z] } = await ctx.pool.query("DELETE FROM ladezone WHERE id = $1 RETURNING bezeichnung", [id]);
     if (!z) throw nichtGefunden("Diese Ladezone");
-    ctx.hub?.sende({ typ: "zone.geaendert", id, bereich: "zonen" });
+    ctx.hub?.sende({ typ: "zone.geaendert", id, bereich: "zonen", auchFuer: ["anzeige", "packen"] });
     return { ok: true, level: "success", text: `Ladezone ${z.bezeichnung} gelöscht. Ihre Projekte haben jetzt keine Zone.` };
   });
 }

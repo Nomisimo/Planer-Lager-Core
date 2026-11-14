@@ -261,7 +261,7 @@ export function scanModul(router) {
     });
     ctx.hub?.sende({ typ: "projekt.geaendert", id, bereich: "projekte" });
     ctx.hub?.sende({ typ: "packen.geaendert", projekt: id, bereich: "packen" });
-    if (r.p.ladezone_id) ctx.hub?.sende({ typ: "zone.geaendert", id: r.p.ladezone_id, bereich: "zonen" });
+    if (r.p.ladezone_id) ctx.hub?.sende({ typ: "zone.geaendert", id: r.p.ladezone_id, bereich: "zonen", auchFuer: ["anzeige", "packen"] });
     return { ok: true, level: "success", status: r.status,
       text: `${r.p.nummer} verladen${r.p.ladezone_id ? ", Ladezone frei" : ""}${r.status === "laeuft" ? ", Status „Läuft“" : ""}.` };
   });

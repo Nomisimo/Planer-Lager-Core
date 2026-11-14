@@ -1,0 +1,56 @@
+name: CI
+on:
+  push: { branches: [main] }
+  pull_request:
+  workflow_dispatch:
+env:
+  TZ: Europe/Berlin
+  DATABASE_URL: postgres://lager:lager@localhost:5432/lager_test
+jobs:
+  unit-api:
+    runs-on: ubuntu-24.04
+    services:
+      postgres:
+        image: postgres:16
+        env: { POSTGRES_USER: lager, POSTGRES_PASSWORD: lager, POSTGRES_DB: lager_test }
+        ports: ["5432:5432"]
+        options: --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - run: npx --yes eslint@10 --no-error-on-unmatched-pattern packages scripts e2e
+      - run: npm test
+      - run: npm run spec:abdeckung || true
+  e2e:
+    runs-on: ubuntu-24.04
+    needs: unit-api
+    services:
+      postgres:
+        image: postgres:16
+        env: { POSTGRES_USER: lager, POSTGRES_PASSWORD: lager, POSTGRES_DB: lager_test }
+        ports: ["5432:5432"]
+        options: --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+        with: { path: Planer-Lager-Core }
+      # Private Repos brauchen ein Token mit Lesezugriff (Secret LAGER_REPO_TOKEN), sonst reicht GITHUB_TOKEN nicht.
+      - uses: actions/checkout@v4
+        with: { repository: Nomisimo/Materialplaner, path: Materialplaner, token: "${{ secrets.LAGER_REPO_TOKEN || github.token }}" }
+      - uses: actions/checkout@v4
+        with: { repository: Nomisimo/Productionplaner, path: Productionplaner, token: "${{ secrets.LAGER_REPO_TOKEN || github.token }}" }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq xvfb libnss3 libatk-bridge2.0-0t64 libgtk-3-0t64 libgbm1 libasound2t64
+      - run: npm ci && npm i -g playwright@1.63.0
+        working-directory: Planer-Lager-Core
+      - run: npm ci
+        working-directory: Materialplaner
+      - run: npm ci
+        working-directory: Productionplaner
+      - run: npm run e2e
+        working-directory: Planer-Lager-Core
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: e2e-artefakte, path: Planer-Lager-Core/e2e/artefakte }

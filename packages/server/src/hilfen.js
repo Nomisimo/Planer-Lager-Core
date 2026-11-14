@@ -33,6 +33,7 @@ export function dbFehler(e, texte = {}) {
   if (e instanceof HttpFehler) return e;
   if (e.code === "23505") return fehler(409, texte.doppelt || "Diesen Eintrag gibt es schon. Wähle einen anderen Namen.");
   if (e.code === "23503") return fehler(409, texte.verknuepft || "Der Eintrag wird noch verwendet und kann nicht gelöscht werden. Entferne zuerst die Verknüpfungen.");
+  if (e.code === "23502") return fehler(400, texte.pflicht || "Ein Pflichtfeld fehlt. Prüfe die markierten Eingaben.");
   if (e.code === "23514") return fehler(400, texte.ungueltig || "Ein Wert ist ungültig. Prüfe die Eingaben.");
   return e;
 }

@@ -9,3 +9,4 @@ export * from "./codes.js";
 export * from "./artikel.js";
 export * from "./geraet.js";
 export * from "./pruefung.js";
+export * from "./geld.js";

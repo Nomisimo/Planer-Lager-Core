@@ -31,8 +31,8 @@ Hinter `[x]` kurz notieren: Datum, Repo(s), Testdatei(en). Max. 1 Zeile.
 - [x] C: Artikel 3.7 inkl. Artikeltyp-Ableitung — 14.11., C, domain/geraet.test.js, server/stammdaten.test.js
 - [x] C: Gerät 3.8, Codes R-21, Normalisierung R-22, Bewegung 3.9, R-16, R-17, R-18, R-19 (IST), R-30 (= R-18, D-15) — 14.11., C, domain/codes+geraet.test.js, server/stammdaten.test.js (R-19 SOLL gleich mit, D-37)
 - [x] C: Prüfstatus 5.10 (Monatsende!) — 14.11., C, domain/geraet.test.js, server/stammdaten.test.js
-- [ ] M: FA-01 Materialliste, FA-02 Artikel anlegen/bearbeiten/löschen, R-71, R-72
-- [ ] M: FA-03 Geräteliste + Detail, FA-04 Verbrauchsbestand, FA-05 Reservierungen je Artikel
+- [x] M: FA-01 Materialliste, FA-02 Artikel anlegen/bearbeiten/löschen, R-71, R-72 — 14.11., C+M, e2e/material.test.js (R-72 „bestellen“ folgt mit R-67 in Phase 3)
+- [x] M: FA-03 Geräteliste + Detail, FA-04 Verbrauchsbestand, FA-05 Reservierungen je Artikel — 14.11., C+M, e2e/material.test.js (FA-05-Daten kommen mit Verfügbarkeit Phase 5, Anzeige vorbereitet)
 - [ ] C+P: Kunde 3.1, FA-26 (IST-Teil), FA-27 PDF-Formular + Import mit Dublettenprüfung, Adresssuche (gemockt im Test)
 
 ## Phase 3 – Etiketten

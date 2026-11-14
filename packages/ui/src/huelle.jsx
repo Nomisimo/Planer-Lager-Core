@@ -294,3 +294,15 @@ export function ZugriffVerweigert({ rolle }) {
     </Seite>
   );
 }
+
+/** Lädt bei Live-Ereignissen des Präfixes neu (ohne Neuladen der Seite). */
+export function useLive(praefix, fn) {
+  const { live } = useLager() || {};
+  const ref = useRef(fn);
+  ref.current = fn;
+  useEffect(() => {
+    if (!live) return;
+    const ab = [].concat(praefix).map((p) => live.on(p, (e) => ref.current(e)));
+    return () => ab.forEach((f) => f());
+  }, [live, String(praefix)]);
+}

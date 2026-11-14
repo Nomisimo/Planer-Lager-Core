@@ -48,7 +48,10 @@ export async function legeGeraeteAn(c, artikelId, anzahl, w = {}) {
   return { codes, ids };
 }
 
-const nurFelder = (body, felder) => Object.fromEntries(felder.filter((f) => body && f in body).map((f) => [f, body[f] === "" ? null : body[f]]));
+const TEXT_PFLICHT = new Set(["hersteller", "beschreibung", "einheit", "plansymbol", "farbcode", "seriennummer", "alte_pruef_id", "notizen"]);
+/** Nimmt nur bekannte Felder; leere Eingaben werden NULL, bei Textfeldern ohne NULL leerer Text. */
+const nurFelder = (body, felder) => Object.fromEntries(felder.filter((f) => body && f in body)
+  .map((f) => [f, body[f] === "" || body[f] == null ? (TEXT_PFLICHT.has(f) ? "" : null) : body[f]]));
 
 export function stammdatenModul(router) {
   const M = { bereich: "material" }, G = { bereich: "geraete" }, P = { bereich: "packen" };

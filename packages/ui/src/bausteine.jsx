@@ -3,6 +3,7 @@ import React, { useEffect, useRef, useState, useId, useCallback } from "react";
 import { ICONS } from "./icons.js";
 import { RUECKMELDUNG, stufeVon, fehlerText } from "./texte.js";
 import { einmalig } from "./formular.js";
+import { euro, centAusText } from "@lager/domain/geld.js";
 
 export const Icon = ({ name, size = 16, ...p }) => { const C = ICONS[name] || ICONS.Circle; return <C size={size} aria-hidden="true" {...p} />; };
 
@@ -174,3 +175,13 @@ export function useFormular(start) {
   };
   return { werte, setWerte, setze, fehler, setFehler, meldung, setMeldung, absenden };
 }
+
+/** Geld-Eingabe: zeigt Euro, liefert Cent (Integer) oder null. */
+export function GeldEingabe({ cent, onCent, ...p }) {
+  const [text, setText] = useState(cent == null ? "" : euroOhne(cent));
+  useEffect(() => { setText((t) => (centAusText(t) === cent ? t : cent == null ? "" : euroOhne(cent))); }, [cent]);
+  return <input className="lp-input" inputMode="decimal" {...p} value={text}
+    onChange={(e) => { setText(e.target.value); const c = centAusText(e.target.value); onCent(e.target.value.trim() === "" ? null : c ?? NaN); }}
+    onBlur={() => { const c = centAusText(text); if (c != null) setText(euroOhne(c)); }} />;
+}
+const euroOhne = (c) => euro(c, { symbol: false });

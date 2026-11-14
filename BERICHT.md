@@ -11,6 +11,12 @@ Bekannte Fehler/Grenzen: <…>
 Annahmen: D-xx, D-yy
 ```
 
+## Phase 12 – Nahtlos (App-übergreifend) – 14.11.2026
+Gebaut: Projektseite in P zeigt Lager-Stand (Ladezone / verladen) live (D-91); Projekt-Detail liefert den Ladezonen-Namen.
+Geprüft: E2E e2e/nahtlos.test.js mit beiden Apps gleichzeitig: INT-02 Angebot in P annehmen → Packliste in M ohne Neuladen; INT-03 Packen + Verladen in M → P zeigt „Läuft“, Zone frei, „2 / 2“ gepackt; INT-04 Codefeld in P (Gerät) öffnet M beim Gerät mit Handoff, Codefeld in M (Projekt) öffnet P; INT-05 Netzwerk-Scanner bucht am Arbeitsplatz-Web (Browser), M-Geräteseite und P-Projektseite aktualisieren sich; INT-06 5 Scans offline, wiederverbinden → alle gebucht in Erfassungsreihenfolge, P zeigt „5 / 5“. INT-01 seit Phase 1. Unit+API alle grün (N+1-Zählung im Leistungstest jetzt stabil auf Client-Ebene).
+Nicht geprüft: Deep-Link in eine bereits laufende zweite App-Instanz auf echtem macOS/Windows (im Test wird die Ziel-App mit dem Link gestartet); echter Netzwerk-Scanner (per HTTP simuliert).
+Annahmen: D-91
+
 ## Phase 11 – Cloud-Betrieb, Offline, Leistung – 14.11.2026
 Gebaut: Server-Image (Dockerfile) und deploy/ mit Caddy (HTTPS, Let's Encrypt), Server, PostgreSQL 16, Healthcheck, Betriebsanleitung deploy/BETRIEB.md (FA-56, NFA-01/02: HSTS, Secure-Cookies, erlaubte Hostnamen); verschlüsselte Sicherungen AES-256-GCM mit BACKUP_SCHLUESSEL (NFA-04); FA-22 Offline-Puffer für Scans (localStorage, Anzeige „n Scans warten“, Nachbuchen in Reihenfolge, Server bucht jede Offline-ID nur einmal); NFA-05 Testdaten groß (`npm run seed -- --gross`) und Leistungstest; NFA-06 Integritätstests auf Datenbankebene; NFA-07/08 Prüfung Fachcode-Trennung, Tests ohne Netz (Netzsperre in `npm test`); NFA-09 Browser-Ziele für das Arbeitsplatz-Web.
 Geprüft: Docker-Image gebaut und im Container gestartet (/health ok); Unit+API alle grün (neu: leistung, integritaet, testbarkeit, station-web browser, FA-22 im Scan-Test, NFA-02/NFA-04); E2E offline grün. Messwerte bei 5.000 Geräten / 500 Projekten (Server-Antwort, Test-Container): alle Haupt-Endpunkte 3–20 ms mit 2–16 Abfragen, Scan unter 40 ms; Seitenaufruf in der App (Klick bis Tabelle) 58–92 ms. Sitzungs-Cookie im Netz mit Secure/HttpOnly/SameSite geprüft.

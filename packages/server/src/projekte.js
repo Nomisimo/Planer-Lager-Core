@@ -114,7 +114,7 @@ async function detail(db, p) {
     jobs: jobs.rows, aufgaben: aufgaben.rows, dateien: dateien.rows, angebote: angebote.rows, zeiten: [],
   };
 }
-const ladeProjekt = async (db, where, wert) => (await db.query(`SELECT p.*, k.name AS kunde, k.firma AS kunde_firma FROM projekt p JOIN kunde k ON k.id = p.kunde_id WHERE ${where}`, [wert])).rows[0];
+const ladeProjekt = async (db, where, wert) => (await db.query(`SELECT p.*, k.name AS kunde, k.firma AS kunde_firma, z.bezeichnung AS ladezone FROM projekt p JOIN kunde k ON k.id = p.kunde_id LEFT JOIN ladezone z ON z.id = p.ladezone_id WHERE ${where}`, [wert])).rows[0];
 
 export function projekteModul(router) {
   router.get("/api/v1/projekte/gewerke", { ...P, stufe: "r" }, async () => ({ gewerke: GEWERKE, status: PROJEKT_STATUS }));

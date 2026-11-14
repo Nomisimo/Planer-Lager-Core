@@ -3,6 +3,7 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import { starteTestServer } from "./helfer.js";
+import pg from "pg";
 import { seed, GROSS } from "../src/seed.js";
 
 let s, admin, abfragen = 0;
@@ -14,9 +15,9 @@ before(async () => {
   assert.equal(n.geraete, 5000);
   assert.equal(n.projekte, 500);
   // Zähler für alle Abfragen über den Pool, auch in Transaktionen
-  const pq = s.db.pool.query.bind(s.db.pool);
-  s.db.pool.query = (...a) => { abfragen++; return pq(...a); };
-  s.db.pool.on("connect", (c) => { const cq = c.query.bind(c); c.query = (...a) => { abfragen++; return cq(...a); }; });
+  // Auf Client-Ebene zählen: dort landet jede Abfrage genau einmal (pool.query reicht an client.query weiter).
+  const cq = pg.Client.prototype.query;
+  pg.Client.prototype.query = function (...a) { abfragen++; return cq.apply(this, a); };
   admin = await s.als("chef");
   await s.db.pool.query("ANALYZE");
 });
@@ -24,12 +25,12 @@ after(() => s?.ende());
 
 /** Misst einen Aufruf (bester von 3 Läufen gegen Ausreißer im Test-Container) und zählt die Abfragen. */
 async function miss(methode, pfad, body) {
-  let best = Infinity, n = 0, r;
+  let best = Infinity, n = Infinity, r;
   for (let i = 0; i < 3; i++) {
     const vor = abfragen, t = performance.now();
     r = await admin(methode, pfad, body);
     best = Math.min(best, performance.now() - t);
-    n = abfragen - vor;
+    n = Math.min(n, abfragen - vor); // Minimum: Sitzungs-Verlängerung u. ä. fallen nur gelegentlich an
   }
   assert.ok(r.status < 300, `${pfad}: ${r.status} ${r.text.slice(0, 200)}`);
   return { ms: Math.round(best), abfragen: n, json: r.json };
@@ -65,12 +66,16 @@ test("NFA-05 Listen und Seiten antworten bei 5.000 Geräten / 500 Projekten unte
 });
 
 test("NFA-05 kein N+1: Abfragen je Angebot/Packliste/Projekt hängen nicht von der Zahl der Positionen ab", async () => {
-  const { rows: [gross, klein] } = await s.db.pool.query("SELECT an.id, an.projekt_id FROM angebot an ORDER BY an.id LIMIT 2");
-  await s.db.pool.query("DELETE FROM angebot_position WHERE angebot_id = $1 AND pos > 2", [klein.id]);
-  for (const pfad of ["/api/v1/angebote/:a", "/api/v1/angebote/:a/packliste", "/api/v1/projekte/:p", "/api/v1/projekte/:p/packstatus"]) {
-    const zaehle = async (x) => (await miss("GET", pfad.replace(":a", x.id).replace(":p", x.projekt_id))).abfragen;
-    const viele = await zaehle(gross), wenige = await zaehle(klein);
-    assert.equal(viele, wenige, `${pfad}: ${viele} Abfragen bei 12 Positionen, ${wenige} bei 2`);
+  // Gleiches Angebot vor und nach dem Kürzen auf 2 Positionen: andere Projektmerkmale spielen so keine Rolle.
+  const { rows: [an] } = await s.db.pool.query("SELECT id, projekt_id FROM angebot ORDER BY id LIMIT 1");
+  const pfade = ["/api/v1/angebote/:a", "/api/v1/angebote/:a/packliste", "/api/v1/projekte/:p", "/api/v1/projekte/:p/packstatus"];
+  const zaehle = async (pfad) => (await miss("GET", pfad.replace(":a", an.id).replace(":p", an.projekt_id))).abfragen;
+  const viele = [];
+  for (const pfad of pfade) viele.push(await zaehle(pfad));
+  await s.db.pool.query("DELETE FROM angebot_position WHERE angebot_id = $1 AND pos > 2", [an.id]);
+  for (const [i, pfad] of pfade.entries()) {
+    const wenige = await zaehle(pfad);
+    assert.equal(viele[i], wenige, `${pfad}: ${viele[i]} Abfragen bei 12 Positionen, ${wenige} bei 2`);
   }
 });
 

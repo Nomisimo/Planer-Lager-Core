@@ -105,11 +105,11 @@ Hinter `[x]` kurz notieren: Datum, Repo(s), Testdatei(en). Max. 1 Zeile.
 
 ## Phase 12 – Nahtlos (App-übergreifende E2E)
 - [x] INT-01 Login in P, Wechsel nach M ohne erneute Anmeldung — 14.11., e2e/huelle.test.js
-- [ ] INT-02 Angebot in P annehmen → Packliste in M erscheint live ohne Neuladen
-- [ ] INT-03 Packen + Verladen in M → P zeigt „Läuft“ + Zone frei live
-- [ ] INT-04 Codefeld in P mit Gerätecode → öffnet M beim Gerät; Codefeld in M mit Projektcode → öffnet P
-- [ ] INT-05 Netzwerk-Scanner bucht → Arbeitsplatz-Web + M + P aktualisieren sich
-- [ ] INT-06 Offline: Verbindung trennen, 5 Scans, wiederverbinden → alle gebucht, Reihenfolge stimmt
+- [x] INT-02 Angebot in P annehmen → Packliste in M erscheint live ohne Neuladen — 14.11., e2e/nahtlos.test.js
+- [x] INT-03 Packen + Verladen in M → P zeigt „Läuft“ + Zone frei live — 14.11., e2e/nahtlos.test.js
+- [x] INT-04 Codefeld in P mit Gerätecode → öffnet M beim Gerät; Codefeld in M mit Projektcode → öffnet P — 14.11., e2e/nahtlos.test.js
+- [x] INT-05 Netzwerk-Scanner bucht → Arbeitsplatz-Web + M + P aktualisieren sich — 14.11., e2e/nahtlos.test.js
+- [x] INT-06 Offline: Verbindung trennen, 5 Scans, wiederverbinden → alle gebucht, Reihenfolge stimmt — 14.11., e2e/nahtlos.test.js
 
 ## Phase 13 – SOLL P2
 - [ ] FA-06 Inventur (M) · [ ] FA-07 Reparatur/Wartung (M) · [ ] FA-20 Teilrückgabe/Nachpacken (M)

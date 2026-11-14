@@ -134,9 +134,12 @@ test("WEB-03 WEB-13 Änderung im Browser-Productionplaner erscheint live im Desk
     await m.win.getByTestId("online-status").getByText("Online").waitFor();
     await seite.goto(`${s.url}/productionplaner/#/projekte/${p.id}/bearbeiten`);
     await seite.waitForFunction(() => [...document.querySelectorAll("input")].some((i) => i.value === "Stadtfest"));
-    await seite.getByLabel(/^Name/).first().fill("Stadtfest Nord");
+    const name = seite.getByRole("textbox", { name: /^Name/ }).first();
+    await name.fill("Stadtfest Nord");
+    await warteBis(async () => (await name.inputValue()) === "Stadtfest Nord");
     await seite.getByRole("button", { name: "Speichern" }).click();
-    await warteBis(async () => (await s.db.pool.query("SELECT name FROM projekt WHERE id = $1", [p.id])).rows[0].name === "Stadtfest Nord");
+    await warteBis(async () => (await s.db.pool.query("SELECT name FROM projekt WHERE id = $1", [p.id])).rows[0].name === "Stadtfest Nord", { timeout: 15000 })
+      .catch(async () => { await screenshot(seite, "WEB-03-speichern-fehler"); throw new Error(`Speichern im Browser kam nicht an. Sichtbar: ${(await seite.locator("[role=alert], .lp-meldung").allInnerTexts()).join(" | ")} · Adresse ${seite.url()}`); });
     await m.win.getByText("Stadtfest Nord").first().waitFor({ timeout: 10000 });
     await screenshot(m.win, "WEB-03-live-desktop");
   } finally { await b.ende(); await m.ende(); await s.ende(); fs.rmSync(web, { recursive: true, force: true }); }

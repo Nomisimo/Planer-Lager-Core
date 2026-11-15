@@ -2,6 +2,8 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fehler } from "./hilfen.js";
+import { beispielStand, loescheBeispiel } from "./beispiel.js";
+import { transaktion } from "@lager/db";
 import { protokolliere, clientIp } from "./sicherheit.js";
 import { ladeEinstellungen } from "./verwaltung.js";
 import { erstelleSicherung, listeSicherungen, pruefeSicherung, stelleWiederHer, gueltigerName, sicherungsOrdner, datenOrdner, AUTO_STUNDEN } from "./sicherung.js";
@@ -118,9 +120,18 @@ export function systemModul(router) {
   router.get("/api/v1/verwaltung/system", V, async (ctx) => ({
     wartung: ctx.config.wartung || { aktiv: false, text: "" }, neustart: !!ctx.config.neustartErlaubt,
     laeuft_seit: new Date(Date.now() - process.uptime() * 1000).toISOString(), node: process.version,
-    clients: ctx.hub?.clients?.size ?? null,
+    clients: ctx.hub?.clients?.size ?? null, beispiel: await beispielStand(ctx.pool),
   }));
-  router.put("/api/v1/verwaltung/system/wartung", V, async (ctx) => {
+  // Demo-Daten (Phase 17): gesammelt löschen, samt Verlauf; eigene Daten bleiben unberührt (sonst Abbruch mit Erklärung)
+  router.post("/api/v1/verwaltung/system/beispiel-loeschen", V, async (ctx) => {
+    let n;
+    try { n = await transaktion(ctx.pool, (c) => loescheBeispiel(c)); }
+    catch (e) { if (e.status === 409) throw fehler(409, e.message); throw e; }
+    await protokolliere(ctx.pool, "aktion", { benutzer: ctx.nutzer.benutzername, ip: clientIp(ctx), text: `Beispieldaten gelöscht (${n} Einträge)` });
+    ctx.hub?.sende({ typ: "system.beispiel", bereich: "start" });
+    return { ok: true, level: "success", text: `Beispieldaten gelöscht (${n} Einträge). Eigene Daten sind unverändert.` };
+  });
+  router.put("/api/v1/verwaltung/system/wartung", { ...V, ohneVersion: "Schalter an/aus, kein Formular" }, async (ctx) => {
     const aktiv = !!ctx.body?.aktiv;
     const text = String(ctx.body?.text || "").trim().slice(0, 300);
     ctx.config.wartung = { aktiv, text };

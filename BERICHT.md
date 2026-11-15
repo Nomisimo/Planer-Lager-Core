@@ -20,6 +20,13 @@ Funde der Erkundung:
 - Stolpersteine behoben: Scan-Karte ohne „·“ vor der Uhrzeit, Fehltext bei unbekanntem Code nennt den Menüweg statt „im Materialplaner“, nach dem Verladen nur noch eine Erfolgsmeldung, Packplatz ohne Ladezone verweist auf Material & Lager → Ladezonen, Sicherheits-Check erklärt NODE_ENV für Nicht-Techniker.
 - Offen (beobachtet, nicht nachgestellt): Angebotsposition schien nach Browser-Zurück verloren; wird in Phase 17 mit GLEICH (Eingaben behalten) und NUTZER-01 gezielt geprüft.
 Nicht geprüft: Docker-Image nur in der CI gebaut (VM ohne Docker-Dienst); Safari/Firefox selbst.
+
+## Phase 17 – Gleichzeitig arbeiten (GLEICH), Zwischenstand – 15.11.2026
+Gebaut: GLEICH-01 bis GLEICH-07. Fassung (`version`) an 27 Tabellen per Trigger, jede PUT/PATCH-Route verlangt sie (Route-Registry-Test), 409 mit Name/Uhrzeit und `aktuell`, Vergleich „Deine Werte | Aktuelle Werte“, Änderungsband, „wurde von <Name> gelöscht“ im Formular und in der Packansicht, Hinweis in M bei Angebotsänderung, Präsenz-Chips im Projektkopf (P-Projekt, P-Angebot, M-Packen).
+Geprüft: Server 137 + GLEICH-Tests grün, E2E gleich.test.js (3 Tests: P-Desktop + P-Browser, M + P Desktop, M + P + Browser mit demselben Nutzer).
+Funde:
+- BUG-3 Zwei gleichzeitige Scans desselben Geräts: der abgewiesene Scan meldete „ist bereits in Projekt null null“. Ursache: Nach dem Warten auf die Zeilensperre prüft PostgreSQL nur die Gerätezeile neu, das mitgejointe Projekt blieb leer. Behoben: Projekt per Unterabfrage. Roter Test GLEICH-03 zuerst.
+Annahmen: D-118, D-119, D-120
 Annahmen: D-114, D-115, D-116
 
 ## Phase 15 – Abschluss – 14.11.2026

@@ -1,6 +1,7 @@
 // FA-28 Ansprechpartner je Kunde und Kundenhistorie (Kommunikation, Notizen mit Zeit/Person).
 import { transaktion } from "@lager/db";
 import { fehler, nichtGefunden, idParam } from "./hilfen.js";
+import { sichereFassung } from "./fassung.js";
 
 const K = { bereich: "kunden" };
 export const HISTORIE_ARTEN = Object.freeze({ notiz: "Notiz", telefon: "Telefonat", email: "E-Mail", treffen: "Treffen" });
@@ -38,6 +39,7 @@ export function kontakteModul(router) {
     return { ok: true, level: "success", id: r.id, text: `Ansprechpartner ${w.name} angelegt.` };
   });
   router.put("/api/v1/kontakte/:id", K, async (ctx) => {
+    await sichereFassung(ctx, ctx.pool, "kunde_kontakt", Number(ctx.params.id), { was: "Der Ansprechpartner" });
     const id = idParam(ctx.params.id, "Dieser Ansprechpartner");
     const w = pruefeKontakt(ctx.body);
     const kundeId = await transaktion(ctx.pool, async (c) => {

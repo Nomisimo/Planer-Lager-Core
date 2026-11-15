@@ -16,6 +16,7 @@ export class Hub {
     this.zaehler = 0;
     this.ping = setInterval(() => {
       for (const ws of this.clients) { if (ws.lebt === false) { ws.terminate(); continue; } ws.lebt = false; ws.ping(); }
+      this.pruefePraesenz();
     }, 30_000);
     this.ping.unref();
   }
@@ -49,9 +50,33 @@ export class Hub {
       kette = kette.then(async () => {
         if (m.typ === "anmelden" && !ws.nutzer) await anmelden(m.token);
         else if (m.typ === "abo" && ws.nutzer && m.daten && typeof m.daten === "object") ws.extra = { ...(ws.extra || {}), ...m.daten }; // z. B. {arbeitsplatz: 3}
+        else if (m.typ === "praesenz" && ws.nutzer) this.setzePraesenz(ws, m);
       }).catch(() => {});
     });
-    ws.on("close", () => { clearTimeout(frist); this.clients.delete(ws); });
+    ws.on("close", () => { clearTimeout(frist); this.clients.delete(ws); if (ws.praesenz) { const o = ws.praesenz.ort; ws.praesenz = null; this.meldePraesenz(o); } });
+  }
+
+  /** GLEICH-06: wer ist gerade wo (Projektkopf). ort z. B. "projekt:5"; app "m"/"p"/"web". */
+  setzePraesenz(ws, m) {
+    const ort = typeof m.ort === "string" && /^[a-z]+:\d+$/.test(m.ort) ? m.ort : null;
+    const vorher = ws.praesenz?.ort || null;
+    ws.praesenz = ort ? { ort, app: String(m.app || "").slice(0, 20), zeit: Date.now() } : null;
+    if (vorher && vorher !== ort) this.meldePraesenz(vorher);
+    if (ort && vorher !== ort) this.meldePraesenz(ort);
+  }
+
+  /** GLEICH-06: Präsenz ohne Erneuerung seit 30 s verfällt (läuft im 30-s-Takt des Hubs). */
+  pruefePraesenz() {
+    for (const ws of this.clients) if (ws.praesenz && Date.now() - ws.praesenz.zeit > 30_000) { const o = ws.praesenz.ort; ws.praesenz = null; this.meldePraesenz(o); }
+  }
+
+  /** Schickt jedem Client am Ort die Liste der anderen Anwesenden (ohne die eigene Verbindung). */
+  meldePraesenz(ort) {
+    const da = [...this.clients].filter((c) => c.praesenz?.ort === ort && c.readyState === 1);
+    for (const ws of da) {
+      const wer = da.filter((c) => c !== ws).map((c) => ({ name: c.nutzer.name || c.nutzer.benutzername, benutzer: c.nutzer.benutzername, app: c.praesenz.app, ich: c.nutzer.id === ws.nutzer.id }));
+      ws.send(JSON.stringify({ typ: "praesenz.geaendert", ort, wer, nr: ++this.zaehler }));
+    }
   }
 
   /**

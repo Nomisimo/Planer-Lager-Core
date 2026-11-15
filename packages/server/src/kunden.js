@@ -4,6 +4,7 @@ import { KUNDE_FELDER, pruefeKunde, dubletten, loeschbarkeit, anonymisiert, FRIS
 import { transaktion } from "@lager/db";
 import { fehler, nichtGefunden, seite, idParam, dbFehler } from "./hilfen.js";
 import { HttpFehler } from "./router.js";
+import { sichereFassung } from "./fassung.js";
 import { protokolliere, clientIp } from "./sicherheit.js";
 
 const K = { bereich: "kunden" };
@@ -128,14 +129,11 @@ export function kundenModul(router) {
     const w = sauber(ctx.body);
     const f = pruefeKunde(w);
     if (Object.keys(f).length) throw fehler(400, "Bitte prüfe die markierten Felder.", { felder: f });
-    const { rows: [k] } = await ctx.pool.query(`UPDATE kunde SET ${KUNDE_FELDER.map((x, i) => `${x} = $${i + 1}`).join(", ")}, version = version + 1
-      WHERE id = $${KUNDE_FELDER.length + 1} AND ($${KUNDE_FELDER.length + 2}::int IS NULL OR version = $${KUNDE_FELDER.length + 2}) RETURNING *`,
-    [...KUNDE_FELDER.map((x) => w[x]), id, ctx.body?.version ?? null]);
-    if (!k) {
-      const da = (await ctx.pool.query("SELECT 1 FROM kunde WHERE id = $1", [id])).rows.length;
-      if (!da) throw nichtGefunden("Diesen Kunden");
-      throw fehler(409, "Jemand anderes hat diesen Kunden inzwischen geändert. Lade die Seite neu und trage deine Änderung erneut ein.");
-    }
+    const k = await transaktion(ctx.pool, async (c) => {
+      await sichereFassung(ctx, c, "kunde", id, { was: "Der Kunde" });
+      return (await c.query(`UPDATE kunde SET ${KUNDE_FELDER.map((x, i) => `${x} = $${i + 1}`).join(", ")} WHERE id = $${KUNDE_FELDER.length + 1} RETURNING *`,
+        [...KUNDE_FELDER.map((x) => w[x]), id])).rows[0];
+    });
     ctx.hub?.sende({ typ: "kunde.geaendert", id, version: k.version, bereich: "kunden" });
     return { ok: true, level: "success", text: "Gespeichert.", kunde: k };
   });
@@ -199,7 +197,7 @@ export function kundenModul(router) {
       const { rowCount } = await ctx.pool.query("DELETE FROM kunde WHERE id = $1", [id]);
       if (!rowCount) throw nichtGefunden("Diesen Kunden");
     } catch (e) { throw dbFehler(e, { verknuepft: "Dieser Kunde hat Projekte oder Rechnungen und kann nicht gelöscht werden." }); }
-    ctx.hub?.sende({ typ: "kunde.geaendert", id, bereich: "kunden" });
+    ctx.hub?.sende({ typ: "kunde.geaendert", id, bereich: "kunden", geloescht: true });
     return { ok: true, level: "success", text: "Kunde gelöscht." };
   });
 }

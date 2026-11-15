@@ -132,6 +132,8 @@ test("WEB-03 WEB-13 Änderung im Browser-Productionplaner erscheint live im Desk
     await m.win.evaluate((id) => { location.hash = `#/projekte/${id}/packen`; }, p.id);
     await m.win.getByText("Stadtfest").first().waitFor();
     await m.win.getByTestId("online-status").getByText("Online").waitFor();
+    const konsole = sammleFehler(seite); const antworten = [];
+    seite.on("response", (r) => { if (r.url().includes("/api/v1/")) antworten.push(`${r.request().method()} ${new URL(r.url()).pathname} ${r.status()}`); });
     await seite.goto(`${s.url}/productionplaner/#/projekte/${p.id}/bearbeiten`);
     await seite.waitForFunction(() => [...document.querySelectorAll("input")].some((i) => i.value === "Stadtfest"));
     const name = seite.getByRole("textbox", { name: /^Name/ }).first();
@@ -139,7 +141,7 @@ test("WEB-03 WEB-13 Änderung im Browser-Productionplaner erscheint live im Desk
     await warteBis(async () => (await name.inputValue()) === "Stadtfest Nord");
     await seite.getByRole("button", { name: "Speichern" }).click();
     await warteBis(async () => (await s.db.pool.query("SELECT name FROM projekt WHERE id = $1", [p.id])).rows[0].name === "Stadtfest Nord", { timeout: 15000 })
-      .catch(async () => { await screenshot(seite, "WEB-03-speichern-fehler"); throw new Error(`Speichern im Browser kam nicht an. Sichtbar: ${(await seite.locator("[role=alert], .lp-meldung").allInnerTexts()).join(" | ")} · Adresse ${seite.url()}`); });
+      .catch(async () => { await screenshot(seite, "WEB-03-speichern-fehler"); throw new Error(`Speichern im Browser kam nicht an. Sichtbar: ${(await seite.locator("[role=alert], .lp-meldung").allInnerTexts()).join(" | ")} · Adresse ${seite.url()} · Name-Feld ${await name.inputValue().catch(() => "?")} · API ${antworten.slice(-8).join(", ")} · Konsole ${konsole.join(" | ")}`); });
     await m.win.getByText("Stadtfest Nord").first().waitFor({ timeout: 10000 });
     await screenshot(m.win, "WEB-03-live-desktop");
   } finally { await b.ende(); await m.ende(); await s.ende(); fs.rmSync(web, { recursive: true, force: true }); }

@@ -4,6 +4,7 @@ import { normalisiereCode, inventurAbgleich, IM_LAGER_STATUS, INVENTUR_STATUS, R
   reparaturWechselFehler, wartungStatus, STATUS } from "@lager/domain";
 import { datumAnzeige, zeitpunktAnzeige } from "@lager/domain/zeit.js";
 import { fehler, nichtGefunden, idParam, bucheBewegung, wer } from "./hilfen.js";
+import { sichereFassung } from "./fassung.js";
 import { ladeEinstellungen } from "./verwaltung.js";
 import { listenPdf, sendePdf } from "./pdf-liste.js";
 import { speichereBild, sendeBild } from "./bilder.js";
@@ -191,6 +192,7 @@ export function inventurModul(router) {
   }));
 
   router.put("/api/v1/reparaturen/:id", G, async (ctx) => {
+    await sichereFassung(ctx, ctx.pool, "reparatur", Number(ctx.params.id), { was: "Die Reparatur" });
     const id = idParam(ctx.params.id, "Diese Reparatur");
     const b = ctx.body || {};
     const f = {};

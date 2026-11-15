@@ -1,5 +1,6 @@
 // FA-08 Lagerorte/Regalplätze: Liste pflegen, Artikel und Geräte zuordnen, Anzeige beim Packen (Packliste).
 import { fehler, nichtGefunden, idParam } from "./hilfen.js";
+import { sichereFassung } from "./fassung.js";
 
 const M = { bereich: "material" };
 
@@ -55,6 +56,7 @@ export function lagerorteModul(router) {
     } catch (e) { throw doppelt(e, w.name); }
   });
   router.put("/api/v1/lagerorte/:id", M, async (ctx) => {
+    await sichereFassung(ctx, ctx.pool, "lagerort", Number(ctx.params.id), { was: "Der Lagerort" });
     const id = idParam(ctx.params.id, "Dieser Lagerort");
     const w = pruefe(ctx.body);
     try {

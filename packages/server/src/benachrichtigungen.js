@@ -2,6 +2,7 @@
 // Hintergrundlauf (stündlich): Regeln → Aufgaben, Fristen, Prüfungen, Wartung; Überbuchung meldet das Angebot beim Speichern.
 import { darf, istAdminRechte, faelligeRegel, pruefeRegel, rhythmusText, heuteIso } from "@lager/domain";
 import { fehler, nichtGefunden, idParam } from "./hilfen.js";
+import { sichereFassung } from "./fassung.js";
 import { sendeMail } from "./mail.js";
 
 const P = { bereich: "projekte" };
@@ -143,6 +144,7 @@ export function benachrichtigungenModul(router) {
     } catch (e) { throw fkFehler(e); }
   });
   router.put("/api/v1/aufgaben-regeln/:id", P, async (ctx) => {
+    await sichereFassung(ctx, ctx.pool, "aufgabe_regel", Number(ctx.params.id), { was: "Die wiederkehrende Aufgabe" });
     const id = idParam(ctx.params.id, "Diese Regel");
     const w = regelWerte(ctx.body || {});
     try {
@@ -172,7 +174,7 @@ export function benachrichtigungenModul(router) {
     await ctx.pool.query(`UPDATE benachrichtigung SET gelesen = now() WHERE benutzer_id = $1 AND gelesen IS NULL AND ($2::bigint[] IS NULL OR id = ANY($2))`, [ctx.nutzer.id, ids]);
     return { ok: true, level: "success", text: "Als gelesen markiert." };
   });
-  router.put("/api/v1/benachrichtigungen/mail", { bereich: "start" }, async (ctx) => {
+  router.put("/api/v1/benachrichtigungen/mail", { bereich: "start", ohneVersion: "eigener Schalter, nur der Nutzer selbst" }, async (ctx) => {
     const an = ctx.body?.an === true;
     await ctx.pool.query("UPDATE benutzer SET mail_benachrichtigung = $1 WHERE id = $2", [an, ctx.nutzer.id]);
     return { ok: true, level: "success", text: an ? "Du bekommst Benachrichtigungen auch per E-Mail." : "Keine E-Mails mehr, nur noch hier in der App." };

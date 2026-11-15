@@ -3,6 +3,7 @@ import { transaktion } from "@lager/db";
 import { wendeArtAn, artVon, praefixVorschlag, praefixGueltig, normalisiereCode, pruefeArtikel, artikeltyp,
   bestandNiedrig, uebergangErlaubt, aktionText, loeschSperre, STATUS, MANUELLER_STATUS, pruefstatus } from "@lager/domain";
 import { fehler, nichtGefunden, seite, idParam, wer, bucheBewegung, dbFehler, meldeVermisst } from "./hilfen.js";
+import { sichereFassung } from "./fassung.js";
 import { vergibCodes, legeGeraeteAn } from "./geraetecodes.js";
 import { kabelFelder, bestelleEtiketten, offeneBestellung } from "./etiketten.js";
 export { vergibCodes, legeGeraeteAn };
@@ -46,6 +47,7 @@ export function stammdatenModul(router) {
     } catch (e) { throw dbFehler(e, { doppelt: `Name oder Präfix „${praefix}“ ist schon vergeben. Wähle einen anderen.` }); }
   });
   router.put("/api/v1/kategorien/:id", M, async (ctx) => {
+    await sichereFassung(ctx, ctx.pool, "kategorie", Number(ctx.params.id), { was: "Die Kategorie" });
     const id = idParam(ctx.params.id, "Diese Kategorie");
     const name = String(ctx.body?.name || "").trim();
     const praefix = String(ctx.body?.praefix || "").trim().toUpperCase();
@@ -127,11 +129,10 @@ export function stammdatenModul(router) {
     return { ok: true, level: "success", text: `Artikel „${a.name}“ angelegt.`, artikel: a, geraete, bestellung };
   }));
   router.put("/api/v1/artikel/:id", M, async (ctx) => transaktion(ctx.pool, async (c) => {
+    await sichereFassung(ctx, c, "artikel", Number(ctx.params.id), { was: "Der Artikel" });
     const id = idParam(ctx.params.id, "Dieser Artikel");
     const { rows: [alt] } = await c.query("SELECT * FROM artikel WHERE id = $1 FOR UPDATE", [id]);
     if (!alt) throw nichtGefunden("Dieser Artikel");
-    if (ctx.body?.version != null && ctx.body.version !== alt.version)
-      throw fehler(409, "Jemand anderes hat diesen Artikel inzwischen geändert. Lade die Seite neu und trage deine Änderung erneut ein.");
     const roh = { ...alt, ...nurFelder(ctx.body, ARTIKEL_FELDER) };
     const w = wendeArtAn(roh, artVon(roh)); // R-71
     const f = pruefeArtikel(w);
@@ -229,6 +230,7 @@ export function stammdatenModul(router) {
     return geraetDetail(ctx.pool, g);
   });
   router.put("/api/v1/geraete/:id", G, async (ctx) => {
+    await sichereFassung(ctx, ctx.pool, "geraet", Number(ctx.params.id), { was: "Das Gerät" });
     const id = idParam(ctx.params.id, "Dieses Gerät");
     const w = nurFelder(ctx.body, ["seriennummer", "alte_pruef_id", "notizen", "lagerort_id"]);
     const ort = "lagerort_id" in w; // FA-08: eigener Platz, null = Platz des Artikels

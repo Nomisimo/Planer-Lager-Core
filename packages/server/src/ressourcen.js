@@ -3,6 +3,7 @@ import { transaktion } from "@lager/db";
 import { konflikte, icsKalender, ladungsGewicht, PERSONAL_ARTEN } from "@lager/domain";
 import { datumAnzeige, zeitpunktAnzeige } from "@lager/domain/zeit.js";
 import { fehler, nichtGefunden, idParam, dbFehler } from "./hilfen.js";
+import { sichereFassung } from "./fassung.js";
 import { ladeEinstellungen } from "./verwaltung.js";
 import { listenPdf, sendePdf } from "./pdf-liste.js";
 import { ladePackliste } from "./angebote.js";
@@ -76,7 +77,7 @@ export function ressourcenModul(router) {
     } catch (e) { throw dbFehler(e, { doppelt: `${w.name} gibt es schon in der Personalliste.` }); }
   };
   router.post("/api/v1/personal", P, (ctx) => speicherePerson(ctx, null));
-  router.put("/api/v1/personal/:id", P, (ctx) => speicherePerson(ctx, idParam(ctx.params.id, "Diese Person")));
+  router.put("/api/v1/personal/:id", P, async (ctx) => { const id = idParam(ctx.params.id, "Diese Person"); await sichereFassung(ctx, ctx.pool, "personal", id, { was: "Die Person" }); return speicherePerson(ctx, id); });
   router.get("/api/v1/personal/:id", R, async (ctx) => {
     const id = idParam(ctx.params.id, "Diese Person");
     const { rows: [pe] } = await ctx.pool.query("SELECT * FROM personal WHERE id = $1", [id]);
@@ -138,7 +139,7 @@ export function ressourcenModul(router) {
     return { ok: true, level: k.length ? "warning" : "success", id: e.id, konflikte: k, text: `${pe.name} für ${pr.nummer} eingeplant.${k.length ? " Trotz Konflikt eingetragen." : ""}` };
   });
   router.post("/api/v1/einsaetze", P, (ctx) => speichereEinsatz(ctx, null));
-  router.put("/api/v1/einsaetze/:id", P, (ctx) => speichereEinsatz(ctx, idParam(ctx.params.id, "Dieser Einsatz")));
+  router.put("/api/v1/einsaetze/:id", P, async (ctx) => { const id = idParam(ctx.params.id, "Dieser Einsatz"); await sichereFassung(ctx, ctx.pool, "einsatz", id, { was: "Der Einsatz" }); return speichereEinsatz(ctx, id); });
   router.delete("/api/v1/einsaetze/:id", P, async (ctx) => {
     const { rows: [e] } = await ctx.pool.query("DELETE FROM einsatz WHERE id = $1 RETURNING projekt_id", [idParam(ctx.params.id, "Dieser Einsatz")]);
     if (!e) throw nichtGefunden("Dieser Einsatz");
@@ -226,7 +227,7 @@ export function ressourcenModul(router) {
     } catch (e) { throw dbFehler(e, { doppelt: `Ein Fahrzeug „${w.name}“ gibt es schon.` }); }
   };
   router.post("/api/v1/fahrzeuge", P, (ctx) => speichereFahrzeug(ctx, null));
-  router.put("/api/v1/fahrzeuge/:id", P, (ctx) => speichereFahrzeug(ctx, idParam(ctx.params.id, "Dieses Fahrzeug")));
+  router.put("/api/v1/fahrzeuge/:id", P, async (ctx) => { const id = idParam(ctx.params.id, "Dieses Fahrzeug"); await sichereFassung(ctx, ctx.pool, "fahrzeug", id, { was: "Das Fahrzeug" }); return speichereFahrzeug(ctx, id); });
   router.get("/api/v1/fahrzeuge/:id", R, async (ctx) => {
     const id = idParam(ctx.params.id, "Dieses Fahrzeug");
     const { rows: [fz] } = await ctx.pool.query("SELECT * FROM fahrzeug WHERE id = $1", [id]);
@@ -269,7 +270,7 @@ export function ressourcenModul(router) {
     return { ok: true, level: k.length ? "warning" : "success", id: r.id, konflikte: k, text: `Fahrt mit ${fz.name} für ${pr.nummer} eingetragen.${k.length ? " Trotz Konflikt eingetragen." : ""}` };
   });
   router.post("/api/v1/fahrten", P, (ctx) => speichereFahrt(ctx, null));
-  router.put("/api/v1/fahrten/:id", P, (ctx) => speichereFahrt(ctx, idParam(ctx.params.id, "Diese Fahrt")));
+  router.put("/api/v1/fahrten/:id", P, async (ctx) => { const id = idParam(ctx.params.id, "Diese Fahrt"); await sichereFassung(ctx, ctx.pool, "fahrt", id, { was: "Die Fahrt" }); return speichereFahrt(ctx, id); });
   router.delete("/api/v1/fahrten/:id", P, async (ctx) => {
     const { rows: [f] } = await ctx.pool.query("DELETE FROM fahrt WHERE id = $1 RETURNING projekt_id", [idParam(ctx.params.id, "Diese Fahrt")]);
     if (!f) throw nichtGefunden("Diese Fahrt");
@@ -287,7 +288,7 @@ export function ressourcenModul(router) {
     return { ...fa, offen };
   });
   // Ladeliste setzen (vollständig ersetzen) oder den noch offenen Rest der Packliste übernehmen
-  router.put("/api/v1/fahrten/:id/ladung", P, async (ctx) => transaktion(ctx.pool, async (c) => {
+  router.put("/api/v1/fahrten/:id/ladung", { ...P, ohneVersion: "setzt die ganze Ladung neu, gesperrt per FOR UPDATE" }, async (ctx) => transaktion(ctx.pool, async (c) => {
     const id = idParam(ctx.params.id, "Diese Fahrt");
     const { rows: [fa] } = await c.query("SELECT id, projekt_id FROM fahrt WHERE id = $1 FOR UPDATE", [id]);
     if (!fa) throw nichtGefunden("Diese Fahrt");

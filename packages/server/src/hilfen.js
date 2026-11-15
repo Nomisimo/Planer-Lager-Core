@@ -43,8 +43,8 @@ export function dbFehler(e, texte = {}) {
  * Doppelte Meldung (oder Endzustand) ändert nichts → null. Sonst der Gerätecode. `where` ist "g.id = $1" oder "g.code = $1".
  */
 export async function meldeVermisst(c, ctx, where, wert) {
-  const { rows: [g] } = await c.query(`SELECT g.id, g.code, g.status, g.projekt_id, p.nummer, t.code AS tasche FROM geraet g
-    LEFT JOIN projekt p ON p.id = g.projekt_id LEFT JOIN geraet t ON t.id = g.case_id WHERE ${where} FOR UPDATE OF g`, [wert]);
+  const { rows: [g] } = await c.query(`SELECT g.id, g.code, g.status, g.projekt_id, (SELECT p.nummer FROM projekt p WHERE p.id = g.projekt_id) AS nummer,
+    (SELECT t.code FROM geraet t WHERE t.id = g.case_id) AS tasche FROM geraet g WHERE ${where} FOR UPDATE OF g`, [wert]);
   if (!g || g.status === "vermisst" || ["ausgemustert", "verkauft"].includes(g.status)) return g ? { ...g, unveraendert: true } : null;
   await c.query("UPDATE geraet SET status = 'vermisst', case_id = NULL, version = version + 1 WHERE id = $1", [g.id]);
   await bucheBewegung(c, { geraetId: g.id, projektId: g.projekt_id,

@@ -21,8 +21,10 @@ export async function packAngebot(db, projektId) {
 
 const GERAET_SQL = `SELECT g.id, g.code, g.status, g.projekt_id, g.case_id, g.letzte_pruefung, g.artikel_id, a.name AS artikel, a.ist_case,
     a.inhalt_artikel_id, a.verpackungseinheit, a.pruefpflichtig, a.pruef_intervall_monate, i.mengenschritt AS inhalt_mengenschritt, i.name AS inhalt_name,
-    p.nummer AS projekt_nummer, p.name AS projekt_name
-  FROM geraet g JOIN artikel a ON a.id = g.artikel_id LEFT JOIN artikel i ON i.id = a.inhalt_artikel_id LEFT JOIN projekt p ON p.id = g.projekt_id`;
+    (SELECT p.nummer FROM projekt p WHERE p.id = g.projekt_id) AS projekt_nummer, (SELECT p.name FROM projekt p WHERE p.id = g.projekt_id) AS projekt_name
+  FROM geraet g JOIN artikel a ON a.id = g.artikel_id LEFT JOIN artikel i ON i.id = a.inhalt_artikel_id`;
+// BUG-3: Projekt als Unterabfrage statt LEFT JOIN. Wartet FOR UPDATE auf einen parallelen Scan, prüft PostgreSQL nur die
+// Gerätezeile neu; ein mitgejointes Projekt bliebe auf dem alten Stand (leer) → „bereits in Projekt null null“.
 const soll = (g) => sollInhalt(g, g.inhalt_artikel_id ? { mengenschritt: g.inhalt_mengenschritt } : null);
 
 /** Aktive Tasche (Schritt 7): Code, Name, Anzahl, Soll, offene (noch nicht zurück). */

@@ -12,6 +12,7 @@ import {
   packliste, sollInhalt, euro, datumAnzeige, PROJEKT_STATUS,
 } from "@lager/domain";
 import { fehler, nichtGefunden, seite, idParam, dbFehler } from "./hilfen.js";
+import { sichereFassung } from "./fassung.js";
 import { ladeEinstellungen } from "./verwaltung.js";
 import { datenOrdner, sichererPfad } from "./projekte.js";
 
@@ -321,7 +322,7 @@ export async function legeAngebotAn(ctx, c, projektId, { betreff = "", positione
   const nummer = await neueNummer(c);
   const { rows: [{ heute, bis }] } = await c.query("SELECT (now() AT TIME ZONE 'Europe/Berlin')::date AS heute, ((now() AT TIME ZONE 'Europe/Berlin')::date + $1::int) AS bis", [e.angebot_gueltig_tage]);
   const { rows: [a] } = await c.query(`INSERT INTO angebot (nummer, projekt_id, datum, gueltig_bis, betreff, einleitung, schlusstext, tage, folgetag_prozent, kleinunternehmer, ust_satz, erstellt_von)
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING id, nummer`,
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING id, nummer, version`,
   [nummer, p.id, heute, bis, String(betreff || `${p.name}`).trim(), e.angebot_text_einleitung, e.angebot_text_schluss, projektTage(p),
     e.folgetag_prozent, e.kleinunternehmer, e.ust_satz, ctx.nutzer?.benutzername || ""]);
   const pos = await pruefePositionen(c, positionen);
@@ -356,11 +357,10 @@ export function angeboteModul(router) {
   }));
 
   router.put("/api/v1/angebote/:id", A, async (ctx) => transaktion(ctx.pool, async (c) => {
+    await sichereFassung(ctx, c, "angebot", Number(ctx.params.id), { was: "Das Angebot" });
     const id = idParam(ctx.params.id, "Dieses Angebot");
     const { rows: [alt] } = await c.query("SELECT *, rabatt_prozent::float8 AS rabatt_prozent, ust_satz::float8 AS ust_satz FROM angebot WHERE id = $1 FOR UPDATE", [id]);
     if (!alt) throw nichtGefunden("Dieses Angebot");
-    if (ctx.body?.version != null && ctx.body.version !== alt.version)
-      throw fehler(409, "Jemand anderes hat dieses Angebot inzwischen geändert. Lade die Seite neu und trage deine Änderung erneut ein.");
     if (!angebotBearbeitbar(alt.status))
       throw fehler(409, `${alt.nummer} ist „${ANGEBOT_STATUS[alt.status]}“ und kann nicht mehr geändert werden. Setze es auf „Versendet“ zurück oder lege ein neues Angebot an.`);
     const k = kopfWerte(ctx.body, alt);

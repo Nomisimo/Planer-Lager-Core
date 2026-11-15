@@ -4,6 +4,7 @@
 import net from "node:net";
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { fehler, nichtGefunden, idParam, dbFehler } from "./hilfen.js";
+import { sichereFassung } from "./fassung.js";
 import { protokolliere, clientIp } from "./sicherheit.js";
 
 const V = { bereich: "verwaltung" };
@@ -113,6 +114,7 @@ export function scannerModul(router) {
     } catch (e) { throw dbFehler(e, { doppelt }); }
   });
   router.put("/api/v1/verwaltung/scanner/:id", V, async (ctx) => {
+    await sichereFassung(ctx, ctx.pool, "scanner", Number(ctx.params.id), { was: "Der Scanner" });
     const id = idParam(ctx.params.id, "Dieser Scanner");
     const { rows: [alt] } = await ctx.pool.query("SELECT * FROM scanner WHERE id = $1", [id]);
     if (!alt) throw nichtGefunden("Dieser Scanner");

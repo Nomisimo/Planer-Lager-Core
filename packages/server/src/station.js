@@ -4,6 +4,7 @@ import { createHash, randomBytes, randomInt } from "node:crypto";
 import { transaktion } from "@lager/db";
 import { stationGesperrt, pinWartezeit, nachFehlversuch, stationDarf, pruefeArbeitsplatz, pruefeMitarbeiter, STATION_ROLLE, PIN_WARTE_SEKUNDEN } from "@lager/domain/station.js";
 import { fehler, nichtGefunden, idParam, dbFehler } from "./hilfen.js";
+import { sichereFassung } from "./fassung.js";
 import { protokolliere, clientIp } from "./sicherheit.js";
 import { hashePasswort, pruefePasswortHash } from "./passwort-hash.js";
 import { erstelleSitzung, setzeCookie, sitzungSekunden } from "./auth.js";
@@ -156,7 +157,7 @@ export function stationModul(router) {
     } catch (e) { throw dbFehler(e, { doppelt }); }
   };
   router.post("/api/v1/verwaltung/arbeitsplaetze", V, async (ctx) => speichereAp(ctx, null));
-  router.put("/api/v1/verwaltung/arbeitsplaetze/:id", V, async (ctx) => speichereAp(ctx, idParam(ctx.params.id, "Dieser Arbeitsplatz")));
+  router.put("/api/v1/verwaltung/arbeitsplaetze/:id", V, async (ctx) => { const id = idParam(ctx.params.id, "Dieser Arbeitsplatz"); await sichereFassung(ctx, ctx.pool, "arbeitsplatz", id, { was: "Der Arbeitsplatz" }); return speichereAp(ctx, id); });
   router.post("/api/v1/verwaltung/arbeitsplaetze/:id/einrichtung", V, async (ctx) => {
     const id = idParam(ctx.params.id, "Dieser Arbeitsplatz");
     const code = neuerCode();
@@ -180,7 +181,7 @@ export function stationModul(router) {
   }));
 
   // ── FA-25 Verwaltung: Mitarbeiter (ohne Benutzerkonto, R-11a) ──
-  router.get("/api/v1/verwaltung/mitarbeiter", V, async (ctx) => (await ctx.pool.query("SELECT id, name, aktiv, pin_hash <> '' AS pin FROM mitarbeiter ORDER BY lower(name)")).rows);
+  router.get("/api/v1/verwaltung/mitarbeiter", V, async (ctx) => (await ctx.pool.query("SELECT id, name, aktiv, version, pin_hash <> '' AS pin FROM mitarbeiter ORDER BY lower(name)")).rows);
   const speichereM = async (ctx, id) => {
     const { werte: w, fehler: f } = pruefeMitarbeiter(ctx.body || {});
     if (Object.keys(f).length) throw fehler(400, "Bitte prüfe die markierten Felder.", { felder: f });
@@ -194,7 +195,7 @@ export function stationModul(router) {
     } catch (e) { throw dbFehler(e, { doppelt: `Einen Mitarbeiter „${w.name}“ gibt es schon. Ergänze z. B. den Nachnamen.` }); }
   };
   router.post("/api/v1/verwaltung/mitarbeiter", V, async (ctx) => speichereM(ctx, null));
-  router.put("/api/v1/verwaltung/mitarbeiter/:id", V, async (ctx) => speichereM(ctx, idParam(ctx.params.id, "Dieser Mitarbeiter")));
+  router.put("/api/v1/verwaltung/mitarbeiter/:id", V, async (ctx) => { const id = idParam(ctx.params.id, "Dieser Mitarbeiter"); await sichereFassung(ctx, ctx.pool, "mitarbeiter", id, { was: "Der Mitarbeiter" }); return speichereM(ctx, id); });
   router.delete("/api/v1/verwaltung/mitarbeiter/:id", V, async (ctx) => {
     const { rows: [m] } = await ctx.pool.query("DELETE FROM mitarbeiter WHERE id = $1 RETURNING name", [idParam(ctx.params.id, "Dieser Mitarbeiter")]);
     if (!m) throw nichtGefunden("Dieser Mitarbeiter");

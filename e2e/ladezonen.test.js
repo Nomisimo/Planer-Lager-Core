@@ -38,7 +38,7 @@ test("T-06 T-21 FA-23 R-55 R-56 R-57 R-58 Materialplaner: Ladezonen anlegen, Ang
       const { angebot } = await buero("POST", "/api/v1/angebote", { projekt_id: p1.id });
       const { rows: [kat] } = await q("INSERT INTO kategorie (name, praefix) VALUES ('Licht', 'LI') RETURNING id");
       const { rows: [art] } = await q("INSERT INTO artikel (name, kategorie_id) VALUES ('Spot', $1) RETURNING id", [kat.id]);
-      await buero("PUT", `/api/v1/angebote/${angebot.id}`, { positionen: [{ art: "miete", artikel_id: art.id, menge: 2, tage: 1, einzelpreis: 1000 }] });
+      await buero("PUT", `/api/v1/angebote/${angebot.id}`, { version: angebot.version, positionen: [{ art: "miete", artikel_id: art.id, menge: 2, tage: 1, einzelpreis: 1000 }] });
       await buero("POST", `/api/v1/angebote/${angebot.id}/status`, { status: "versendet" });
       await buero("POST", `/api/v1/angebote/${angebot.id}/status`, { status: "angenommen" });
       assert.equal((await q("SELECT status FROM projekt WHERE id = $1", [p1.id])).rows[0].status, "bestaetigt");

@@ -11,7 +11,7 @@ export class Live {
     this.aus = false;
   }
   start() { this.aus = false; this.verbinde(); return this; }
-  stopp() { this.aus = true; clearTimeout(this.timer); this.ws?.close(); }
+  stopp() { this.aus = true; clearTimeout(this.timer); clearInterval(this.praesenzTimer); this.ws?.close(); }
   setzeStatus(s) { this.status = s; for (const f of this.statusAbos) f(s); }
   verbinde() {
     const W = this.opt.WebSocketImpl || globalThis.WebSocket;
@@ -20,7 +20,11 @@ export class Live {
     try { ws = new W(url); } catch { return this.spaeter(); }
     this.ws = ws;
     this.setzeStatus("verbinde");
-    ws.onopen = () => { const t = this.opt.token?.(); if (t) ws.send(JSON.stringify({ typ: "anmelden", token: t })); if (this.extra) ws.send(JSON.stringify({ typ: "abo", daten: this.extra })); };
+    ws.onopen = () => {
+      const t = this.opt.token?.(); if (t) ws.send(JSON.stringify({ typ: "anmelden", token: t }));
+      if (this.extra) ws.send(JSON.stringify({ typ: "abo", daten: this.extra }));
+      if (this.ort) ws.send(JSON.stringify({ typ: "praesenz", ...this.ort }));
+    };
     ws.onmessage = (m) => {
       let ev; try { ev = JSON.parse(m.data); } catch { return; }
       if (ev.typ === "hallo") { this.versuch = 0; this.setzeStatus("verbunden"); }
@@ -42,6 +46,17 @@ export class Live {
     return () => this.abos.get(typ)?.delete(fn);
   }
   onStatus(fn) { this.statusAbos.add(fn); fn(this.status); return () => this.statusAbos.delete(fn); }
+  /**
+   * GLEICH-06: meldet, wo der Nutzer gerade ist (z. B. {ort: "projekt:5", app: "p"}), null = nirgends.
+   * Wird alle 20 s erneuert; der Server vergisst Einträge nach 30 s ohne Erneuerung.
+   */
+  praesenz(ort) {
+    this.ort = ort || null;
+    clearInterval(this.praesenzTimer);
+    const sende = () => { if (this.ws?.readyState === 1) this.ws.send(JSON.stringify({ typ: "praesenz", ...(this.ort || { ort: null }) })); };
+    sende();
+    if (this.ort) { this.praesenzTimer = setInterval(sende, 20_000); this.praesenzTimer.unref?.(); }
+  }
   /** Zusatzdaten (z. B. Arbeitsplatz) für gezielte Ereignisse. */
   abonniere(extra) { this.extra = { ...(this.extra || {}), ...extra }; if (this.ws?.readyState === 1) this.ws.send(JSON.stringify({ typ: "abo", daten: this.extra })); }
 }

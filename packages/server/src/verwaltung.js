@@ -2,6 +2,7 @@
 import { mitStandard, pruefeEinstellungen, normalisiereRechte, istAdminRechte, bleibtAdmin, pruefePasswort } from "@lager/domain";
 import { transaktion } from "@lager/db";
 import { HttpFehler } from "./router.js";
+import { sichereFassung } from "./fassung.js";
 import { protokolliere, clientIp } from "./sicherheit.js";
 import { hashePasswort } from "./passwort-hash.js";
 
@@ -27,20 +28,22 @@ export function verwaltungModul(router) {
     return { firma: { name: e.firma.name }, design_standard: e.design_standard, folgetag_prozent: e.folgetag_prozent,
       tag_stunden_standard: e.tag_stunden_standard, tag_stunden_erweitert: e.tag_stunden_erweitert, kleinunternehmer: e.kleinunternehmer, ust_satz: e.ust_satz };
   });
-  router.get("/api/v1/verwaltung/einstellungen", V, async (ctx) => ladeEinstellungen(ctx.pool));
+  router.get("/api/v1/verwaltung/einstellungen", V, async (ctx) => ({ ...(await ladeEinstellungen(ctx.pool)), version: (await ctx.pool.query("SELECT version FROM einstellungen WHERE id = 1")).rows[0]?.version ?? 1 }));
   router.put("/api/v1/verwaltung/einstellungen", V, async (ctx) => transaktion(ctx.pool, async (c) => {
+    await sichereFassung(ctx, c, "einstellungen", 1, { was: "Die Einstellungen" });
     const { rows } = await c.query("SELECT werte FROM einstellungen WHERE id = 1 FOR UPDATE");
-    const r = pruefeEinstellungen(ctx.body || {}, mitStandard(rows[0]?.werte));
+    const { version: _v, ...neu } = ctx.body || {};
+    const r = pruefeEinstellungen(neu, mitStandard(rows[0]?.werte));
     if (!r.ok) throw fehler(400, "Bitte prüfe die markierten Felder.", { felder: r.fehler });
-    await c.query("UPDATE einstellungen SET werte = $1, geaendert = now() WHERE id = 1", [JSON.stringify(r.werte)]);
-    await protokolliere(c, "aktion", { benutzer: ctx.nutzer.benutzername, ip: clientIp(ctx), text: `Einstellungen geändert: ${Object.keys(ctx.body || {}).join(", ")}` });
+    const { rows: [v] } = await c.query("UPDATE einstellungen SET werte = $1, geaendert = now() WHERE id = 1 RETURNING version", [JSON.stringify(r.werte)]);
+    await protokolliere(c, "aktion", { benutzer: ctx.nutzer.benutzername, ip: clientIp(ctx), text: `Einstellungen geändert: ${Object.keys(neu).join(", ")}` });
     ctx.hub?.sende({ typ: "einstellungen.geaendert", bereich: "start" });
-    return { ok: true, level: "success", text: "Einstellungen gespeichert.", werte: r.werte };
+    return { ok: true, level: "success", text: "Einstellungen gespeichert.", werte: r.werte, version: v.version };
   }));
 
   // Rollen (R-06)
   router.get("/api/v1/verwaltung/rollen", V, async (ctx) =>
-    (await ctx.pool.query("SELECT id, name, rechte, eingebaut, (SELECT count(*) FROM benutzer b WHERE b.rolle_id = rolle.id) AS benutzer FROM rolle ORDER BY eingebaut DESC, name")).rows);
+    (await ctx.pool.query("SELECT id, name, rechte, eingebaut, version, (SELECT count(*) FROM benutzer b WHERE b.rolle_id = rolle.id) AS benutzer FROM rolle ORDER BY eingebaut DESC, name")).rows);
   router.post("/api/v1/verwaltung/rollen", V, async (ctx) => {
     const name = String(ctx.body?.name || "").trim();
     if (!name) throw fehler(400, "Gib der Rolle einen Namen.", { felder: { name: "Pflichtfeld" } });
@@ -55,6 +58,7 @@ export function verwaltungModul(router) {
     }
   });
   router.put("/api/v1/verwaltung/rollen/:id", V, async (ctx) => transaktion(ctx.pool, async (c) => {
+    await sichereFassung(ctx, c, "rolle", Number(ctx.params.id), { was: "Die Rolle" });
     const { rows } = await c.query("SELECT * FROM rolle WHERE id = $1 FOR UPDATE", [ctx.params.id]);
     const r = rows[0];
     if (!r) throw fehler(404, "Diese Rolle gibt es nicht mehr. Lade die Liste neu.");
@@ -83,7 +87,7 @@ export function verwaltungModul(router) {
 
   // Benutzer (FA-47 Grundteil; R-07, R-09)
   router.get("/api/v1/verwaltung/benutzer", V, async (ctx) =>
-    (await ctx.pool.query(`SELECT b.id, b.benutzername, b.name, b.email, b.aktiv, b.totp_aktiv, b.letzter_login, b.rolle_id, r.name AS rolle
+    (await ctx.pool.query(`SELECT b.id, b.version, b.benutzername, b.name, b.email, b.aktiv, b.totp_aktiv, b.letzter_login, b.rolle_id, r.name AS rolle
       FROM benutzer b JOIN rolle r ON r.id = b.rolle_id ORDER BY lower(b.benutzername)`)).rows);
   router.post("/api/v1/verwaltung/benutzer", V, async (ctx) => {
     const { benutzername = "", name = "", email = "", passwort = "", rolle_id } = ctx.body || {};
@@ -105,6 +109,7 @@ export function verwaltungModul(router) {
     }
   });
   router.put("/api/v1/verwaltung/benutzer/:id", V, async (ctx) => transaktion(ctx.pool, async (c) => {
+    await sichereFassung(ctx, c, "benutzer", Number(ctx.params.id), { was: "Der Benutzer" });
     const id = Number(ctx.params.id);
     const { rows } = await c.query("SELECT * FROM benutzer WHERE id = $1 FOR UPDATE", [id]);
     const b = rows[0];

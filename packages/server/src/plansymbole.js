@@ -12,7 +12,7 @@ const ordner = (config) => path.join(datenOrdner(config), "plansymbole");
 
 /** D-85: alle aktiven Artikel mit Gegenstand (auch Verbrauch); Leistungen haben kein Plan-Symbol, inaktive fallen heraus. */
 async function ladeArtikel(db) {
-  const { rows } = await db.query(`SELECT a.id, a.name, a.plansymbol, a.ist_case, a.laenge_m, a.aktiv, k.name AS kategorie
+  const { rows } = await db.query(`SELECT a.id, a.version, a.name, a.plansymbol, a.ist_case, a.laenge_m, a.aktiv, k.name AS kategorie
     FROM artikel a JOIN kategorie k ON k.id = a.kategorie_id WHERE a.aktiv AND NOT a.ist_leistung ORDER BY k.name, a.name`);
   return rows;
 }
@@ -38,7 +38,7 @@ export function beobachteArtikel(hub, pool, config) {
 
 export function plansymboleModul(router) {
   router.get("/api/v1/plansymbole", R, async (ctx) => {
-    const zeilen = (await ladeArtikel(ctx.pool)).map((a) => ({ id: a.id, name: a.name, kategorie: a.kategorie, plansymbol: a.plansymbol, piktogramm: piktogrammVon(a),
+    const zeilen = (await ladeArtikel(ctx.pool)).map((a) => ({ id: a.id, version: a.version, name: a.name, kategorie: a.kategorie, plansymbol: a.plansymbol, piktogramm: piktogrammVon(a),
       automatisch: !a.plansymbol, titel: PIKTOGRAMME[piktogrammVon(a)].titel, svg: symbolSvg(a), datei: svgDateiname(a) }));
     const d = path.join(ordner(ctx.config), BIBLIOTHEK);
     return { zeilen, bibliothek: fs.existsSync(d) ? fs.statSync(d).mtime.toISOString() : null };

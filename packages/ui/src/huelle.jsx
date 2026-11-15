@@ -2,12 +2,13 @@
 import { Glocke } from "./glocke.jsx";
 import { plattform } from "./plattform.js";
 import { useSeriellerScanner } from "./seriell.jsx";
-import React, { createContext, useContext, useEffect, useMemo, useRef, useState, useCallback } from "react";
+import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { erstelleApi, Live } from "@lager/client";
 import { themaVariablen, THEMEN, DICHTEN, MODI } from "./themen.js";
 import { menueFuer, aktiverEintrag, MENUE, zielInAndererApp } from "./menue.js";
 import { passeMuster, zerlegeHash, deepLinkZuPfad } from "./router.js";
 import { fehlerText } from "./texte.js";
+import { Ctx, useLager } from "./kontext.js";
 import { Icon, Knopf, Feld, Eingabe, Meldung, Modal, Section, Auswahl, Seite } from "./bausteine.jsx";
 import STIL from "./stil.css";
 import { hidErkenner, pruefeHid } from "@lager/domain/scannen.js";
@@ -20,11 +21,9 @@ export function hidEinstellungen() { try { return pruefeHid(JSON.parse(localStor
 export const PROTOKOLL_ERWARTET = 1;
 const APPS = { m: { id: "materialplaner", titel: "Materialplaner" }, p: { id: "productionplaner", titel: "Productionplaner" } };
 
-const Ctx = createContext(null);
 /** Kontext für eigene Hüllen (Arbeitsplatz-Web): { api, live, nutzer, navigiere, scanZiel, … }. */
 export const LagerKontext = Ctx;
-/** Zugriff auf api, live, nutzer, navigiere, pfad, query, oeffneAndereApp … */
-export const useLager = () => useContext(Ctx);
+export { useLager };
 
 function stilEinfuegen() {
   if (document.getElementById("lp-stil")) return;

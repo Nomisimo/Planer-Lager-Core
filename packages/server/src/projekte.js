@@ -7,6 +7,7 @@ import { transaktion } from "@lager/db";
 import { naechsteProjektnummer, normalisiereProjektcode, pruefeProjekt, PROJEKT_STATUS, statusWechselErlaubt, gibtZoneFrei, statusNachVerladen,
   ordnerName, UNTERORDNER, kopieName, GEWERKE, DATEI_KATEGORIEN, pruefeDatei, inlineErlaubt, inhaltsTyp, sichererDateiname, MAX_DATEI, heuteIso } from "@lager/domain";
 import { fehler, nichtGefunden, seite, idParam, dbFehler } from "./hilfen.js";
+import { sichereFassung } from "./fassung.js";
 import { protokolliere, clientIp } from "./sicherheit.js";
 
 const P = { bereich: "projekte" };
@@ -99,7 +100,7 @@ async function detail(db, p) {
     db.query(`${LISTE_SQL} WHERE p.uebergeordnet_id = $1 ORDER BY p.nummer`, [p.id]),
     db.query(`SELECT a.*, b.name AS zugewiesen_name, b.benutzername AS zugewiesen_benutzer FROM aufgabe a LEFT JOIN benutzer b ON b.id = a.zugewiesen_id
       WHERE a.projekt_id = $1 ORDER BY a.erledigt, a.faellig NULLS LAST, a.id`, [p.id]),
-    db.query("SELECT id, name, kategorie, beschreibung, groesse, hochgeladen, von FROM projekt_datei WHERE projekt_id = $1 ORDER BY hochgeladen DESC, id DESC", [p.id]),
+    db.query("SELECT id, name, kategorie, beschreibung, groesse, hochgeladen, von, version FROM projekt_datei WHERE projekt_id = $1 ORDER BY hochgeladen DESC, id DESC", [p.id]),
     db.query("SELECT count(*)::int AS gesamt, count(*) FILTER (WHERE status = 'gepackt')::int AS gepackt FROM geraet WHERE projekt_id = $1", [p.id]),
     p.uebergeordnet_id ? db.query("SELECT id, nummer, name FROM projekt WHERE id = $1", [p.uebergeordnet_id]) : { rows: [] },
     db.query("SELECT id, nummer, status, datum, gueltig_bis, betreff, fassung, summe_netto FROM angebot WHERE projekt_id = $1 ORDER BY id DESC", [p.id]),
@@ -154,11 +155,10 @@ export function projekteModul(router) {
     return { ok: true, level: v?.ohneRecht ? "warning" : "success", text: `${p.art === "job" ? "Job" : "Projekt"} ${p.nummer} angelegt.${v ? ` ${v.text}` : ""}`, projekt: p };
   }));
   router.put("/api/v1/projekte/:id", P, async (ctx) => transaktion(ctx.pool, async (c) => {
+    await sichereFassung(ctx, c, "projekt", Number(ctx.params.id), { was: "Das Projekt" });
     const id = idParam(ctx.params.id, "Dieses Projekt");
     const { rows: [alt] } = await c.query("SELECT * FROM projekt WHERE id = $1 FOR UPDATE", [id]);
     if (!alt) throw nichtGefunden("Dieses Projekt");
-    if (ctx.body?.version != null && ctx.body.version !== alt.version)
-      throw fehler(409, "Jemand anderes hat dieses Projekt inzwischen geändert. Lade die Seite neu und trage deine Änderung erneut ein.");
     const w = { ...alt, ...werte(ctx.body) };
     if (w.art === "projekt") { w.uebergeordnet_id = null; w.gewerk = ""; }
     if (w.uebergeordnet_id === id) throw fehler(400, "Ein Projekt kann nicht sein eigener Job sein. Wähle ein anderes Oberprojekt.", { felder: { uebergeordnet_id: "Anderes Projekt wählen" } });
@@ -236,7 +236,7 @@ export function projekteModul(router) {
     try { await ctx.pool.query("DELETE FROM projekt WHERE id = $1", [id]); }
     catch (e) { throw dbFehler(e, { verknuepft: `${p.nummer} hat noch Jobs, Angebote, Material oder Verlauf und kann nicht gelöscht werden. Setze es stattdessen auf „Storniert“.` }); }
     if (p.ordner) await fsp.rm(sichererPfad(datenOrdner(ctx), p.ordner), { recursive: true, force: true });
-    ctx.hub?.sende({ typ: "projekt.geaendert", id, bereich: "projekte" });
+    ctx.hub?.sende({ typ: "projekt.geaendert", id, bereich: "projekte", geloescht: true });
     return { ok: true, level: "success", text: `${p.nummer} gelöscht.` };
   });
 
@@ -292,6 +292,7 @@ export function projekteModul(router) {
     } catch (e) { throw dbFehler(e, { verknuepft: "Den gewählten Benutzer gibt es nicht (mehr). Wähle einen anderen." }); }
   });
   router.put("/api/v1/aufgaben/:id", P, async (ctx) => {
+    await sichereFassung(ctx, ctx.pool, "aufgabe", Number(ctx.params.id), { was: "Die Aufgabe" });
     const id = idParam(ctx.params.id, "Diese Aufgabe");
     const w = aufgabeWerte(ctx.body || {}, true);
     const sets = [], werteListe = [];
@@ -392,6 +393,7 @@ export function projekteModul(router) {
     await new Promise((resolve, reject) => fs.createReadStream(voll).on("error", reject).on("end", resolve).pipe(ctx.res));
   });
   router.put("/api/v1/dateien/:id", P, async (ctx) => {
+    await sichereFassung(ctx, ctx.pool, "projekt_datei", Number(ctx.params.id), { was: "Die Datei" });
     const d = await ladeDatei(ctx);
     const kategorie = ctx.body?.kategorie ?? d.kategorie;
     if (!DATEI_KATEGORIEN[kategorie]) throw fehler(400, "Wähle eine Kategorie aus der Liste.", { felder: { kategorie: "Kategorie wählen" } });

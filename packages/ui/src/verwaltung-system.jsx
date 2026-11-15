@@ -53,9 +53,9 @@ export function BenutzerVerwaltung() {
 function BenutzerFormular({ b, rollen, onFertig }) {
   const { api } = useLager();
   const neu = !b.id;
-  const f = useFormular({ benutzername: b.benutzername || "", name: b.name || "", email: b.email || "", rolle_id: b.rolle_id ? String(b.rolle_id) : "", aktiv: b.aktiv !== false, passwort: "" });
+  const f = useFormular({ benutzername: b.benutzername || "", name: b.name || "", email: b.email || "", rolle_id: b.rolle_id ? String(b.rolle_id) : "", aktiv: b.aktiv !== false, passwort: "", version: b.version });
   const speichern = () => f.absenden(async (w) => {
-    const body = { name: w.name, email: w.email, rolle_id: Number(w.rolle_id) || undefined, aktiv: w.aktiv, ...(w.passwort ? { passwort: w.passwort } : {}) };
+    const body = { name: w.name, email: w.email, rolle_id: Number(w.rolle_id) || undefined, aktiv: w.aktiv, version: w.version, ...(w.passwort ? { passwort: w.passwort } : {}) };
     if (neu) await api.post("/api/v1/verwaltung/benutzer", { ...body, benutzername: w.benutzername, passwort: w.passwort });
     else await api.put(`/api/v1/verwaltung/benutzer/${b.id}`, body);
     onFertig({ level: "success", text: neu ? `${w.benutzername} angelegt.` : `${b.benutzername} gespeichert.${w.passwort ? " Neues Passwort gilt, alte Anmeldungen sind beendet." : ""}` });
@@ -111,7 +111,7 @@ function RollenFormular({ r, onFertig }) {
   const [fehler, setFehler] = useState(null);
   const speichern = async () => {
     try {
-      if (r.id) await api.put(`/api/v1/verwaltung/rollen/${r.id}`, { name, rechte }); else await api.post("/api/v1/verwaltung/rollen", { name, rechte });
+      if (r.id) await api.put(`/api/v1/verwaltung/rollen/${r.id}`, { name, rechte, version: r.version }); else await api.post("/api/v1/verwaltung/rollen", { name, rechte });
       onFertig({ level: "success", text: `Rolle „${name}“ gespeichert. Gilt sofort für alle Benutzer der Rolle.` });
     } catch (e) { setFehler(fehlerText(e)); }
   };
@@ -141,7 +141,7 @@ export function EinstellungenSeite() {
   const setzeFirma = (k) => (e) => setW({ ...w, firma: { ...w.firma, [k]: e.target.value } });
   const speichern = async (felder) => {
     setM(null);
-    try { const r = await api.put("/api/v1/verwaltung/einstellungen", Object.fromEntries(felder.map((k) => [k, typeof EINSTELLUNGEN_STANDARD[k] === "number" && typeof w[k] === "string" ? Number(w[k].replace(",", ".")) : w[k]]))); setW(r.werte); setM(r); setFehler({}); }
+    try { const r = await api.put("/api/v1/verwaltung/einstellungen", Object.fromEntries(felder.map((k) => [k, typeof EINSTELLUNGEN_STANDARD[k] === "number" && typeof w[k] === "string" ? Number(w[k].replace(",", ".")) : w[k]]).concat([["version", w.version]]))); setW({ ...r.werte, version: r.version }); setM(r); setFehler({}); }
     catch (e) { setFehler(e.felder || {}); setM({ level: "error", text: fehlerText(e) }); }
   };
   const zahl = (k, label, hinweis) => <Feld key={k} label={label} fehler={fehler[k]} hinweis={hinweis}><Eingabe aria-label={label} inputMode="decimal" value={String(w[k] ?? "")} onChange={setze(k)} /></Feld>;
@@ -303,6 +303,12 @@ export function SystemSeite() {
       <Section titel="Server" icon="Server" aktionen={<Knopf icon="RefreshCw" onClick={async () => { const t = performance.now(); try { await api.get("/api/v1/ping"); setPing(Math.round(performance.now() - t)); } catch (e) { setM({ level: "error", text: fehlerText(e) }); } }}>Ping</Knopf>}>
         {d.daten && <p style={{ margin: 0 }}>Läuft seit {zeitpunktAnzeige(d.daten.laeuft_seit)} · Node {d.daten.node}{d.daten.clients != null ? ` · ${d.daten.clients} verbundene Apps` : ""}{ping != null && <span data-testid="ping"> · Antwort in {ping} ms</span>}</p>}
       </Section>
+      {d.daten?.beispiel > 0 && <Section titel="Beispieldaten" icon="Database" aktionen={<Knopf art="gefahr" icon="Trash2" onClick={async () => {
+        if (!(await fragen({ titel: "Beispieldaten löschen?", knopf: "Löschen", text: `Alle ${d.daten.beispiel} Einträge der Beispieldaten (Kunden, Projekte, Material, Benutzer wie „beispiel-admin“) werden gelöscht, samt ihrem Verlauf. Eigene Daten bleiben.` }))) return;
+        lauf(() => api.post("/api/v1/verwaltung/system/beispiel-loeschen", {}));
+      }}>Beispieldaten löschen</Knopf>}>
+        <p style={{ margin: 0 }} data-testid="beispiel-hinweis">Auf diesem Server sind Beispieldaten geladen ({d.daten.beispiel} Einträge). Lösche sie, bevor ihr echt startet.</p>
+      </Section>}
       <Section titel="Wartung" icon="Wrench" aktionen={<Knopf art={w?.aktiv ? "primaer" : "normal"} onClick={() => lauf(() => api.put("/api/v1/verwaltung/system/wartung", { aktiv: !w?.aktiv, text }))}>{w?.aktiv ? "Wartung beenden" : "Wartung starten"}</Knopf>}>
         <p className="lp-hinweis" style={{ marginTop: 0 }}>{w?.aktiv ? "Wartung ist an: Nur Administratoren können arbeiten." : "Während der Wartung sehen alle anderen nur die Meldung unten."}</p>
         <Feld label="Meldung für alle" breit><Eingabe aria-label="Wartungsmeldung" placeholder="z. B. Update bis 14 Uhr." value={text || ""} onChange={(e) => setText(e.target.value)} /></Feld>

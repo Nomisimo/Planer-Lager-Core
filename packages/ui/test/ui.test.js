@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { THEMEN, DICHTEN, themaVariablen, kontrastPaare, kontrast, badgeSchrift } from "../src/themen.js";
 import { menueFuer, aktiverEintrag, MENUE } from "../src/menue.js";
 import { RUECKMELDUNG, pruefeFehlertext, fehlerText } from "../src/texte.js";
-import { einmalig, pruefePflicht, BRAUCHT_BESTAETIGUNG } from "../src/formular.js";
+import { einmalig, pruefePflicht, BRAUCHT_BESTAETIGUNG, fassungsUnterschiede, uebernimmFassung, berlinLokal } from "../src/formular.js";
 import { EINGEBAUTE_ROLLEN, normalisiereRechte } from "@lager/domain";
 
 const rechte = (n) => normalisiereRechte(EINGEBAUTE_ROLLEN.find((r) => r.name === n).rechte);
@@ -107,4 +107,14 @@ test("BUG-1 App-Schalter: Seite, die es in der anderen App nicht gibt, führt do
   assert.equal(zielInAndererApp("/suche?q=x", "p"), "/suche?q=x");
   assert.equal(zielInAndererApp("/verwaltung/benutzer", "m"), "/verwaltung/benutzer");
   assert.equal(zielInAndererApp("/kunden/4", "p"), "/kunden/4");
+});
+
+test("GLEICH-01 Vergleich „Deine Werte | Aktuelle Werte“ und „Neue Fassung laden“ behalten die Form der Formularfelder", () => {
+  const werte = { name: "Stadtfest Nord", kunde_id: "3", beginn: "2027-05-03", abholung: "2027-05-03T08:00", menge: 4, aktiv: true, version: 2, liste: [1] };
+  const aktuell = { name: "Stadtfest Süd", kunde_id: 3, beginn: "2027-05-03", abholung: "2027-05-03T06:00:00.000Z", menge: "4", aktiv: false, version: 3, geaendert_von: "Bea" };
+  assert.deepEqual(fassungsUnterschiede(werte, aktuell).map((u) => u.feld), ["name", "aktiv"], "Zahl als Text, Zeitpunkt als ISO und gleiche Werte zählen nicht als Unterschied");
+  assert.equal(berlinLokal("2027-05-03T06:00:00.000Z"), "2027-05-03T08:00");
+  const neu = uebernimmFassung(werte, aktuell);
+  assert.deepEqual(neu, { ...werte, name: "Stadtfest Süd", kunde_id: "3", abholung: "2027-05-03T08:00", menge: 4, aktiv: false, version: 3 });
+  assert.equal("geaendert_von" in neu, false, "nur Felder des Formulars");
 });

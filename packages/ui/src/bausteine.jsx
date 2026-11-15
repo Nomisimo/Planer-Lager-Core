@@ -2,8 +2,10 @@
 import { badgeSchrift } from "./themen.js";
 import React, { useEffect, useRef, useState, useId, useCallback } from "react";
 import { ICONS } from "./icons.js";
+import { useLager } from "./kontext.js";
+import { plattform } from "./plattform.js";
 import { RUECKMELDUNG, stufeVon, fehlerText } from "./texte.js";
-import { einmalig } from "./formular.js";
+import { einmalig, fassungsUnterschiede, uebernimmFassung, feldTitel } from "./formular.js";
 import { euro, centAusText } from "@lager/domain/geld.js";
 
 export const Icon = ({ name, size = 16, ...p }) => { const C = ICONS[name] || ICONS.Circle; return <C size={size} aria-hidden="true" {...p} />; };
@@ -163,18 +165,99 @@ export function useDaten(fn, abh = []) {
   return { ...z, laden };
 }
 
-/** Formular-Hook: Werte, Feldfehler aus ApiFehler.felder, Speichern einmalig. */
-export function useFormular(start) {
+const zeigeWert = (v) => (v === true ? "ja" : v === false ? "nein" : v == null || v === "" ? "–" : String(v));
+
+/** GLEICH: Vergleich „Deine Werte | Aktuelle Werte“ nach 409, mit „Neue Fassung laden“ und „Meine Eingaben behalten“. */
+export function FassungsKonflikt({ werte, aktuell, titel = {}, onLaden, onBehalten }) {
+  const u = fassungsUnterschiede(werte, aktuell);
+  return (
+    <div data-testid="fassung-konflikt" style={{ marginTop: 8 }}>
+      {u.length > 0 && <table className="lp-tabelle" style={{ marginBottom: 8 }}>
+        <thead><tr><th>Feld</th><th>Deine Werte</th><th>Aktuelle Werte</th></tr></thead>
+        <tbody>{u.map((x) => <tr key={x.feld}><td>{titel[x.feld] || feldTitel(x.feld)}</td><td>{zeigeWert(x.deine)}</td><td>{zeigeWert(x.aktuell)}</td></tr>)}</tbody>
+      </table>}
+      <div className="lp-zeile">
+        <Knopf art="primaer" icon="RefreshCw" onClick={onLaden}>Neue Fassung laden</Knopf>
+        <Knopf onClick={onBehalten}>Meine Eingaben behalten</Knopf>
+      </div>
+    </div>
+  );
+}
+
+/** GLEICH: Band, wenn jemand anderes den offenen Datensatz geändert hat („[Neu laden] [Meine Eingaben behalten]“). */
+export function AenderungsBand({ von, onNeuLaden, onBehalten }) {
+  return (
+    <div className="lp-meldung" role="status" data-testid="aenderungs-band" data-level="warning" style={{ borderColor: RUECKMELDUNG.warning?.farbe }}>
+      <Icon name="RefreshCw" size={18} style={{ flex: "none", marginTop: 1 }} />
+      <div style={{ flex: 1 }}>{von ? `${von} hat das gerade geändert.` : "Das wurde gerade woanders geändert."} Lade die neue Fassung oder behalte deine Eingaben.
+        <div className="lp-zeile" style={{ marginTop: 8 }}><Knopf klein art="primaer" icon="RefreshCw" onClick={onNeuLaden}>Neu laden</Knopf><Knopf klein onClick={onBehalten}>Meine Eingaben behalten</Knopf></div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Formular-Hook: Werte, Feldfehler aus ApiFehler.felder, Speichern einmalig.
+ * GLEICH: 409 zeigt den Vergleich mit der aktuellen Fassung, 404 „gelöscht“ führt zurück zur Liste.
+ * live: { typ: "projekt", id } zeigt das Änderungsband, wenn der Datensatz woanders gespeichert wird.
+ * @param {any} start @param {{ live?: { typ: string, id: number|string }, titel?: Record<string,string>, zurueck?: () => void }} [opt]
+ */
+export function useFormular(start, opt = {}) {
   const [werte, setWerte] = useState(start);
   const [fehler, setFehler] = useState({});
   const [meldung, setMeldung] = useState(null);
+  const [band, setBand] = useState(null);
+  const werteRef = useRef(werte);
+  werteRef.current = werte;
+  const eigen = useRef(0);
   const setze = (k) => (v) => { setWerte((w) => ({ ...w, [k]: v?.target ? (v.target.type === "checkbox" ? v.target.checked : v.target.value) : v })); setFehler((f) => ({ ...f, [k]: undefined })); };
+  const lager = useLager();
+  const live = opt.live;
+  useEffect(() => {
+    if (!live?.typ || !live.id || !lager?.live) return;
+    return lager.live.on(live.typ, (m) => {
+      if (Number(m.id) !== Number(live.id)) return;
+      if (m.geloescht) { setBand({ geloescht: true, von: m.von }); return; }
+      const v = werteRef.current?.version;
+      // Nur echte neue Fassungen: eigene Speicherungen und Ereignisse ohne Fassung (z. B. Datei hochgeladen) lösen kein Band aus.
+      if (m.version == null || v == null || Number(m.version) <= Number(v) || Date.now() - eigen.current < 1500) return;
+      setBand({ von: m.von, version: m.version });
+    });
+  }, [lager?.live, live?.typ, live?.id]);
+  const neuLaden = async () => {
+    setBand(null);
+    if (!opt.laden) return;
+    const a = await opt.laden();
+    if (a) { setWerte((w) => uebernimmFassung(w, a)); setMeldung({ level: "info", text: "Neue Fassung geladen." }); }
+  };
   const absenden = async (fn) => {
     setMeldung(null);
-    try { const r = await fn(werte); setFehler({}); if (r?.text) setMeldung({ level: r.level || "success", text: r.text }); return r; }
-    catch (e) { setFehler(e.felder || {}); setMeldung({ level: "error", text: fehlerText(e) }); return null; }
+    eigen.current = Date.now();
+    try {
+      const r = await fn(werte); setFehler({}); setBand(null);
+      const nv = r && typeof r === "object" ? (r.version ?? Object.values(r).find((x) => x && typeof x === "object" && !Array.isArray(x) && x.version != null)?.version) : undefined;
+      if (nv != null) setWerte((w) => (w && typeof w === "object" ? { ...w, version: nv } : w));
+      if (r?.text) setMeldung({ level: r.level || "success", text: r.text });
+      return r;
+    } catch (e) {
+      setFehler(e.felder || {});
+      const d = e.daten || {};
+      if (e.status === 409 && d.aktuell) {
+        const aktuell = d.aktuell;
+        setMeldung({ level: "error", text: fehlerText(e), children: <FassungsKonflikt werte={werteRef.current} aktuell={aktuell} titel={opt.titel}
+          onLaden={() => { setWerte((w) => uebernimmFassung(w, aktuell)); setMeldung({ level: "info", text: "Neue Fassung geladen. Übernimm deine Änderungen und speichere erneut." }); }}
+          onBehalten={() => { setWerte((w) => ({ ...w, version: aktuell.version })); setMeldung({ level: "warning", text: "Deine Eingaben bleiben stehen. Wenn du jetzt speicherst, ersetzen sie die neue Fassung." }); }} /> });
+      } else if (e.status === 404 && d.geloescht) {
+        const zur = opt.zurueck || (() => history.back());
+        setMeldung({ level: "error", text: fehlerText(e), children: <div className="lp-zeile" style={{ marginTop: 8 }}><Knopf icon="ArrowLeft" onClick={zur}>Zurück zur Liste</Knopf></div> });
+      } else setMeldung({ level: "error", text: fehlerText(e) });
+      return null;
+    }
   };
-  return { werte, setWerte, setze, fehler, setFehler, meldung, setMeldung, absenden };
+  const bandElement = band ? (band.geloescht
+    ? <Meldung level="error" text={`${band.von ? `${band.von} hat` : "Jemand hat"} das gerade gelöscht.`}><div className="lp-zeile" style={{ marginTop: 8 }}><Knopf icon="ArrowLeft" onClick={opt.zurueck || (() => history.back())}>Zurück zur Liste</Knopf></div></Meldung>
+    : <AenderungsBand von={band.von} onNeuLaden={neuLaden} onBehalten={() => setBand(null)} />) : null;
+  return { werte, setWerte, setze, fehler, setFehler, meldung, setMeldung, absenden, band: bandElement };
 }
 
 /** Geld-Eingabe: zeigt Euro, liefert Cent (Integer) oder null. */
@@ -186,3 +269,28 @@ export function GeldEingabe({ cent, onCent, ...p }) {
     onBlur={() => { const c = centAusText(text); if (c != null) setText(euroOhne(c)); }} />;
 }
 const euroOhne = (c) => euro(c, { symbol: false });
+
+const APP_NAME = { m: "Materialplaner", p: "Productionplaner" };
+/** GLEICH-06: Präsenz-Chips „wer ist gerade hier“ (WebSocket-Hub, verfällt nach 30 s ohne Erneuerung). ort z. B. "projekt:5". */
+export function Praesenz({ ort }) {
+  const lager = useLager();
+  const live = lager?.live;
+  const [wer, setWer] = useState([]);
+  useEffect(() => {
+    if (!live || !ort) return;
+    const web = plattform.istWeb;
+    live.praesenz?.({ ort, app: `${lager.app || ""}${web ? "-web" : ""}` });
+    const ab = live.on("praesenz", (m) => { if (m.ort === ort) setWer(m.wer || []); });
+    return () => { ab(); live.praesenz?.(null); setWer([]); };
+  }, [live, ort]);
+  if (!wer.length) return null;
+  return (
+    <span className="lp-zeile" data-testid="praesenz" aria-label="Gerade hier" style={{ gap: 6 }}>
+      {wer.map((w, i) => {
+        const [app, web] = String(w.app || "").split("-");
+        const wo = `${APP_NAME[app] || "App"}${web ? " im Browser" : ""}`;
+        return <span key={i} className="lp-chip" data-testid="praesenz-chip" title={`${w.ich ? "Du" : w.name} · ${wo}`}><Icon name="Eye" size={14} /> {w.ich ? `Du (${wo})` : w.name}</span>;
+      })}
+    </span>
+  );
+}

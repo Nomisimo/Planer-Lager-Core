@@ -3,6 +3,7 @@
 import { darf, istAdminRechte } from "@lager/domain";
 import { transaktion } from "@lager/db";
 import { fehler, nichtGefunden, idParam } from "./hilfen.js";
+import { sichereFassung } from "./fassung.js";
 import { legeAngebotAn } from "./angebote.js";
 
 const P = { bereich: "projekte" };
@@ -94,6 +95,7 @@ export function vorlagenModul(router) {
     } catch (e) { throw doppelt(e, w.name); }
   });
   router.put("/api/v1/projektvorlagen/:id", P, async (ctx) => {
+    await sichereFassung(ctx, ctx.pool, "projekt_vorlage", Number(ctx.params.id), { was: "Die Projektvorlage" });
     const id = idParam(ctx.params.id, "Diese Vorlage");
     const w = pruefeVorlage(ctx.body);
     try {

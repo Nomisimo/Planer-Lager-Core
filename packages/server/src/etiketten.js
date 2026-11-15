@@ -5,6 +5,7 @@ import { transaktion } from "@lager/db";
 import { laengeAusName, naechsteFreieFarbe, farbeHex, KABELFARBEN, laengeText, kabelName, etikettSvg, pruefeVorlage,
   naechsteBestellnummer, bestellStatus, lieferSchluessel, csvCode, pruefeBestellung, code128Module, csv, normalisiereCode } from "@lager/domain";
 import { fehler, nichtGefunden, idParam, dbFehler } from "./hilfen.js";
+import { sichereFassung } from "./fassung.js";
 import { vergibCodes, legeGeraeteAn } from "./geraetecodes.js";
 
 const M = { bereich: "material" }, G = { bereich: "geraete" };
@@ -168,6 +169,7 @@ export function etikettenModul(router) {
     } catch (e) { throw dbFehler(e, doppelt); }
   });
   router.put("/api/v1/etiketten/vorlagen/:id", M, async (ctx) => {
+    await sichereFassung(ctx, ctx.pool, "etikett_vorlage", Number(ctx.params.id), { was: "Die Vorlage" });
     const id = idParam(ctx.params.id, "Diese Vorlage");
     const v = vorlageWerte(ctx.body);
     try {
@@ -338,6 +340,7 @@ export function etikettenModul(router) {
     return { ok: true, level: "success", text: `Bestellung ${b.nummer} mit ${b.codes.length} Codes angelegt.`, bestellung: b };
   }));
   router.put("/api/v1/etiketten/bestellungen/:id", M, async (ctx) => {
+    await sichereFassung(ctx, ctx.pool, "etikett_bestellung", Number(ctx.params.id), { was: "Die Bestellung" });
     const id = idParam(ctx.params.id, "Diese Bestellung");
     const am = ctx.body?.bestellt_am || null;
     if (am && !/^\d{4}-\d{2}-\d{2}$/.test(am)) throw fehler(400, "Das Bestelldatum ist ungültig. Wähle ein Datum im Kalender.", { felder: { bestellt_am: "Datum ungültig" } });

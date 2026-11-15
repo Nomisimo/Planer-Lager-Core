@@ -214,7 +214,7 @@ export function authModul(router) {
   });
 
   // FA-52: persönliche Darstellung (Thema, Dichte, Hell/Dunkel)
-  router.put("/api/v1/ich/design", { bereich: "start", nurAngemeldet: true }, async (ctx) => {
+  router.put("/api/v1/ich/design", { bereich: "start", nurAngemeldet: true, ohneVersion: "eigene Darstellung, nur der Nutzer selbst" }, async (ctx) => {
     const { thema, dichte, modus } = ctx.body || {};
     const d = { thema: String(thema || "planer").slice(0, 20), dichte: String(dichte || "normal").slice(0, 20), modus: String(modus || "system").slice(0, 20) };
     await ctx.pool.query("UPDATE benutzer SET design = $1 WHERE id = $2", [JSON.stringify(d), ctx.nutzer.id]);

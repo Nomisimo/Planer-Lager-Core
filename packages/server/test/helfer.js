@@ -5,6 +5,9 @@ import path from "node:path";
 import { neueTestDb } from "@lager/db/testdb.js";
 import { erstelleLagerServer } from "../src/server.js";
 import { legeBenutzerAn } from "../src/grunddaten.js";
+import { FASSUNG_ROUTEN } from "../src/fassung.js";
+
+const ROUTEN_RE = Object.entries(FASSUNG_ROUTEN).map(([p, t]) => [new RegExp("^" + p.replace(/:\w+/g, "(\\d+)") + "$"), t]);
 
 export const PW = "Sicheres-Testpasswort-1";
 
@@ -28,7 +31,21 @@ export async function starteTestServer({ config = {} } = {}) {
     if (!rows.length) await legeBenutzerAn(db.pool, { benutzername, passwort: PW, rolle });
     const r = await api("POST", "/api/v1/anmelden", { benutzername, passwort: PW });
     if (r.status !== 200) throw new Error("Anmeldung im Test fehlgeschlagen: " + r.text);
-    const f = (m, p, b, k = {}) => api(m, p, b, { Authorization: "Bearer " + r.json.token, ...k });
+    // GLEICH: Tests ohne eigene Fassung speichern mit der aktuellen (wie ein frisch geladenes Formular).
+    // Kopf "x-test-ohne-fassung" schaltet das ab (für die 428-Prüfung).
+    const f = async (m, p, b, k = {}) => {
+      if ((m === "PUT" || m === "PATCH") && b && typeof b === "object" && !Array.isArray(b) && b.version === undefined && !k["x-test-ohne-fassung"]) {
+        const pfad = p.split("?")[0];
+        for (const [re, t] of ROUTEN_RE) {
+          const t1 = re.exec(pfad); if (!t1) continue;
+          const id = t1[1] ? Number(t1[1]) : 1;
+          const { rows: [z] } = await db.pool.query(`SELECT version FROM ${t} WHERE id = $1`, [id]);
+          if (z) b = { ...b, version: z.version };
+          break;
+        }
+      }
+      return api(m, p, b, { Authorization: "Bearer " + r.json.token, ...k });
+    };
     f.token = r.json.token;
     return f;
   };

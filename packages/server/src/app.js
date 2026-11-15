@@ -2,6 +2,7 @@
 import http from "node:http";
 import { Router, HttpFehler } from "./router.js";
 import { mitWer, werText } from "./aenderungen.js";
+import { TEXT_FASSUNG_FEHLT } from "./fassung.js";
 
 export const PROTOKOLL_VERSION = 1;
 const MAX_BODY = 25 * 1024 * 1024;
@@ -88,7 +89,12 @@ export function erstelleApp(deps) {
       }
       const ctx = { ...kontext, req, res, url, params, query: Object.fromEntries(url.searchParams), body, route, nutzer: null };
       if (deps.pruefeZugang) await deps.pruefeZugang(ctx);
+      // GLEICH-07: jedes Speichern (PUT/PATCH) schickt die Fassung mit, sonst 428 – außer bei Routen mit ohneVersion (Begründung).
+      if ((req.method === "PUT" || req.method === "PATCH") && !route.ohneVersion && (body?.version === undefined || body?.version === null))
+        throw new HttpFehler(428, TEXT_FASSUNG_FEHLT, { ok: false, level: "error", text: TEXT_FASSUNG_FEHLT });
       if (ctx.nutzer) ctx.pool = mitWer(deps.pool, () => werText(ctx)); // FA-55: wer im Änderungsprotokoll
+      // GLEICH: Live-Ereignisse tragen, wer geändert hat (Änderungsband „<Name> hat das gerade geändert“).
+      if (ctx.nutzer && kontext.hub) { const h = kontext.hub; ctx.hub = Object.assign(Object.create(h), { sende: (ev, f) => h.sende({ von: werText(ctx), ...ev }, f) }); }
       const erg = await route.handler(ctx);
       if (res.writableEnded || res.headersSent) return;
       if (erg === undefined) { res.writeHead(204); res.end(); return; }

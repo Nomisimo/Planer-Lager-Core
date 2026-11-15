@@ -12,7 +12,7 @@ test("Client: API mit Token, Fehler als ApiFehler mit UI-5-Text, Live-Ereignis k
     let abgemeldet = false;
     const api = erstelleApi({ basis: s.url, token: () => admin.token, beiAbmeldung: () => { abgemeldet = true; } });
     assert.equal((await api.get("/api/v1/ich")).nutzer.benutzername, "admin");
-    await assert.rejects(api.put("/api/v1/verwaltung/einstellungen", { angebot_gueltig_tage: -1 }), (e) => e instanceof ApiFehler && e.status === 400 && !!e.felder);
+    await assert.rejects(api.put("/api/v1/verwaltung/einstellungen", { angebot_gueltig_tage: -1, version: 1 }), (e) => e instanceof ApiFehler && e.status === 400 && !!e.felder);
     const ohne = erstelleApi({ basis: s.url, beiAbmeldung: () => { abgemeldet = true; } });
     await assert.rejects(ohne.get("/api/v1/ich"));
     assert.equal(abgemeldet, true);
@@ -20,7 +20,7 @@ test("Client: API mit Token, Fehler als ApiFehler mit UI-5-Text, Live-Ereignis k
     const ereignisse = [];
     live.on("einstellungen", (e) => ereignisse.push(e.typ));
     await new Promise((r) => { const u = live.onStatus((st) => { if (st === "verbunden") { r(); setTimeout(() => u()); } }); });
-    await api.put("/api/v1/verwaltung/einstellungen", { angebot_gueltig_tage: 15 });
+    await api.put("/api/v1/verwaltung/einstellungen", { angebot_gueltig_tage: 15, version: (await api.get("/api/v1/verwaltung/einstellungen")).version });
     for (let i = 0; i < 50 && !ereignisse.length; i++) await new Promise((r) => setTimeout(r, 20));
     assert.deepEqual(ereignisse, ["einstellungen.geaendert"]);
     live.stopp();

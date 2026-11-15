@@ -3,6 +3,7 @@ import QRCode from "qrcode";
 import { transaktion } from "@lager/db";
 import { prioritaet, verteilung, zuweisenPruefen, pruefeZone, zonenSortiert, zoneFrei } from "@lager/domain/zonen.js";
 import { fehler, nichtGefunden, idParam, dbFehler } from "./hilfen.js";
+import { sichereFassung } from "./fassung.js";
 import { ladeEinstellungen } from "./verwaltung.js";
 
 const R = { bereich: "zonen", stufe: "r" };
@@ -129,7 +130,7 @@ export function zonenModul(router) {
     }
   };
   router.post("/api/v1/verwaltung/zonen", V, async (ctx) => speichern(ctx, null));
-  router.put("/api/v1/verwaltung/zonen/:id", V, async (ctx) => speichern(ctx, idParam(ctx.params.id, "Diese Ladezone")));
+  router.put("/api/v1/verwaltung/zonen/:id", V, async (ctx) => { const id = idParam(ctx.params.id, "Diese Ladezone"); await sichereFassung(ctx, ctx.pool, "ladezone", id, { was: "Die Ladezone" }); return speichern(ctx, id); });
   router.delete("/api/v1/verwaltung/zonen/:id", V, async (ctx) => {
     const id = idParam(ctx.params.id, "Diese Ladezone");
     const { rows: [z] } = await ctx.pool.query("DELETE FROM ladezone WHERE id = $1 RETURNING bezeichnung", [id]);

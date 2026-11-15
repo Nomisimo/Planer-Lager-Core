@@ -145,17 +145,17 @@ Hinter `[x]` kurz notieren: Datum, Repo(s), Testdatei(en). Max. 1 Zeile.
 ## Phase 17 N – Nutzertests + gleichzeitiges Arbeiten (ZUSATZ.md, ARCHITEKTUR §12)
 - [x] Demo-Seed `--seed demo` (als „Beispiel“ markiert, vom Admin löschbar)
 - [x] KLICK-01–06 Klick-Durchlauf (App × Plattform × Rolle), `klick-bericht.json`
-- [ ] NUTZER-01–08 Arbeitstage (beide Apps gleichzeitig, eine im Browser)
+- [x] NUTZER-01–08 Arbeitstage (beide Apps gleichzeitig, eine im Browser)
 - [~] Subagent `.claude/agents/nutzer-tester.md` + Erkundungsrunde, BUG-Regeln im Skill `umsetzen` (Agent + erste Runde in Phase 16)
 - [x] GLEICH: Spalte `version` + zentraler Helfer in packages/db, 409 mit Text und `aktuell` (GLEICH-07)
 - [x] GLEICH: Band bei Live-Änderung, Vergleich beim 409, „Wurde gelöscht“, Präsenz-Chips (GLEICH-01–06)
 - [ ] Phasenende: Suiten, CI grün, Abnahme, Beta-Release (nur mit grünem KLICK/NUTZER/GLEICH und ohne offenen FEHLER)
 
 ## Phase 18 T – Tour (ZUSATZ.md, ARCHITEKTUR §11)
-- [ ] Engine Tour.jsx + touren.js, `tour`-Prop an Bausteinen
-- [ ] Willkommen + serverseitige Speicherung, Hilfe-Seite, Menü „Hilfe › Tour starten“
-- [ ] Touren Materialplaner, Productionplaner, Zusammenspiel, Arbeitsplatz-Web
-- [ ] TOUR-01–07, je Tour 1 Screenshot
+- [x] Engine Tour.jsx + touren.js, `tour`-Prop an Bausteinen
+- [x] Willkommen + serverseitige Speicherung, Hilfe-Seite, Menü „Hilfe › Tour starten“
+- [x] Touren Materialplaner, Productionplaner, Zusammenspiel, Arbeitsplatz-Web
+- [x] TOUR-01–07, je Tour 1 Screenshot
 - [ ] Phasenende: Suiten, CI grün, Abnahme, Beta-Release
 
 ## Phase 19 R – README, Lizenz, Release

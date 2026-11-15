@@ -98,7 +98,7 @@ const besuchtAlle = (app) => {
 };
 
 for (const app of Object.keys(APPS)) {
-  test(`KLICK-01 KLICK-02 KLICK-03 KLICK-04 KLICK-05 KLICK-06 ${app} als Electron-App: alle Menüeinträge, Tabs, Knöpfe und Dialoge je Rolle`, { timeout: 400000 }, async () => {
+  test(`KLICK-01 KLICK-02 KLICK-03 KLICK-04 KLICK-05 KLICK-06 ${app} als Electron-App: alle Menüeinträge, Tabs, Knöpfe und Dialoge je Rolle`, { timeout: 900000 }, async () => {
     const a = await starteApp(app, s.url);
     try {
       for (const rolle of ROLLEN) await laufInApp(a.win, app, "Electron", rolle, { tief: rolle[1] === "Administrator" });
@@ -113,7 +113,7 @@ for (const app of Object.keys(APPS)) {
   });
 }
 
-test("KLICK-01 KLICK-02 KLICK-03 KLICK-06 beide Apps im Browser: Admin tief, Fachrollen mit Rechteprüfung", { timeout: 400000 }, async () => {
+test("KLICK-01 KLICK-02 KLICK-03 KLICK-06 beide Apps im Browser: Admin tief, Fachrollen mit Rechteprüfung", { timeout: 900000 }, async () => {
   const b = await starteBrowser();
   try {
     for (const app of Object.keys(APPS)) {

@@ -11,9 +11,9 @@ const suche = (anker) => {
   return r.width || r.height ? el : null;
 };
 
-const BB = 360, BH = 210, RAND = 12;
+const BB = 360, RAND = 12;
 /** Blase dort, wo sie den Anker nicht verdeckt: unten, oben, rechts, links; sonst unten rechts im Fenster. */
-export function lageDerBlase(loch, vw, vh) {
+export function lageDerBlase(loch, vw, vh, BH = 210) {
   const x = Math.max(RAND, Math.min(loch.left, vw - BB - RAND));
   const y = Math.max(RAND, Math.min(loch.top, vh - BH - RAND));
   const rechts = loch.left + loch.width + RAND + BB <= vw;
@@ -33,6 +33,8 @@ export function Tour({ titel, schritte, navigiere, pfad, onEnde }) {
   const [i, setI] = useState(0);
   const [rect, setRect] = useState(null);
   const richtung = useRef(1);
+  const blaseRef = useRef(null);
+  const [hoehe, setHoehe] = useState(210);
   const s = schritte[i];
   const letzter = i === schritte.length - 1;
 
@@ -81,6 +83,9 @@ export function Tour({ titel, schritte, navigiere, pfad, onEnde }) {
     return () => el.removeEventListener("click", f);
   }, [rect, i]);
 
+  // Echte Höhe der Blase messen, damit sie neben den Anker passt (BUG-10)
+  useLayoutEffect(() => { const h = blaseRef.current?.offsetHeight; if (h && Math.abs(h - hoehe) > 1) setHoehe(h); });
+
   // Tasten (vor allen anderen Tastatur-Hörern, z. B. Handscanner)
   useEffect(() => {
     const k = (e) => {
@@ -95,7 +100,7 @@ export function Tour({ titel, schritte, navigiere, pfad, onEnde }) {
   if (!s || !rect) return <div className="lp-tour-sperre" data-testid="tour-laedt" />;
   const loch = { top: rect.top - ABSTAND, left: rect.left - ABSTAND, width: rect.width + 2 * ABSTAND, height: rect.height + 2 * ABSTAND };
   const vw = window.innerWidth, vh = window.innerHeight;
-  const blase = lageDerBlase(loch, vw, vh);
+  const blase = lageDerBlase(loch, vw, vh, hoehe);
   const offen = s.art === "klick" || s.art === "eingabe";
   return (
     <div className="lp-tour" data-testid="tour" data-anker={s.anker}>
@@ -105,7 +110,7 @@ export function Tour({ titel, schritte, navigiere, pfad, onEnde }) {
       <div className="lp-tour-block" style={{ top: loch.top, left: 0, width: Math.max(0, loch.left), height: loch.height }} />
       <div className="lp-tour-block" style={{ top: loch.top, left: loch.left + loch.width, right: 0, height: loch.height }} />
       <div className="lp-tour-loch" style={{ ...loch, pointerEvents: offen ? "none" : "auto" }} />
-      <div className="lp-tour-blase" role="dialog" aria-label={`Tour: ${s.titel}`} data-testid="tour-blase" style={blase}>
+      <div className="lp-tour-blase" role="dialog" aria-label={`Tour: ${s.titel}`} data-testid="tour-blase" ref={blaseRef} style={blase}>
         <div className="lp-meta">{titel} · Schritt {i + 1} von {schritte.length}</div>
         <h2 className="lp-h2" style={{ margin: "4px 0 6px" }}>{s.titel}</h2>
         <p style={{ margin: 0 }}>{s.text}</p>

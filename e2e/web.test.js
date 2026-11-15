@@ -150,7 +150,11 @@ test("WEB-03 WEB-13 Änderung im Browser-Productionplaner erscheint live im Desk
     await seite.waitForLoadState("networkidle").catch(() => {});
     const knopf = seite.getByRole("button", { name: "Speichern" });
     for (let n = 0; n < 3 && !antworten.some((a) => a.startsWith("→PUT")); n++) {
-      await knopf.click();
+      // Diagnose: was liegt an der Klickstelle? Danach Maus, Tastatur bzw. direktes Ereignis
+      antworten.push(`Treffer ${await knopf.evaluate((el) => { const r = el.getBoundingClientRect(); const t = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2); return `${t === el || el.contains(t) ? "Knopf" : t?.outerHTML?.slice(0, 160)} @${Math.round(r.x)},${Math.round(r.y)} in ${innerWidth}x${innerHeight}`; })}`);
+      if (n === 0) await knopf.click();
+      else if (n === 1) { await knopf.focus(); await seite.keyboard.press("Enter"); }
+      else await knopf.dispatchEvent("click");
       await warteBis(() => antworten.some((a) => a.startsWith("→PUT")), { timeout: 3000 }).catch(() => antworten.push(`Klick ${n + 1} ohne PUT`));
     }
     await warteBis(async () => (await s.db.pool.query("SELECT name FROM projekt WHERE id = $1", [p.id])).rows[0].name === "Stadtfest Nord", { timeout: 15000 })

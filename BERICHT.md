@@ -30,6 +30,7 @@ Funde:
 - BUG-4 Bei 1024×768 war die Kopfleiste breiter als das Fenster (waagerechter Rollbalken, Name abgeschnitten). Behoben: Rasterspalte `minmax(0,1fr)`, Codefeld schmaler, Name mit Auslassung. Roter Test KLICK-04 zuerst.
 - BUG-5 Material-, Geräte- und Kunden-Detail zeigten beim Laden eine leere Seite. Behoben: „Lädt …“ wie bei Projekten. Roter Test KLICK-03 zuerst.
 - BUG-6 Mangel beim Funktionstest der Rückgabe setzte das Gerät auf „Defekt“, legte aber keine Reparatur an; in Reparatur › Offen war es unsichtbar. Behoben: offene Reparatur mit Mangeltext und Projekt, Live-Ereignis an die Werkstatt. Roter Test NUTZER-03 zuerst.
+- BUG-7 Denselben Code im Codefeld ein zweites Mal scannen (z. B. nach gebuchter Etiketten-Lieferung) tat nichts, die alte Fehlermeldung blieb stehen. Ursache: gleiche Adresse löst kein `hashchange` aus. Behoben: Navigation zur offenen Adresse lädt die Seite neu. Roter Test NUTZER-04 zuerst.
 Annahmen: D-118, D-119, D-120
 Annahmen: D-114, D-115, D-116
 

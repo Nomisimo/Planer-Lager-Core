@@ -46,11 +46,20 @@ export function wendeDesignAn(d = {}) {
 }
 
 function useHash() {
-  const [h, setH] = useState(() => zerlegeHash(window.location.hash));
-  useEffect(() => { const f = () => setH(zerlegeHash(window.location.hash)); window.addEventListener("hashchange", f); return () => window.removeEventListener("hashchange", f); }, []);
+  const [h, setH] = useState(() => ({ ...zerlegeHash(window.location.hash), neu: 0 }));
+  useEffect(() => {
+    const f = () => setH({ ...zerlegeHash(window.location.hash), neu: 0 });
+    // BUG-7: Navigation zur gerade offenen Adresse (z. B. derselbe Code noch einmal gescannt) lädt die Seite neu.
+    const g = () => setH((x) => ({ ...x, neu: x.neu + 1 }));
+    window.addEventListener("hashchange", f); window.addEventListener("lager:neu-laden", g);
+    return () => { window.removeEventListener("hashchange", f); window.removeEventListener("lager:neu-laden", g); };
+  }, []);
   return h;
 }
-export const navigiere = (pfad) => { window.location.hash = "#" + pfad; };
+export const navigiere = (pfad) => {
+  if (window.location.hash === "#" + pfad) window.dispatchEvent(new Event("lager:neu-laden"));
+  else window.location.hash = "#" + pfad;
+};
 
 /* ── Anmeldung inkl. Zwei-Faktor ─────────────────────────────────────────── */
 /** Server-Adresse in der App ändern (nur Electron, wenn nicht per LAGER_SERVER_URL fest). */
@@ -174,7 +183,7 @@ export function AppHuelle({ app, seiten, onCode }) {
   const csrfRef = useRef(null);
   const scanZiel = useRef(null);
   const kontextRef = useRef(null);
-  const { pfad, query } = useHash();
+  const { pfad, query, neu } = useHash();
   const web = plattform.istWeb;
 
   useEffect(() => {
@@ -367,7 +376,7 @@ export function AppHuelle({ app, seiten, onCode }) {
           {banner && <div style={{ marginBottom: 12 }}><Meldung level="warning" text={banner} onSchliessen={() => setBanner(null)} /></div>}
           {zeit.meldung && <div style={{ marginBottom: 12 }} data-testid="zeit-meldung"><Meldung level="info" text={zeit.meldung} onSchliessen={() => zeit.setMeldung(null)} /></div>}
           {verweigert ? <ZugriffVerweigert rolle={nutzer.rolle} />
-            : treffer ? <treffer.Komponente params={treffer.params} query={query} key={pfad} />
+            : treffer ? <treffer.Komponente params={treffer.params} query={query} key={`${pfad}#${neu}`} />
             : <Seite titel="Seite nicht gefunden"><Meldung level="error" text="Diese Seite gibt es in dieser App nicht. Wähle links einen Menüpunkt." /></Seite>}
         </main>
         {darstellung && <DarstellungDialog design={design} onAendern={designAendern} onSchliessen={() => setDarstellung(false)} />}

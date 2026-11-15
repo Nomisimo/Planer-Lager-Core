@@ -123,6 +123,32 @@ function Anmeldung({ api, titel, onFertig, hinweis, info }) {
   );
 }
 
+/** Phase S: Band „TESTSYSTEM – nur Beispieldaten“ (Server mit LAGER_MODUS=test). */
+export const TestBand = ({ an }) => (an ? <div className="lp-testband" role="status" data-testid="testsystem-band">TESTSYSTEM – nur Beispieldaten</div> : null);
+
+/** Phase S: Einmal-Passwort ersetzen, bevor es weitergeht (danach ggf. 2FA einrichten). */
+function PasswortWechseln({ api, nutzer, onFertig }) {
+  const [w, setW] = useState({ neu: "", wieder: "" });
+  const [meldung, setMeldung] = useState(null);
+  const speichern = async () => {
+    if (w.neu !== w.wieder) { setMeldung({ level: "error", text: "Die beiden Passwörter sind nicht gleich. Tippe das neue Passwort zweimal gleich ein." }); return; }
+    try { await api.post("/api/v1/ich/passwort", { neu: w.neu }); onFertig(); } catch (e) { setMeldung({ level: "error", text: fehlerText(e) }); }
+  };
+  return (
+    <div className="lp-login">
+      <Section titel="Eigenes Passwort vergeben" icon="ShieldCheck">
+        <p style={{ marginTop: 0 }}>Hallo {nutzer?.name || nutzer?.benutzername}, du hast dich mit einem Einmal-Passwort angemeldet. Vergib jetzt ein eigenes Passwort (mindestens 10 Zeichen).</p>
+        <div>
+          <Feld label="Neues Passwort" pflicht><Eingabe type="password" autoComplete="new-password" value={w.neu} onChange={(e) => setW({ ...w, neu: e.target.value })} /></Feld>
+          <Feld label="Neues Passwort wiederholen" pflicht><Eingabe type="password" autoComplete="new-password" value={w.wieder} onChange={(e) => setW({ ...w, wieder: e.target.value })} /></Feld>
+          {meldung && <div style={{ marginTop: 10 }}><Meldung {...meldung} /></div>}
+          <div style={{ marginTop: 12 }}><Knopf art="primaer" icon="Check" onClick={speichern}>Passwort speichern</Knopf></div>
+        </div>
+      </Section>
+    </div>
+  );
+}
+
 /** FA-54: Pflicht-Einrichtung der Zwei-Faktor-Anmeldung für Admins. */
 function ZweiFaktorEinrichten({ api, onFertig }) {
   const [daten, setDaten] = useState(null);
@@ -177,6 +203,8 @@ export function AppHuelle({ app, seiten, onCode }) {
   const [token, setToken] = useState(undefined); // undefined = lädt
   const [nutzer, setNutzer] = useState(null);
   const [zweiFaktor, setZweiFaktor] = useState(false);
+  const [pwWechsel, setPwWechsel] = useState(false);
+  const [testsystem, setTestsystem] = useState(false);
   const [hinweis, setHinweis] = useState(null);
   const [banner, setBanner] = useState(null);
   const [update, setUpdate] = useState(null);
@@ -264,6 +292,7 @@ export function AppHuelle({ app, seiten, onCode }) {
   useEffect(() => {
     if (!api) return;
     api.get("/health").then((h) => {
+      setTestsystem(!!h.testsystem);
       if (h.protokoll !== PROTOKOLL_ERWARTET) setBanner(`Diese App passt nicht zur Version des Lager-Servers (Server ${h.protokoll}, App ${PROTOKOLL_ERWARTET}). Installiere das aktuelle Update.`);
     }, () => setBanner("Der Lager-Server ist nicht erreichbar. Prüfe die Internetverbindung. Die App verbindet sich automatisch neu."));
   }, [api]);
@@ -271,7 +300,7 @@ export function AppHuelle({ app, seiten, onCode }) {
   // Nutzer laden, wenn Token da
   useEffect(() => {
     if (!api || !token) return;
-    api.get("/api/v1/ich").then((r) => { if (r.csrf) csrfRef.current = r.csrf; setNutzer(r.nutzer); setZweiFaktor(!!r.zweiFaktorEinrichten); if (r.nutzer.design && Object.keys(r.nutzer.design).length && !leseDesign()) setDesign(r.nutzer.design); },
+    api.get("/api/v1/ich").then((r) => { if (r.csrf) csrfRef.current = r.csrf; setNutzer(r.nutzer); setZweiFaktor(!!r.zweiFaktorEinrichten); setPwWechsel(!!r.passwortWechseln); if (r.nutzer.design && Object.keys(r.nutzer.design).length && !leseDesign()) setDesign(r.nutzer.design); },
       (e) => { if (e.status === 401) setzeToken(null); else setBanner(fehlerText(e)); });
     api.get("/api/v1/einstellungen/basis").then((b) => { setFirma(b.firma?.name || ""); if (!leseDesign() && b.design_standard) setDesign((d) => (Object.keys(d).length ? d : b.design_standard)); }, () => {});
   }, [api, token]);
@@ -342,9 +371,10 @@ export function AppHuelle({ app, seiten, onCode }) {
   if (!info || token === undefined) return null;
   if (!token || (!nutzer && !zweiFaktor)) {
     if (token && !nutzer) return null; // lädt /ich
-    return <Anmeldung api={api} info={info} titel={`${self.titel} – Anmeldung`} hinweis={hinweis} onFertig={(r) => { setHinweis(null); setzeToken(r.token || "cookie", r.csrf); }} />;
+    return <><TestBand an={testsystem} /><Anmeldung api={api} info={info} titel={`${self.titel} – Anmeldung`} hinweis={hinweis} onFertig={(r) => { setHinweis(null); setzeToken(r.token || "cookie", r.csrf); }} /></>;
   }
-  if (zweiFaktor) return <ZweiFaktorEinrichten api={api} onFertig={() => { setZweiFaktor(false); api.get("/api/v1/ich").then((r) => setNutzer(r.nutzer)); }} />;
+  if (pwWechsel) return <><TestBand an={testsystem} /><PasswortWechseln api={api} nutzer={nutzer} onFertig={() => api.get("/api/v1/ich").then((r) => { setNutzer(r.nutzer); setZweiFaktor(!!r.zweiFaktorEinrichten); setPwWechsel(!!r.passwortWechseln); })} /></>;
+  if (zweiFaktor) return <><TestBand an={testsystem} /><ZweiFaktorEinrichten api={api} onFertig={() => { setZweiFaktor(false); api.get("/api/v1/ich").then((r) => setNutzer(r.nutzer)); }} /></>;
 
   const menue = menueFuer(nutzer.rechte, app);
   const alle = menue.flatMap((g) => g.eintraege);
@@ -364,6 +394,7 @@ export function AppHuelle({ app, seiten, onCode }) {
 
   return (
     <Ctx.Provider value={kontext}>
+      <TestBand an={testsystem} />
       <div className="lp-app">
         <header className="lp-kopf">
           <button className="lp-btn lp-btn-geist lp-btn-klein lp-nur-mobil" aria-label="Menü" onClick={() => setMenueOffen((o) => !o)}><Icon name="Menu" /></button>

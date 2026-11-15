@@ -184,3 +184,6 @@ a{color:var(--lp-link)}
 .lp-tour-block{position:fixed;background:rgba(0,0,0,.55);pointer-events:auto}
 .lp-tour-loch{position:fixed;border-radius:8px;box-shadow:0 0 0 2px var(--lp-accent);background:transparent}
 .lp-tour-blase{position:fixed;pointer-events:auto;width:360px;max-width:calc(100vw - 24px);background:var(--lp-card);color:var(--lp-text);border:1px solid var(--lp-line);border-radius:10px;padding:14px 16px;box-shadow:0 12px 32px rgba(0,0,0,.35)}
+
+/* Phase S: Testsystem-Band, schwebt oben mittig über allem */
+.lp-testband{position:fixed;top:0;left:50%;transform:translateX(-50%);z-index:2000;pointer-events:none;background:#b7791f;color:#111;font:600 12px/1.6 system-ui,sans-serif;letter-spacing:.04em;padding:1px 12px;border-radius:0 0 6px 6px;white-space:nowrap}

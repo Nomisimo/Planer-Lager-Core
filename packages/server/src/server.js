@@ -29,13 +29,15 @@ import { plansymboleModul, beobachteArtikel } from "./plansymbole.js";
 import { inventurModul } from "./inventur.js";
 import { durchgaengeModul } from "./durchgaenge.js";
 import { ressourcenModul } from "./ressourcen.js";
+import { testModul, pruefeTestKonfig } from "./testmodus.js";
 
-export const MODULE = [authModul, verwaltungModul, stammdatenModul, etikettenModul, kundenModul, projekteModul, angeboteModul, scanModul, scannerModul, zonenModul, stationModul, zeitModul, uebersichtModul, systemModul, plansymboleModul, inventurModul, durchgaengeModul, ressourcenModul, aenderungenModul, lagerorteModul, schaedenModul, kontakteModul, benachrichtigungenModul, vorlagenModul, statischModul];
+export const MODULE = [authModul, verwaltungModul, stammdatenModul, etikettenModul, kundenModul, projekteModul, angeboteModul, scanModul, scannerModul, zonenModul, stationModul, zeitModul, uebersichtModul, systemModul, plansymboleModul, inventurModul, durchgaengeModul, ressourcenModul, aenderungenModul, lagerorteModul, schaedenModul, kontakteModul, benachrichtigungenModul, vorlagenModul, testModul, statischModul];
 
 /**
  * @param {{pool: import("pg").Pool, config?: object, migrieren?: boolean}} opt
  */
 export async function erstelleLagerServer({ pool, config = {}, migrieren = true }) {
+  pruefeTestKonfig(config); // Phase S: Testmodus nur mit Token
   if (migrieren) await migriere(pool);
   await sichereGrunddaten(pool, { adminBenutzer: config.adminBenutzer, adminPasswort: config.adminPasswort });
   await beimStart(pool, config); // FA-50/FA-51

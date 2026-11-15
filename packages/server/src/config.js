@@ -30,5 +30,8 @@ export function configAusEnv(env = process.env) {
     // FA-40 / E-5: Benachrichtigungen – Hintergrundlauf (Minuten, 0 = aus) und E-Mail per SMTP_HOST/SMTP_PORT/SMTP_TLS/SMTP_BENUTZER/SMTP_PASSWORT/SMTP_VON
     hintergrundMinuten: env.LAGER_HINTERGRUND_MINUTEN === undefined ? 60 : Number(env.LAGER_HINTERGRUND_MINUTEN) || 0,
     smtp: smtpAusEnv(env),
+    // Phase S: Testsystem (Oracle-Testserver). Nur mit LAGER_MODUS=test gibt es Test-Token, Test-Routen und das Band.
+    testModus: env.LAGER_MODUS === "test",
+    testToken: env.LAGER_MODUS === "test" ? String(env.LAGER_TEST_TOKEN || "") : "",
   };
 }

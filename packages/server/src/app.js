@@ -37,6 +37,7 @@ export function setzeSchutzHeader(res, config = {}) {
   res.setHeader("Content-Security-Policy", "default-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'; object-src 'none'");
   res.setHeader("Cross-Origin-Opener-Policy", "same-origin");
   if (config.hsts) res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+  if (config.testModus) res.setHeader("X-Robots-Tag", "noindex, nofollow"); // Phase S: Testsystem nicht in Suchmaschinen
 }
 
 /** Einfaches Rate-Limit je Adresse (gleitendes Minutenfenster). */
@@ -55,7 +56,8 @@ export function erstelleRateLimit(maxProMinute = 600) {
 export function erstelleApp(deps) {
   const router = new Router();
   const kontext = { ...deps, router };
-  router.get("/health", { oeffentlich: true }, () => ({ ok: true, protokoll: PROTOKOLL_VERSION, zeit: new Date().toISOString() }));
+  router.get("/health", { oeffentlich: true }, () => ({ ok: true, protokoll: PROTOKOLL_VERSION, zeit: new Date().toISOString(),
+    version: process.env.LAGER_VERSION || undefined, commit: process.env.LAGER_COMMIT || undefined, ...(deps.config?.testModus ? { testsystem: true } : {}) }));
   for (const m of deps.module || []) m(router, kontext);
 
   const limit = erstelleRateLimit(deps.config?.rateLimit || 600);

@@ -1,13 +1,14 @@
 // Anmeldung (R-04, R-08–R-10), Sitzungen, Zwei-Faktor (FA-54), Handoff zwischen den Apps (ARCHITEKTUR §4.1),
 // zentrale Zugangsprüfung je Route (R-01–R-05).
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
-import { darf, noetigeStufe, istAdminRechte, pruefeTotp, neuesTotpGeheimnis, totpUri } from "@lager/domain";
+import { darf, noetigeStufe, istAdminRechte, pruefeTotp, neuesTotpGeheimnis, totpUri, pruefePasswort } from "@lager/domain";
 import QRCode from "qrcode";
 import { HttpFehler } from "./router.js";
 import { protokolliere, clientIp } from "./sicherheit.js";
-import { pruefePasswortHash, DUMMY_HASH } from "./passwort-hash.js";
+import { pruefePasswortHash, hashePasswort, DUMMY_HASH } from "./passwort-hash.js";
 import { verteileBeimAnmelden } from "./zonen.js";
 import { pruefeStation } from "./station.js";
+import { istTestToken, sichereTestSitzung, protokolliereTest } from "./testmodus.js";
 
 export const SITZUNG_STUNDEN = 12;              // R-10
 export const GERAET_TAGE = 400;                 // Arbeitsplatz/Anzeige: bleibt wochenlang angemeldet (R-59), gleitend
@@ -26,6 +27,8 @@ export const TEXT = {
   csrf: "Die Sitzung ist nicht mehr gültig. Lade die Seite neu und versuche es erneut.",
   totpFalsch: "Der Code stimmt nicht. Gib den aktuellen 6-stelligen Code aus deiner Authenticator-App ein.",
   zweiFaktorPflicht: "Für Administratoren ist die Zwei-Faktor-Anmeldung Pflicht. Richte sie jetzt ein.",
+  passwortWechsel: "Bitte vergib zuerst ein eigenes Passwort. Das bisherige war nur für die erste Anmeldung.",
+  passwortAltFalsch: "Das bisherige Passwort stimmt nicht. Prüfe die Eingabe und versuche es erneut.",
 };
 
 const sha = (s) => createHash("sha256").update(s).digest("hex");
@@ -43,17 +46,35 @@ export function leseCookies(req) {
 
 function tokenAus(ctx) {
   const h = String(ctx.req.headers.authorization || "");
-  if (h.startsWith("Bearer ")) return { token: h.slice(7).trim(), quelle: "bearer" };
+  const bearer = h.startsWith("Bearer ") ? h.slice(7).trim() : "";
   const c = leseCookies(ctx.req)[COOKIE];
+  // Phase S: Der Test-Token (nur LAGER_MODUS=test) gilt erst, wenn kein Benutzer-Cookie da ist – der Proxy der
+  // Test-VM hängt ihn an jede Anfrage an, angemeldete Benutzer sollen trotzdem sie selbst bleiben.
+  if (bearer && istTestToken(ctx.config, bearer)) return c ? { token: c, quelle: "cookie", ersatz: bearer } : { token: bearer, quelle: "bearer", test: true };
+  if (bearer) return { token: bearer, quelle: "bearer" };
   return c ? { token: c, quelle: "cookie" } : null;
 }
 
+/** Sitzung zum Token; im Testmodus fällt ein ungültiges Cookie auf den Test-Token zurück. */
+async function sitzungAus(ctx, t) {
+  if (!t) return null;
+  if (t.test) await sichereTestSitzung(ctx.pool, ctx.config);
+  let s = await ladeSitzung(ctx.pool, t.token);
+  if ((!s || s.abgelaufen) && t.ersatz) {
+    Object.assign(t, { token: t.ersatz, quelle: "bearer", test: true });
+    await sichereTestSitzung(ctx.pool, ctx.config);
+    s = await ladeSitzung(ctx.pool, t.token);
+  }
+  if (s?.nutzer && t.test) { s.nutzer.testZugang = true; await protokolliereTest(ctx); }
+  return s;
+}
+
 const NUTZER_SQL = `SELECT s.token_hash, s.art, s.csrf, s.letzte_aktivitaet, b.id, b.benutzername, b.name, b.aktiv, b.totp_aktiv,
-  b.design, b.tour, r.name AS rolle, r.rechte FROM sitzung s JOIN benutzer b ON b.id = s.benutzer_id JOIN rolle r ON r.id = b.rolle_id
+  b.design, b.tour, b.passwort_wechsel, r.name AS rolle, r.rechte FROM sitzung s JOIN benutzer b ON b.id = s.benutzer_id JOIN rolle r ON r.id = b.rolle_id
   WHERE s.token_hash = $1`;
 
 const nutzerAus = (z) => ({ id: z.id, benutzername: z.benutzername, name: z.name, rolle: z.rolle, rechte: z.rechte,
-  admin: istAdminRechte(z.rechte), totpAktiv: z.totp_aktiv, design: z.design, tour: z.tour || {}, sitzungArt: z.art });
+  admin: istAdminRechte(z.rechte), totpAktiv: z.totp_aktiv, design: z.design, tour: z.tour || {}, sitzungArt: z.art, passwortWechsel: !!z.passwort_wechsel });
 
 /** Lädt die Sitzung zum Token (oder null, wenn ungültig/abgelaufen). Abgelaufene werden gelöscht. */
 export async function ladeSitzung(pool, token) {
@@ -71,6 +92,9 @@ export async function ladeSitzung(pool, token) {
   return { zeile: z, nutzer: nutzerAus(z), erneuert };
 }
 
+/** FA-54: Admin ohne 2FA bei Zugriff aus dem Netz (der Test-Token ist davon ausgenommen, er hat kein Gerät für Codes). */
+const zweiFaktorFehlt = (config, n) => !!(config?.imNetz && n.admin && !n.totpAktiv && !n.testZugang);
+
 const verweigert = (rolle) => new HttpFehler(403, TEXT.verweigert, { ok: false, level: "error", text: TEXT.verweigert, rolle });
 
 /**
@@ -81,10 +105,10 @@ export async function pruefeZugang(ctx) {
   const { route } = ctx;
   const t = tokenAus(ctx);
   if (route.oeffentlich) {
-    if (t) { const s = await ladeSitzung(ctx.pool, t.token); if (s?.nutzer) ctx.nutzer = s.nutzer; }
+    if (t) { const s = await sitzungAus(ctx, t); if (s?.nutzer) ctx.nutzer = s.nutzer; }
     return;
   }
-  const s = t ? await ladeSitzung(ctx.pool, t.token) : null;
+  const s = await sitzungAus(ctx, t);
   if (!s || s.abgelaufen) {
     const text = s?.abgelaufen ? TEXT.abgelaufen : TEXT.anmelden;
     throw new HttpFehler(401, text, { ok: false, level: "error", text, anmelden: true }); // R-04
@@ -95,7 +119,10 @@ export async function pruefeZugang(ctx) {
   if (t.quelle === "cookie" && s.erneuert) setzeCookie(ctx, t.token, sitzungSekunden(n.sitzungArt));
   ctx.sitzung = { tokenHash: s.zeile.token_hash, quelle: t.quelle };
   if (n.sitzungArt === "zwischen" && !route.zwischen) throw new HttpFehler(401, TEXT.anmelden, { ok: false, level: "error", text: TEXT.anmelden, zweiterFaktor: true });
-  if (ctx.config?.imNetz && n.admin && !n.totpAktiv && !route.zweiFaktorEinrichtung && n.sitzungArt !== "zwischen")
+  // Phase S: Einmal-Passwort → erst ein eigenes Passwort vergeben, dann 2FA einrichten
+  if (n.passwortWechsel && !route.passwortWechsel)
+    throw new HttpFehler(403, TEXT.passwortWechsel, { ok: false, level: "warning", text: TEXT.passwortWechsel, passwortWechseln: true });
+  if (zweiFaktorFehlt(ctx.config, n) && !route.zweiFaktorEinrichtung && n.sitzungArt !== "zwischen")
     throw new HttpFehler(403, TEXT.zweiFaktorPflicht, { ok: false, level: "error", text: TEXT.zweiFaktorPflicht, zweiFaktorEinrichten: true });
   // CSRF nur für Cookie-Sitzungen (ARCHITEKTUR §7)
   const methode = ctx.req.method || "GET";
@@ -154,7 +181,7 @@ async function anmeldungFertig(ctx, b, art) {
   const s = await ladeSitzung(ctx.pool, token);
   await verteileBeimAnmelden(ctx, s.nutzer); // R-58, fängt eigene Fehler
   return { ok: true, token: art === "app" ? token : undefined, csrf: csrf || undefined, nutzer: s.nutzer,
-    zweiFaktorEinrichten: !!(ctx.config?.imNetz && s.nutzer.admin && !s.nutzer.totpAktiv) };
+    zweiFaktorEinrichten: zweiFaktorFehlt(ctx.config, s.nutzer), passwortWechseln: s.nutzer.passwortWechsel };
 }
 
 export function authModul(router) {
@@ -200,17 +227,35 @@ export function authModul(router) {
     return anmeldungFertig(ctx, rows[0], art === "web" ? "web" : "app");
   });
 
-  router.post("/api/v1/abmelden", { bereich: "start", nurAngemeldet: true, zweiFaktorEinrichtung: true }, async (ctx) => {
+  router.post("/api/v1/abmelden", { bereich: "start", nurAngemeldet: true, zweiFaktorEinrichtung: true, passwortWechsel: true }, async (ctx) => {
     await ctx.pool.query("DELETE FROM sitzung WHERE token_hash = $1", [ctx.sitzung.tokenHash]);
     await protokolliere(ctx.pool, "logout", { benutzer: ctx.nutzer.benutzername, ip: clientIp(ctx) });
     if (ctx.sitzung.quelle === "cookie") setzeCookie(ctx, "", 0);
     return { ok: true };
   });
 
-  router.get("/api/v1/ich", { bereich: "start", nurAngemeldet: true, zweiFaktorEinrichtung: true }, async (ctx) => {
+  router.get("/api/v1/ich", { bereich: "start", nurAngemeldet: true, zweiFaktorEinrichtung: true, passwortWechsel: true }, async (ctx) => {
     const { rows } = await ctx.pool.query("SELECT csrf FROM sitzung WHERE token_hash = $1", [ctx.sitzung.tokenHash]);
-    return { ok: true, nutzer: ctx.nutzer, csrf: rows[0]?.csrf || undefined,
-      zweiFaktorEinrichten: !!(ctx.config?.imNetz && ctx.nutzer.admin && !ctx.nutzer.totpAktiv) };
+    return { ok: true, nutzer: ctx.nutzer, csrf: rows[0]?.csrf || undefined, testsystem: !!ctx.config?.testModus,
+      zweiFaktorEinrichten: zweiFaktorFehlt(ctx.config, ctx.nutzer), passwortWechseln: ctx.nutzer.passwortWechsel };
+  });
+
+  // Phase S: eigenes Passwort ändern. Beim Einmal-Passwort (passwort_wechsel) ohne bisheriges, sonst mit.
+  router.post("/api/v1/ich/passwort", { bereich: "start", nurAngemeldet: true, zweiFaktorEinrichtung: true, passwortWechsel: true }, async (ctx) => {
+    const { alt = "", neu = "" } = ctx.body || {};
+    const { rows: [b] } = await ctx.pool.query("SELECT passwort_hash, passwort_wechsel FROM benutzer WHERE id = $1", [ctx.nutzer.id]);
+    if (!b.passwort_wechsel && !(await pruefePasswortHash(String(alt), b.passwort_hash)))
+      throw new HttpFehler(400, TEXT.passwortAltFalsch, { ok: false, level: "error", text: TEXT.passwortAltFalsch, feld: "alt" });
+    if (await pruefePasswortHash(String(neu), b.passwort_hash)) {
+      const text = "Das neue Passwort ist dasselbe wie das bisherige. Wähle ein anderes.";
+      throw new HttpFehler(400, text, { ok: false, level: "error", text, feld: "neu" });
+    }
+    const f = pruefePasswort(String(neu), ctx.nutzer.benutzername);
+    if (f.length) throw new HttpFehler(400, f[0], { ok: false, level: "error", text: f[0], feld: "neu" });
+    await ctx.pool.query("UPDATE benutzer SET passwort_hash = $1, passwort_wechsel = false WHERE id = $2", [await hashePasswort(String(neu)), ctx.nutzer.id]);
+    await ctx.pool.query("DELETE FROM sitzung WHERE benutzer_id = $1 AND token_hash <> $2", [ctx.nutzer.id, ctx.sitzung.tokenHash]);
+    await protokolliere(ctx.pool, "aktion", { benutzer: ctx.nutzer.benutzername, ip: clientIp(ctx), text: "Eigenes Passwort geändert" });
+    return { ok: true, level: "success", text: "Dein neues Passwort gilt ab sofort.", zweiFaktorEinrichten: zweiFaktorFehlt(ctx.config, ctx.nutzer) };
   });
 
   // FA-52: persönliche Darstellung (Thema, Dichte, Hell/Dunkel)
@@ -258,7 +303,7 @@ export function authModul(router) {
     return { ok: true, code, gueltigSekunden: HANDOFF_SEKUNDEN };
   });
   // BUG-2: Browser fragt beim Start, ob eine Cookie-Sitzung besteht – ohne 401 (sonst Konsolenfehler vor dem Login)
-  router.get("/api/v1/sitzung", { oeffentlich: true }, (ctx) => ({ angemeldet: !!ctx.nutzer }));
+  router.get("/api/v1/sitzung", { oeffentlich: true }, (ctx) => ({ angemeldet: !!ctx.nutzer, ...(ctx.config?.testModus ? { testsystem: true } : {}) }));
   router.post("/api/v1/handoff/einloesen", { oeffentlich: true }, async (ctx) => {
     const code = String(ctx.body?.code || "");
     const art = ctx.body?.art === "web" ? "web" : "app"; // web: Cookie-Sitzung für die Browser-Version (WEB-13)

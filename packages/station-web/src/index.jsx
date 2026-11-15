@@ -5,7 +5,7 @@ import { SchadenDialog } from "@lager/ui/schaeden.jsx";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { erstelleApi, Live } from "@lager/client";
-import { wendeDesignAn, LagerKontext, useHandscanner, useLive } from "@lager/ui/huelle.jsx";
+import { wendeDesignAn, LagerKontext, useHandscanner, useLive, TestBand } from "@lager/ui/huelle.jsx";
 import { Section, Meldung, Knopf, Feld, Eingabe, Tabelle, Badge, Leerzustand, Icon, useDaten, useBestaetigung } from "@lager/ui/bausteine.jsx";
 import { ScanPanel } from "@lager/ui/scannen.jsx";
 import { TaschenKarte, FunktionstestKarte } from "@lager/ui/rueckgabe.jsx";
@@ -178,6 +178,8 @@ function App() {
     catch { setZustand(null); }
   }, [rohApi]);
   useEffect(() => { ladeZustand(); }, [ladeZustand]);
+  const [testsystem, setTestsystem] = useState(false); // Phase S: Band auf dem Testserver
+  useEffect(() => { rohApi.get("/health").then((h) => setTestsystem(!!h.testsystem), () => {}); }, [rohApi]);
   // 423 → Sperrbildschirm, 403 mit weiter → Startseite (R-11d)
   const api = useMemo(() => {
     const wrap = (f) => async (...a) => {
@@ -208,11 +210,12 @@ function App() {
   }, [aktiv, zustand?.arbeitsplatz?.sperrzeit_minuten, rohApi, ladeZustand]);
 
   if (zustand === undefined) return null;
-  if (!zustand) return <Einrichten api={rohApi} onFertig={ladeZustand} />;
+  if (!zustand) return <><TestBand an={testsystem} /><Einrichten api={rohApi} onFertig={ladeZustand} /></>;
   const kontext = { api, live, nutzer: { admin: false, rechte: { packen: "w", geraete: "r" } }, navigiere: () => {}, scanZiel, setBanner: setHinweis };
   const ap = zustand.arbeitsplatz;
   return (
     <LagerKontext.Provider value={kontext}>
+      <TestBand an={testsystem} />
       {ap.art === "anzeige" ? <Anzeige api={api} zone={new URLSearchParams(window.location.search).get("zone")} /> :
         zustand.gesperrt ? <Sperrbildschirm key={zustand.wartezeit} api={api} zustand={zustand} onNeu={(z) => { csrf.current = z.csrf || csrf.current; setZustand(z); }} /> :
           <div className="lp-station">

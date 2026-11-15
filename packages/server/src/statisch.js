@@ -5,6 +5,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { HttpFehler } from "./router.js";
 import { darf } from "@lager/domain/rechte.js";
+import { TEST_BAND } from "./testmodus.js";
 
 const HIER = path.dirname(fileURLToPath(import.meta.url));
 export const STATION_DIST = path.join(HIER, "..", "..", "station-web", "dist");
@@ -25,7 +26,7 @@ export const appsFuer = (nutzer) => WEB_APPS.filter((a) => nutzer?.admin || a.be
 const esc = (t) => String(t).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 
 /** Portal: reines HTML ohne Script (CSP), Kacheln nach Rechten. */
-function portalHtml(nutzer) {
+function portalHtml(nutzer, testsystem = false) {
   const kachel = (href, titel, text, testid) => `<a class="k" href="${href}" data-testid="${testid}"><strong>${esc(titel)}</strong><span>${esc(text)}</span></a>`;
   const apps = nutzer ? appsFuer(nutzer) : WEB_APPS;
   const kacheln = apps.map((a) => kachel(`/${a.id}/`, a.titel, a.text, `kachel-${a.id}`));
@@ -37,8 +38,9 @@ function portalHtml(nutzer) {
 h1{margin:0 0 4px;font-size:26px}.h{color:#a9b3bd;margin:0 0 24px}.r{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px}
 .k{display:flex;flex-direction:column;gap:6px;padding:18px;border-radius:10px;background:#1f252c;border:1px solid #2e3741;color:inherit;text-decoration:none}
 .k:hover,.k:focus{border-color:#d1665c;outline:none}.k strong{font-size:17px}.k span{color:#a9b3bd;font-size:13px}
+.t{background:#b7791f;color:#111;text-align:center;font-weight:600;padding:6px 12px;letter-spacing:.04em}
 @media (prefers-color-scheme:light){body{background:#f4f6f8;color:#1c2127}.k{background:#fff;border-color:#d5dbe1}.h,.k span{color:#57616b}}</style></head>
-<body><main><h1>Planer-Lager</h1><p class="h" data-testid="portal-kopf">${kopf}</p>${leer}<nav class="r" aria-label="Apps">${kacheln.join("")}</nav></main></body></html>`;
+<body>${testsystem ? `<div class="t" role="status" data-testid="testsystem-band">${esc(TEST_BAND)}</div>` : ""}<main><h1>Planer-Lager</h1><p class="h" data-testid="portal-kopf">${kopf}</p>${leer}<nav class="r" aria-label="Apps">${kacheln.join("")}</nav></main></body></html>`;
 }
 
 export function statischModul(router, { config }) {
@@ -56,7 +58,7 @@ export function statischModul(router, { config }) {
     ctx.res.writeHead(200, { "Content-Type": TYPEN[".html"], "Cache-Control": "no-store", "Content-Security-Policy": SEITEN_CSP });
     ctx.res.end(fs.readFileSync(datei));
   };
-  router.get("/", { oeffentlich: true }, (ctx) => html(ctx, portalHtml(ctx.nutzer)));
+  router.get("/", { oeffentlich: true }, (ctx) => html(ctx, portalHtml(ctx.nutzer, !!config?.testModus)));
   router.get("/station", { oeffentlich: true }, seite);
   router.get("/anzeige", { oeffentlich: true }, seite);
   router.get("/login", { oeffentlich: true }, seite);

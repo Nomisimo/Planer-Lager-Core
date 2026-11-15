@@ -44,7 +44,9 @@ export function starteShell(cfg) {
   app.on("open-url", (e, url) => { e.preventDefault(); sendeLink(url); });
 
   if (!serverFest) serverUrl = leseServer() || serverUrl;
-  ipcMain.handle("shell-info", () => ({ id: cfg.id, titel: cfg.titel, version: cfg.version, serverUrl, serverFest, test, plattform: process.platform }));
+  ipcMain.handle("shell-info", () => ({ id: cfg.id, titel: cfg.titel, version: cfg.version, serverUrl, serverFest, test, plattform: process.platform,
+    // REL-03: Releases der App auf GitHub (im Test nur mit LAGER_UPDATE_URL, sonst kein Netzzugriff)
+    updateUrl: process.env.LAGER_UPDATE_URL || (test ? null : `https://api.github.com/repos/Nomisimo/${cfg.titel}/releases?per_page=10`) }));
   ipcMain.handle("server-setzen", (e, url) => {
     if (serverFest) return { ok: false, text: "Die Server-Adresse ist über LAGER_SERVER_URL fest eingestellt. Ändere sie dort." };
     const u = String(url || "").trim().replace(/\/+$/, "");

@@ -4,6 +4,7 @@ html,body{margin:0;padding:0;height:100%}
 body{background:var(--lp-bg);color:var(--lp-text);font:var(--lp-schrift)/1.45 'Segoe UI',system-ui,-apple-system,sans-serif;-webkit-font-smoothing:antialiased}
 a{color:var(--lp-link)}
 .lp-link{background:none;border:0;padding:0;color:var(--lp-link);text-decoration:underline;cursor:pointer;font:inherit}
+.lp-link-knopf{background:none;border:0;padding:0;color:inherit;font:inherit;cursor:pointer}.lp-link-knopf:hover{text-decoration:underline}
 :focus-visible{outline:2px solid var(--lp-accent-text);outline-offset:2px}
 .lp-app{display:grid;grid-template-rows:auto 1fr;grid-template-columns:auto minmax(0,1fr);height:100vh}
 .lp-kopf{grid-column:1/3;display:flex;align-items:center;gap:calc(var(--lp-abstand)*2);background:var(--lp-dark);border-bottom:2px solid var(--lp-accent);padding:8px 16px;min-height:52px;min-width:0}

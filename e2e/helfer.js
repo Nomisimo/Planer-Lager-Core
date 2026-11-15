@@ -54,7 +54,7 @@ export async function starteServer(extra = {}) {
 const umgebung = (extra) => { const e = { ...process.env, ...extra }; if (!extra.LAGER_SERVER_URL) delete e.LAGER_SERVER_URL; return e; };
 /** Baut (falls nötig) und startet eine App. @param {"materialplaner"|"productionplaner"} name */
 const gebaut = new Set();
-export async function starteApp(name, serverUrl, { bauen = !process.env.E2E_OHNE_BUILD && !gebaut.has(name), argv = [] } = {}) {
+export async function starteApp(name, serverUrl, { bauen = !process.env.E2E_OHNE_BUILD && !gebaut.has(name), argv = [], env = {} } = {}) {
   const dir = APP_DIRS[name];
   if (bauen) { execSync("node scripts/build.cjs", { cwd: dir, env: { ...process.env, LAGER_CORE_DIR: CORE }, stdio: "pipe" }); gebaut.add(name); }
   const { _electron } = playwright();
@@ -62,7 +62,7 @@ export async function starteApp(name, serverUrl, { bauen = !process.env.E2E_OHNE
   const app = await _electron.launch({
     executablePath: require(path.join(dir, "node_modules", "electron")),
     args: ["--no-sandbox", dir, ...argv],
-    env: umgebung({ ELECTRON_DISABLE_SANDBOX: "1", LAGER_SERVER_URL: serverUrl, LAGER_TEST: "1", LAGER_USER_DATA: userData }),
+    env: umgebung({ ELECTRON_DISABLE_SANDBOX: "1", LAGER_SERVER_URL: serverUrl, LAGER_TEST: "1", LAGER_USER_DATA: userData, ...env }),
   });
   const win = await app.firstWindow();
   const ausgabe = [];

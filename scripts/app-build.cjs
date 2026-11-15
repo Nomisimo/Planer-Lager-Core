@@ -44,7 +44,14 @@ async function baueApp(opt) {
   const appModul = (m) => path.dirname(require.resolve(m + "/package.json", { paths: [root] }));
   const alias = { react: appModul("react"), "react-dom": appModul("react-dom"), "lucide-react": appModul("lucide-react") };
   const version = pkg.version;
-  const define = { "process.env.NODE_ENV": '"production"', __APP_VERSION__: JSON.stringify(version) };
+  // REL-02: „Was ist neu?“ = CHANGELOG-Abschnitt der gebauten Version
+  let neu = "";
+  try {
+    const md = fs.readFileSync(path.join(root, "CHANGELOG.md"), "utf8").split(/\r?\n/);
+    const i = md.findIndex((z) => z.startsWith(`## [${version}]`));
+    if (i >= 0) { const rest = md.slice(i + 1); const e = rest.findIndex((z) => /^##\s/.test(z)); neu = (e < 0 ? rest : rest.slice(0, e)).join("\n").trim(); }
+  } catch { /* ohne CHANGELOG bleibt „Was ist neu?“ leer */ }
+  const define = { "process.env.NODE_ENV": '"production"', __APP_VERSION__: JSON.stringify(version), __APP_NEU__: JSON.stringify(neu) };
 
   // 1) Renderer → index.html
   const r = await esbuild.build({

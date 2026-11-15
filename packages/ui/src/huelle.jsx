@@ -14,6 +14,7 @@ import STIL from "./stil.css";
 import { hidErkenner, pruefeHid } from "@lager/domain/scannen.js";
 import { planungsKontext, HERZSCHLAG_S, dauerText } from "@lager/domain/planung.js";
 import { darf as darfRecht } from "@lager/domain/rechte.js";
+import { neuereVersion, wasIstNeu } from "./version.js";
 import { Tour } from "./tour/Tour.jsx";
 import { tourenFuer, schritteFuer } from "./tour/touren.js";
 
@@ -178,6 +179,8 @@ export function AppHuelle({ app, seiten, onCode }) {
   const [zweiFaktor, setZweiFaktor] = useState(false);
   const [hinweis, setHinweis] = useState(null);
   const [banner, setBanner] = useState(null);
+  const [update, setUpdate] = useState(null);
+  const [neuZeigen, setNeuZeigen] = useState(false);
   const [firma, setFirma] = useState("");
   const [design, setDesign] = useState(() => leseDesign() || {});
   const [darstellung, setDarstellung] = useState(false);
@@ -216,6 +219,17 @@ export function AppHuelle({ app, seiten, onCode }) {
     if (!web) plattform.tokenSchreiben(t || null);
     if (!t) setNutzer(null);
   }, []);
+
+  // REL-03: Update-Hinweis, wenn auf GitHub eine neuere Version liegt (nur Desktop; der Browser bekommt Updates mit dem Server)
+  useEffect(() => {
+    if (web || !info?.updateUrl || !info.version) return;
+    let aus = false;
+    fetch(info.updateUrl, { headers: { Accept: "application/vnd.github+json" } })
+      .then((r) => (r.ok ? r.json() : []))
+      .then((liste) => { if (!aus) setUpdate(neuereVersion(liste, info.version)); })
+      .catch(() => { /* offline: kein Hinweis */ });
+    return () => { aus = true; };
+  }, [info?.updateUrl, info?.version]);
 
   // Start: Info + gespeichertes Token
   useEffect(() => {
@@ -354,7 +368,7 @@ export function AppHuelle({ app, seiten, onCode }) {
         <header className="lp-kopf">
           <button className="lp-btn lp-btn-geist lp-btn-klein lp-nur-mobil" aria-label="Menü" onClick={() => setMenueOffen((o) => !o)}><Icon name="Menu" /></button>
           <span className="lp-logo">{self.titel}</span>
-          <span className="lp-meta">{firma ? firma + " · " : ""}Version {info.version}</span>
+          <span className="lp-meta">{firma ? firma + " · " : ""}<button type="button" className="lp-link-knopf" data-testid="version" title="Was ist neu?" onClick={() => setNeuZeigen(true)}>Version {info.version}</button></span>
           <div className="lp-kopf-rechts">
             <CodeFeld onCode={(c) => onCode?.(c, kontext)} />
             <button className="lp-btn lp-btn-klein" data-testid="app-schalter" data-tour="app-schalter" title={`Zum ${andere.titel} wechseln (gleiche Stelle, ohne neue Anmeldung)`} onClick={() => oeffneAndereApp(zielInAndererApp(pfad, app === "m" ? "p" : "m"))}>
@@ -385,6 +399,8 @@ export function AppHuelle({ app, seiten, onCode }) {
           ))}
         </nav>
         <main className="lp-inhalt">
+          {update && <div style={{ marginBottom: 12 }} data-testid="update-hinweis"><Meldung level="info" text={`Version ${update.version} ist verfügbar (du hast ${info.version}). Lade sie herunter und installiere sie über die alte.`} onSchliessen={() => setUpdate(null)}>
+            <div className="lp-zeile" style={{ marginTop: 8 }}><Knopf klein icon="Download" onClick={() => plattform.oeffneExtern(update.url)}>Herunterladen</Knopf></div></Meldung></div>}
           {banner && <div style={{ marginBottom: 12 }}><Meldung level="warning" text={banner} onSchliessen={() => setBanner(null)} /></div>}
           {zeit.meldung && <div style={{ marginBottom: 12 }} data-testid="zeit-meldung"><Meldung level="info" text={zeit.meldung} onSchliessen={() => zeit.setMeldung(null)} /></div>}
           {verweigert ? <ZugriffVerweigert rolle={nutzer.rolle} />
@@ -400,9 +416,21 @@ export function AppHuelle({ app, seiten, onCode }) {
           <p style={{ marginTop: 0 }}>Schön, dass du da bist, {nutzer.name || nutzer.benutzername}! Eine kurze Tour zeigt dir in wenigen Schritten, wo du was findest. Sie ändert keine Daten.</p>
           <p className="lp-hinweis" style={{ marginBottom: 0 }}>Alle Touren findest du später unter System › Hilfe.</p>
         </Modal>}
+        {neuZeigen && <Modal titel={`Was ist neu in Version ${info.version}?`} onSchliessen={() => setNeuZeigen(false)} breite={520}><WasIstNeu /></Modal>}
         {darstellung && <DarstellungDialog design={design} onAendern={designAendern} onSchliessen={() => setDarstellung(false)} />}
       </div>
     </Ctx.Provider>
+  );
+}
+
+/** „Was ist neu?“ (REL-02): CHANGELOG-Abschnitt der laufenden Version als Liste. */
+export function WasIstNeu() {
+  const zeilen = wasIstNeu().split("\n").map((z) => z.trim()).filter(Boolean);
+  if (!zeilen.length) return <p className="lp-hinweis" style={{ margin: 0 }}>Für diese Version gibt es keine Notizen.</p>;
+  return (
+    <ul style={{ margin: 0, paddingLeft: 20, lineHeight: 1.6 }} data-testid="was-ist-neu">
+      {zeilen.map((z, i) => <li key={i}>{z.replace(/^[-*]\s+/, "").replace(/`([^`]+)`/g, "$1")}</li>)}
+    </ul>
   );
 }
 

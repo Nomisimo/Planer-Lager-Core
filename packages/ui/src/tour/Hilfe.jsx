@@ -2,6 +2,7 @@
 import React from "react";
 import { Seite, Section, Knopf, Tabelle, Badge } from "../bausteine.jsx";
 import { useLager } from "../kontext.js";
+import { WasIstNeu } from "../huelle.jsx";
 
 const TASTEN = [
   { taste: "Enter im Codefeld", was: "Code, Projekt- oder Angebotsnummer öffnen" },
@@ -12,7 +13,7 @@ const TASTEN = [
 ];
 
 export function HilfeSeite() {
-  const { tour, nutzer } = useLager();
+  const { tour, nutzer, info } = useLager();
   const erledigt = nutzer?.tour?.erledigt || [];
   return (
     <Seite titel="Hilfe" untertitel="Touren, Tastenkürzel und eine Kurzanleitung">
@@ -22,6 +23,9 @@ export function HilfeSeite() {
           { titel: "Stand", wert: (t) => (erledigt.includes(t.id) ? <Badge farbe="var(--lp-ok)">erledigt</Badge> : <Badge>offen</Badge>) },
           { titel: "", wert: (t) => <Knopf klein icon="Play" aria-label={`Tour „${t.titel}“ starten`} onClick={() => tour.starte(t.id)}>Tour starten</Knopf> },
         ]} />
+      </Section>
+      <Section titel={`Was ist neu in Version ${info?.version || ""}?`} icon="Star">
+        <WasIstNeu />
       </Section>
       <Section titel="Tastenkürzel" icon="Keyboard">
         <Tabelle zeilen={TASTEN} spalten={[{ titel: "Taste", feld: "taste" }, { titel: "Wirkung", feld: "was" }]} />

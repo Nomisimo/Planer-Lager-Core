@@ -32,7 +32,9 @@ docker compose up -d --build
 
 Danach `https://<DOMAIN>/health` prüfen und in den Apps die Server-Adresse `https://<DOMAIN>` eintragen (Anmeldeseite).
 
-Kommandozeile im Server-Container: `npm run lager -- sicherung | restore <Datei> | pruefen <Datei> | sicherheitscheck [--absichern]`.
+**Testserver:** Ein echter Testserver mit Beispieldaten läuft bei Oracle Cloud (Always Free, 0 €) und wird nur über GitHub Actions verwaltet: Anlegen, Image (ARM + AMD), Bespielen, Prüfen, Wartung, Zurücksetzen. Details: [deploy/BETRIEB.md › Testserver](deploy/BETRIEB.md#testserver-oracle-always-free). Tests dagegen: `LAGER_REMOTE_URL=https://<TEST_DOMAIN> npm run e2e:remote`.
+
+Kommandozeile im Server-Container: `npm run lager -- sicherung | restore <Datei> | pruefen <Datei> | sicherheitscheck [--absichern] | einmal-zugang <Benutzer>`.
 
 ## Entwicklung
 

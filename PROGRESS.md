@@ -168,5 +168,14 @@ Hinter `[x]` kurz notieren: Datum, Repo(s), Testdatei(en). Max. 1 Zeile.
 - [x] Wie Phase 15 plus alle neuen IDs (WEB, KLICK, NUTZER, GLEICH, TOUR, INT, REL), `spec:abdeckung` 0 fehlend
 - [x] GitHub-CI in allen drei Repos grün, veröffentlichtes Release mit Installern, READMEs vollständig
 
+## Phase S – Testserver (Oracle Cloud, Always Free) – vorgezogen
+- [x] `oracle-infrastruktur.yml` (anlegen, status, starten, entfernen) + `deploy/oracle/cloud-init.yaml`, Instanz angelegt (D-129)
+- [x] Image ARM + AMD (`image.yml`), Bespielen (`deploy-test.yml`), Wartung (`wartung-test.yml`), `deploy/test.override.yml`
+- [x] Testmodus im Server: Test-Token, Test-Routen, Band, noindex (REMOTE-09), Einmal-Zugang (REMOTE-10)
+- [x] REMOTE-01–08 als Tests (`npm run e2e:remote`, `remote-test.yml`)
+- [ ] DNS + Host-Schlüssel (Sam), `wartung-test.yml pruefen` grün
+- [ ] Bespielt, `https://<TEST_DOMAIN>` mit gültigem Zertifikat, REMOTE-01–08 grün gegen den echten Server
+- [ ] `sam-zugang` gelaufen, Abschlussmeldung an Sam
+
 ## Phase Z – nur wenn Budget übrig
 - [ ] Android-APK: station-web per Capacitor (wie Stromplaner/webapp), HID-Scanner + Kamera — bewusst nicht begonnen (optional, D-104)

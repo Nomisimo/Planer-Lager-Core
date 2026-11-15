@@ -28,8 +28,15 @@ Ziel: alle Punkte in `Planer-Lager-Core/PROGRESS.md` auf `[x]`. Nicht anhalten, 
 1. Subagent `tester`: alle Suiten in allen Repos + E2E der Phase. Fehler beheben.
 2. Subagent `spec-pruefer` mit den IDs der Phase. Befunde beheben oder begründet in ENTSCHEIDUNGEN.md.
 3. Bei UI-Phasen: Subagent `ui-pruefer`.
-4. BERICHT.md-Eintrag schreiben. `npm run spec:abdeckung` kurz ausgeben.
-5. `/compact`, dann weiter mit der nächsten Phase.
+4. Testserver (Phase S): `image.yml` (läuft nach grüner CI von selbst) → `deploy-test.yml` → `npm run e2e:remote` mit `LAGER_REMOTE_URL=https://<TEST_DOMAIN>`. **Ein Release gibt es nur, wenn REMOTE grün ist.**
+5. BERICHT.md-Eintrag schreiben. `npm run spec:abdeckung` kurz ausgeben.
+6. `/compact`, dann weiter mit der nächsten Phase.
+
+## Testserver (Oracle Always Free)
+- Alles am Server über GitHub Actions (MCP `actions_run_trigger`), nie SSH aus der VM. Prüfen per HTTPS gegen `https://<TEST_DOMAIN>`.
+- Server-Probleme: zuerst `wartung-test.yml` mit `status`, dann `logs`. Hält es dauerhaft nicht (Speicher, Platz): Punkt `[~]` + Eintrag, nicht im Kreis drehen.
+- Instanz von Oracle gestoppt (Leerlauf): Sam Bescheid geben; Start über `oracle-infrastruktur.yml` Aktion `starten`.
+- Nie Secrets, Passwörter, Token oder `.env` ausgeben (Repos und Logs sind öffentlich). Neue Secrets setzt nur Sam (`gh secret set …`).
 
 ## Wenn etwas blockiert
 - Netz/Hardware/Download geht nicht: Punkt `[~]`, Grund in ENTSCHEIDUNGEN.md, nächsten Punkt nehmen. Später erneut versuchen.

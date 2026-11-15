@@ -82,3 +82,45 @@ Beide Apps laufen zusätzlich im Browser, ausgeliefert vom selben Server. Gleich
 Ohne Einstellung erscheinen Fristen, Prüfungen, Wartung und Überbuchungen nur in der App (Glocke oben rechts).
 Für E-Mails in `.env` `SMTP_HOST`, `SMTP_PORT`, `SMTP_TLS` (`direkt` für Port 465, `starttls` für 587), `SMTP_BENUTZER`, `SMTP_PASSWORT` und `SMTP_VON` eintragen und `docker compose up -d` ausführen.
 E-Mails gehen an die Adresse im Benutzerkonto; jeder kann sie in der Glocke ausschalten. Der Lauf ist stündlich (`LAGER_HINTERGRUND_MINUTEN`, 0 = aus).
+
+## Testserver (Oracle Always Free)
+
+Ein echter Testserver mit Beispieldaten unter `https://<TEST_DOMAIN>` (Repository-Variable `TEST_DOMAIN`). Eine Domain für alles: Portal `/`, `/materialplaner/`, `/productionplaner/`, API, WebSocket, Arbeitsplatz `/station`, Anzeige `/anzeige`. In den Desktop-Apps als Server-Adresse `https://<TEST_DOMAIN>` eintragen. Alle Seiten zeigen oben das Band „TESTSYSTEM – nur Beispieldaten“, Suchmaschinen werden ausgesperrt (`X-Robots-Tag`, `robots.txt`).
+
+**Kosten: 0 €** im Rahmen von Oracle „Always Free“: eine Instanz `VM.Standard.A1.Flex` (ARM, 2 OCPU, 12 GB RAM, 50 GB Boot-Volume, Ubuntu 24.04), ein VCN, sonst nichts (kein Load Balancer, keine Oracle-Datenbank, kein Extra-Volume). Ersatz bei fehlender ARM-Kapazität: `VM.Standard.E2.1.Micro` (AMD, 1 GB), das Image gibt es für beide Architekturen.
+
+**Leerlauf:** Oracle stoppt Always-Free-Instanzen, die über Tage kaum CPU, Netz und Speicher nutzen. Abhilfe: Konto auf „Pay As You Go“ umstellen (kostet im Free-Rahmen weiterhin nichts). Künstliche Last erzeugen wir bewusst nicht. Gestoppt? Actions › „Oracle Infrastruktur“ › `starten`.
+
+### Workflows (Actions › Run workflow)
+
+| Workflow | Aktion | Wirkung |
+|---|---|---|
+| Oracle Infrastruktur (`oracle-infrastruktur.yml`) | `anlegen` | Compartment `planer-lager`, Netz (VCN 10.20.0.0/16, Internet Gateway, Routen, Firewall 22/80/443, Subnetz), Instanz `lager-test` mit cloud-init (`deploy/oracle/cloud-init.yaml`). Idempotent. Zeigt IP und SSH-Host-Schlüssel. |
+| | `status` / `starten` | Zustand, IP, Laufzeit, Konsole / Instanz starten |
+| | `entfernen` | Instanz samt Boot-Volume und Netz löschen (nur mit `bestaetigung = ENTFERNEN`), Compartment bleibt |
+| Image (`image.yml`) | – | Server-Image für `linux/arm64` und `linux/amd64` nach `ghcr.io/nomisimo/planer-lager-server` (`sha-<kurz>`, `test`; mit „release“ auch `v<version>`, `latest`). Läuft nach jeder grünen CI auf main. |
+| Testserver bespielen (`deploy-test.yml`) | `image_tag`, `zuruecksetzen` | Dateien nach `/opt/planer-lager/`, `.env` beim ersten Mal mit Zufallspasswörtern, Image ziehen, starten, `/health` prüfen. Läuft nach jedem Image-Lauf. `zuruecksetzen` löscht alle Daten (Volumes) und startet mit Beispieldaten neu. |
+| Testserver prüfen (`remote-test.yml`) | – | REMOTE-Tests aus dem Runner (echtes Zertifikat). Läuft nach jedem Bespielen. |
+| Wartung Testserver (`wartung-test.yml`) | `pruefen` | DNS zeigt auf die Instanz, SSH mit geprüftem Host-Schlüssel, Docker, Platz, Speicher |
+| | `status` / `logs` | Container, Platz, Speicher, Zertifikat / letzte 300 Zeilen (Geheimnisse gefiltert) |
+| | `zuruecksetzen` | Beispieldaten neu laden; eigene Benutzer (admin, sam) bleiben |
+| | `neustart` / `aufraeumen` | Container neu starten (Daten bleiben) / alte Images löschen |
+| | `sicherung` | Sicherung im Container erstellen und prüfen |
+| | `sam-zugang` | Admin `sam` mit Einmal-Passwort (siehe unten); erneut = neues Passwort |
+
+Alle Workflows, die den Server ändern, laufen nacheinander (Gruppe `oracle`). Der Zugriff läuft per SSH als `deploy@<TEST_DOMAIN>` mit `ORACLE_SSH_KEY`, der Host-Schlüssel wird gegen `ORACLE_KNOWN_HOSTS` geprüft (`StrictHostKeyChecking=yes`).
+
+### Zugang für Sam
+1. Actions › „Wartung Testserver“ › `sam-zugang`.
+2. Passwort abholen (die Datei wird dabei gelöscht):
+   `ssh -i <dein Schlüssel> deploy@<TEST_DOMAIN> "cat /opt/planer-lager/sam-zugang.txt && rm /opt/planer-lager/sam-zugang.txt"`
+3. Unter `https://<TEST_DOMAIN>/` anmelden, eigenes Passwort vergeben, Zwei-Faktor einrichten.
+
+### Testmodus (`LAGER_MODUS=test`)
+Nur auf dem Testserver. Der Server startet nicht, wenn `LAGER_TEST_TOKEN` fehlt oder kürzer als 32 Zeichen ist. `Authorization: Bearer <LAGER_TEST_TOKEN>` ergibt eine Admin-Sitzung des System-Nutzers „claude-test“ (jede Nutzung im Sicherheitsprotokoll); ein Benutzer-Cookie geht immer vor. Zusätzliche Routen: `POST /api/v1/test/zuruecksetzen` (Beispieldaten neu), `POST /api/v1/test/benutzer` (Testbenutzer je Rolle, Passwörter nur in der Antwort). Sonst gilt alles wie im Echtbetrieb (2FA, Sperre nach Fehlversuchen, Header, Rate-Limits). Ohne Testmodus gibt der Token 401 und die Test-Routen 404.
+
+### Einmalige Einrichtung (Sam)
+Secrets `OCI_CLI_USER`, `OCI_CLI_TENANCY`, `OCI_CLI_FINGERPRINT`, `OCI_CLI_REGION`, `OCI_CLI_KEY_CONTENT`, `ORACLE_SSH_KEY`, `ORACLE_SSH_PUBKEY`, `LAGER_TEST_TOKEN`; Variable `TEST_DOMAIN`. Nach `anlegen`: A-Record `TEST_DOMAIN` → IP, dann
+`ssh-keyscan -t ed25519 <TEST_DOMAIN> 2>/dev/null | tee /tmp/lager_host | ssh-keygen -lf -` (Fingerabdruck mit der Ausgabe von `anlegen` vergleichen) und
+`gh secret set ORACLE_KNOWN_HOSTS -R Nomisimo/Planer-Lager-Core < /tmp/lager_host`.
+Nach der Einrichtung können die `OCI_CLI_*`-Secrets gelöscht werden (`for s in USER TENANCY FINGERPRINT REGION KEY_CONTENT; do gh secret delete OCI_CLI_$s -R Nomisimo/Planer-Lager-Core; done`). Bespielen und Wartung gehen weiter, nur `oracle-infrastruktur.yml` (Anlegen, Starten, Entfernen) und der IP-Vergleich bei `pruefen` nicht mehr.

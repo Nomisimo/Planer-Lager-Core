@@ -15,7 +15,7 @@ test("GLEICH-07 jede PUT/PATCH-Route verlangt version (Route-Registry), Ausnahme
   assert.deepEqual(routen.filter((r) => !r.ohneVersion).map((r) => r.pfad).sort(), Object.keys(FASSUNG_ROUTEN).sort(), "FASSUNG_ROUTEN deckt jede Speicher-Route ab");
   assert.ok(routen.length >= 25, `nur ${routen.length} Speicher-Routen gefunden`);
   const ausnahmen = routen.filter((r) => r.ohneVersion).map((r) => r.pfad).sort();
-  assert.deepEqual(ausnahmen, ["/api/v1/benachrichtigungen/mail", "/api/v1/fahrten/:id/ladung", "/api/v1/ich/design", "/api/v1/verwaltung/system/wartung"]);
+  assert.deepEqual(ausnahmen, ["/api/v1/benachrichtigungen/mail", "/api/v1/fahrten/:id/ladung", "/api/v1/ich/design", "/api/v1/ich/tour", "/api/v1/verwaltung/system/wartung"]);
   for (const r of routen.filter((x) => x.ohneVersion)) assert.ok(String(r.ohneVersion).length > 10, `${r.pfad}: Begründung fehlt`);
   for (const r of routen.filter((x) => !x.ohneVersion)) {
     const pfad = r.pfad.replace(/:\w+/g, "1");

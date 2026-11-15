@@ -30,7 +30,8 @@ test("UI-1 Menü: nur erlaubte Einträge, nach Arbeitsablauf gruppiert, aktiver 
   assert.ok(titel.includes("Code scannen"));
   assert.ok(!titel.includes("Kunden"));
   assert.ok(!titel.includes("Verwaltung"));
-  assert.ok(!lager.some((g) => g.gruppe === "System"), "leere Gruppe entfällt");
+  assert.deepEqual(lager.find((g) => g.gruppe === "System").eintraege.map((e) => e.titel), ["Hilfe"], "System ohne Verwaltung, Hilfe für alle");
+  assert.ok(!menueFuer({}, "m").some((g) => g.gruppe === "Aufträge"), "leere Gruppe entfällt");
   const admin = menueFuer(rechte("Administrator"), "m");
   assert.equal(admin.flatMap((g) => g.eintraege).find((e) => e.titel === "Kunden").fremd, true);
   assert.equal(admin.flatMap((g) => g.eintraege).find((e) => e.titel === "Material").fremd, false);

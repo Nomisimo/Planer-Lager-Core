@@ -33,7 +33,7 @@ test("FA-08 FA-09 Lagerort anlegen und beim Packen sehen, Schaden mit Foto bei d
       await w.getByLabel("Lagerort").selectOption({ label: "Regal A3 (Halle 1)" });
       await w.getByRole("button", { name: "Speichern" }).first().click();
       await w.getByRole("heading", { name: "Spot", exact: true }).first().waitFor().catch(async () => { throw new Error(`Speichern ohne Wirkung: ${w.url()} · ${(await w.locator(".lp-inhalt").innerText()).replace(/\s+/g, " ").slice(0, 600)}`); });
-      await w.getByText("Regal A3").first().waitFor();
+      await w.getByText("Regal A3").first().waitFor({ timeout: 10000 }).catch(async () => { throw new Error(`Lagerort fehlt nach Speichern: ${w.url()} · DB ${JSON.stringify((await q("SELECT lagerort_id, version FROM artikel WHERE id = $1", [a.id])).rows)} · ${(await w.locator(".lp-inhalt").innerText()).replace(/\s+/g, " ").slice(0, 600)}`); });
       assert.equal((await q("SELECT lagerort_id FROM artikel WHERE id = $1", [a.id])).rows[0].lagerort_id, o.id);
       await w.evaluate((id) => { location.hash = `#/projekte/${id}/packen`; }, p.id);
       await w.getByTestId("lagerort").getByText("Regal A3").waitFor();

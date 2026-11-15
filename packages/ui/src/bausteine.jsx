@@ -34,9 +34,11 @@ export const Seite = ({ titel, untertitel, aktionen, children, tour }) => (
 /** Knopf. art: primaer | normal | geist | gefahr. onClick darf async sein → sperrt bis Antwort (UI-4). */
 export function Knopf({ art = "normal", icon, klein, onClick, disabled, children, tour, ...p }) {
   const [laeuft, setLaeuft] = useState(false);
+  // Immer den aktuellen Handler aufrufen (auch wenn der Klick vor dem nächsten Effekt kommt), einmalig gegen Doppelklick
+  const aktuell = useRef(onClick);
+  aktuell.current = onClick;
   const ref = useRef(null);
-  if (!ref.current) ref.current = einmalig(async (e) => { const r = onClick?.(e); if (r && typeof r.then === "function") { setLaeuft(true); try { await r; } finally { setLaeuft(false); } } });
-  useEffect(() => { ref.current = einmalig(async (e) => { const r = onClick?.(e); if (r && typeof r.then === "function") { setLaeuft(true); try { await r; } finally { setLaeuft(false); } } }); }, [onClick]);
+  if (!ref.current) ref.current = einmalig(async (e) => { const r = aktuell.current?.(e); if (r && typeof r.then === "function") { setLaeuft(true); try { await r; } finally { setLaeuft(false); } } });
   const cls = ["lp-btn", art === "primaer" && "lp-btn-primaer", art === "geist" && "lp-btn-geist", art === "gefahr" && "lp-btn-gefahr", klein && "lp-btn-klein"].filter(Boolean).join(" ");
   return (
     <button type={p.type || "button"} className={cls} disabled={disabled || laeuft} aria-busy={laeuft || undefined} data-tour={tour} onClick={(e) => ref.current(e)} {...p}>

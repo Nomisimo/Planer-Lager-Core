@@ -11,6 +11,27 @@ Bekannte Fehler/Grenzen: <…>
 Annahmen: D-xx, D-yy
 ```
 
+## Phase 20 – erneute Abschlussprüfung – 15.11.2026
+Geprüft: Unit + API grün (`npm test` Core, Materialplaner, Productionplaner), Lint 0 Meldungen, `spec:abdeckung` 220/220 (INDEX.md + ZUSATZ.md) ohne fehlende ID. GitHub-CI grün in allen drei Repos (Core-Lauf 81 mit voller E2E-Suite, Docker-Image-Build). Unabhängige Abnahme (spec-pruefer) über die Zusatz-IDs: 54/59 direkt erfüllt; nachgezogen KLICK-04 (1024 × 768 auch im Browser), WEB-14 (Test am echten Web-Bundle); KLICK-01 station-web × Electron und GLEICH-03 per D-126/D-127 abgedeckt.
+Release: siehe Phase 19. Kein 1.0.0 (D-128).
+Nicht geprüft: echter Handscanner, Netzwerk-Scanner, Etikettendrucker, Installer auf echtem Mac/Windows-Rechner (nur in der CI gebaut), echter Cloud-Host mit Domain, Safari/Firefox.
+Bekannte Grenzen: Installer unsigniert (Mac ad-hoc); Stolpersteine Runde 2 (Phase 17) bewusst so; Android-APK nicht begonnen (D-104).
+Annahmen: D-126, D-127, D-128
+
+## Phase 19 – README, Lizenz, Release – 15.11.2026
+Gebaut: REL-01 bis REL-04. READMEs für Core, Materialplaner und Productionplaner mit Screenshots (`npm run screenshots`), Lizenz Apache-2.0 (LICENSE, NOTICE, package.json) in allen drei Repos, „Was ist neu?“ aus dem CHANGELOG-Abschnitt der laufenden Version (beim Bauen eingebettet, Klick auf die Versionsnummer und in der Hilfe), Update-Hinweis aus den GitHub-Releases (nur Desktop).
+Geprüft: Unit (Versionsvergleich, CHANGELOG-Abschnitt), E2E release.test.js mit lokalem Ersatz für die GitHub-API (REL-02, REL-03), Lizenz- und Workflow-Prüfung (REL-01, REL-04).
+Releases:
+- 0.2.0-beta.1 (Phase 16): nicht veröffentlicht, die CI war zu dem Zeitpunkt rot; Inhalt ging in 0.3.0-beta.1 auf.
+- 0.3.0-beta.1 (Phasen 16–19) – 15.11.2026: Materialplaner und Productionplaner als Vorabversion veröffentlicht, je Windows x64 (.exe), macOS arm64 und x64 (.dmg, .zip), Blockmaps, latest.yml, latest-mac.yml. Enthält BUG-1 bis BUG-14.
+Nicht geprüft: Update-Hinweis gegen das echte GitHub (nur gegen den lokalen Ersatz), Installer auf echten Rechnern.
+
+## Phase 18 – Tour – 15.11.2026
+Gebaut: TOUR-01 bis TOUR-07. Tour-Engine mit Loch und Blase, Touren Materialplaner, Productionplaner, Zusammenspiel und Arbeitsplatz-Web, Willkommen beim ersten Login (serverseitig gemerkt), Hilfe-Seite mit allen Touren und Tastenkürzeln.
+Geprüft: E2E tour.test.js (alle Touren je App, Blase überdeckt den Anker nicht, keine festen Schrittzahlen), NUTZER-08 (neue Nutzerin vom Willkommen bis zur erledigten Tour), Screenshot je Tour angesehen.
+Funde: BUG-9, BUG-10 (siehe Phase 17).
+Annahmen: D-123, D-124
+
 ## Phase 16 – Browser-Version – 15.11.2026
 Gebaut: WEB-01 bis WEB-15, INT-07. Plattform-Schicht `plattform.js` (einziger Ort mit `window.lagerShell`), Browser-Login per HttpOnly-Cookie + CSRF, Handoff in beide Richtungen („Im Browser öffnen“, „In Desktop-App öffnen“), `npm run build:web` (index ohne Inline-Script, gehashte Assets, Manifest), Auslieferung `/materialplaner/`, `/productionplaner/` mit no-store + CSP, Portal `/` nach Rechten, 503-Seite bei fehlendem Bundle, Docker-Stufe baut beide Web-Apps, Etikettendruck im Browser über das Druckfenster mit `@page`.
 Geprüft: Unit+API grün, E2E web.test.js (5 Tests, Chromium als Browser + Desktop-Electron gemischt), huelle, nahtlos, etiketten, seriell, arbeitsplatz grün; erste Erkundungsrunde mit 3 Personas (disponentin, lagerhelfer, admin).

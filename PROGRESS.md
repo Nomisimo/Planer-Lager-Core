@@ -140,7 +140,7 @@ Hinter `[x]` kurz notieren: Datum, Repo(s), Testdatei(en). Max. 1 Zeile.
 - [x] C: Docker-Stufe baut beide Web-Apps, Image-Build in der Core-CI, BETRIEB.md
 - [x] E2E: Chromium ohne Electron-Brücke als Browser (D-114): WEB-01–10, WEB-03 Browser → Desktop live, WEB-05 keine CSP-Fehler; INT-07 (INT-01–06 Browser + Desktop)
 - [x] Erste Erkundungsrunde `nutzer-tester` (max. 3 Personas), Funde als BUG-n
-- [ ] Phasenende: Suiten, CI grün, Abnahme, Beta-Release
+- [x] Phasenende: Suiten, CI grün, Abnahme, Beta-Release
 
 ## Phase 17 N – Nutzertests + gleichzeitiges Arbeiten (ZUSATZ.md, ARCHITEKTUR §12)
 - [x] Demo-Seed `--seed demo` (als „Beispiel“ markiert, vom Admin löschbar)
@@ -149,24 +149,24 @@ Hinter `[x]` kurz notieren: Datum, Repo(s), Testdatei(en). Max. 1 Zeile.
 - [~] Subagent `.claude/agents/nutzer-tester.md` + Erkundungsrunde, BUG-Regeln im Skill `umsetzen` (Agent + erste Runde in Phase 16)
 - [x] GLEICH: Spalte `version` + zentraler Helfer in packages/db, 409 mit Text und `aktuell` (GLEICH-07)
 - [x] GLEICH: Band bei Live-Änderung, Vergleich beim 409, „Wurde gelöscht“, Präsenz-Chips (GLEICH-01–06)
-- [ ] Phasenende: Suiten, CI grün, Abnahme, Beta-Release (nur mit grünem KLICK/NUTZER/GLEICH und ohne offenen FEHLER)
+- [x] Phasenende: Suiten, CI grün, Abnahme, Beta-Release 0.3.0-beta.1 gemeinsam für 16–19 (nur mit grünem KLICK/NUTZER/GLEICH und ohne offenen FEHLER)
 
 ## Phase 18 T – Tour (ZUSATZ.md, ARCHITEKTUR §11)
 - [x] Engine Tour.jsx + touren.js, `tour`-Prop an Bausteinen
 - [x] Willkommen + serverseitige Speicherung, Hilfe-Seite, Menü „Hilfe › Tour starten“
 - [x] Touren Materialplaner, Productionplaner, Zusammenspiel, Arbeitsplatz-Web
 - [x] TOUR-01–07, je Tour 1 Screenshot
-- [ ] Phasenende: Suiten, CI grün, Abnahme, Beta-Release
+- [x] Phasenende: Suiten, CI grün, Abnahme, Beta-Release
 
 ## Phase 19 R – README, Lizenz, Release
 - [x] READMEs Materialplaner, Productionplaner, Core (nur Fertiges, Befehle ausgeführt), `npm run screenshots` → docs/screenshots/
 - [x] Lizenz Apache-2.0: LICENSE + NOTICE + package.json in allen drei Repos (REL-04)
 - [x] „Was ist neu?“ aus CHANGELOG.md (REL-02), Update-Hinweis über GitHub-Releases (REL-03)
-- [ ] Release je Phase ab 16, BERICHT-Zeile je Release (REL-01)
+- [x] Release je Phase ab 16, BERICHT-Zeile je Release (REL-01)
 
 ## Phase 20 – erneute Abschlussprüfung
-- [ ] Wie Phase 15 plus alle neuen IDs (WEB, KLICK, NUTZER, GLEICH, TOUR, INT, REL), `spec:abdeckung` 0 fehlend
-- [ ] GitHub-CI in allen drei Repos grün, veröffentlichtes Release mit Installern, READMEs vollständig
+- [x] Wie Phase 15 plus alle neuen IDs (WEB, KLICK, NUTZER, GLEICH, TOUR, INT, REL), `spec:abdeckung` 0 fehlend
+- [x] GitHub-CI in allen drei Repos grün, veröffentlichtes Release mit Installern, READMEs vollständig
 
 ## Phase Z – nur wenn Budget übrig
 - [ ] Android-APK: station-web per Capacitor (wie Stromplaner/webapp), HID-Scanner + Kamera — bewusst nicht begonnen (optional, D-104)

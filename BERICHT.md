@@ -11,6 +11,13 @@ Bekannte Fehler/Grenzen: <…>
 Annahmen: D-xx, D-yy
 ```
 
+## Phase S – Testserver Oracle Always Free – 15.11.2026
+Gebaut: REMOTE-01–10; Instanz VM.Standard.A1.Flex (2 OCPU, 12 GB, Frankfurt AD-2), Image ARM+AMD, Workflows oracle-infrastruktur, image, deploy-test, wartung-test, remote-test.
+Geprüft: Unit/API grün (inkl. testmodus.test.js, /favicon.ico); REMOTE-01–08 grün gegen https://test.dastutlan.de im GitHub-Runner (Lauf 43718115393): Zertifikat, HSTS, wss, Last, Sicherung/Wiederherstellung, Neustart, Chromium ohne CSP-/Konsolenfehler, beide Electron-Apps mit Packtag.
+Nicht geprüft: REMOTE aus der Claude-VM selbst (Proxy der Session lässt die Test-Domain nicht durch, daher nur im Runner); Langzeitbetrieb, Speicherverhalten über Tage.
+Bekannte Fehler/Grenzen: Always Free – Oracle kann inaktive Instanzen zurückfordern; dann `oracle-infrastruktur.yml starten` bzw. neu anlegen.
+Annahmen: D-129, D-130, D-131, D-132
+
 ## Phase 20 – erneute Abschlussprüfung – 15.11.2026
 Geprüft: Unit + API grün (`npm test` Core, Materialplaner, Productionplaner), Lint 0 Meldungen, `spec:abdeckung` 220/220 (INDEX.md + ZUSATZ.md) ohne fehlende ID. GitHub-CI grün in allen drei Repos (Core-Lauf 81 mit voller E2E-Suite, Docker-Image-Build). Unabhängige Abnahme (spec-pruefer) über die Zusatz-IDs: 54/59 direkt erfüllt; nachgezogen KLICK-04 (1024 × 768 auch im Browser), WEB-14 (Test am echten Web-Bundle); KLICK-01 station-web × Electron und GLEICH-03 per D-126/D-127 abgedeckt.
 Release: siehe Phase 19. Kein 1.0.0 (D-128).

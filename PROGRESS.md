@@ -159,9 +159,9 @@ Hinter `[x]` kurz notieren: Datum, Repo(s), Testdatei(en). Max. 1 Zeile.
 - [ ] Phasenende: Suiten, CI grün, Abnahme, Beta-Release
 
 ## Phase 19 R – README, Lizenz, Release
-- [ ] READMEs Materialplaner, Productionplaner, Core (nur Fertiges, Befehle ausgeführt), `npm run screenshots` → docs/screenshots/
-- [ ] Lizenz Apache-2.0: LICENSE + NOTICE + package.json in allen drei Repos (REL-04)
-- [ ] „Was ist neu?“ aus CHANGELOG.md (REL-02), Update-Hinweis über GitHub-Releases (REL-03)
+- [x] READMEs Materialplaner, Productionplaner, Core (nur Fertiges, Befehle ausgeführt), `npm run screenshots` → docs/screenshots/
+- [x] Lizenz Apache-2.0: LICENSE + NOTICE + package.json in allen drei Repos (REL-04)
+- [x] „Was ist neu?“ aus CHANGELOG.md (REL-02), Update-Hinweis über GitHub-Releases (REL-03)
 - [ ] Release je Phase ab 16, BERICHT-Zeile je Release (REL-01)
 
 ## Phase 20 – erneute Abschlussprüfung

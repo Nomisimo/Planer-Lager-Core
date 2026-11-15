@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import http from "node:http";
-import { APP_DIRS, starteServer, starteApp, anmelden, screenshot } from "./helfer.js";
+import { APP_DIRS, starteServer, starteApp, anmelden, screenshot, webAppsDir } from "./helfer.js";
 import { changelogAbschnitt } from "../packages/ui/src/version.js";
 
 const CORE = path.join(import.meta.dirname, "..");
@@ -86,4 +86,28 @@ test("REL-03 ohne neuere Version kein Hinweis; im Test ohne LAGER_UPDATE_URL kei
     await m.win.waitForTimeout(500);
     assert.equal(await m.win.getByTestId("update-hinweis").count(), 0);
   } finally { await m.ende(); await s.ende(); }
+});
+
+test("WEB-14 echtes Web-Bundle beider Apps (npm run build:web): index ohne Inline-Script, gehashte Assets immutable, index no-store, Manifest", async () => {
+  const web = webAppsDir();
+  const s = await starteServer({ config: { webAppsDir: web } });
+  try {
+    for (const app of ["materialplaner", "productionplaner"]) {
+      const i = await fetch(`${s.url}/${app}/`);
+      const html = await i.text();
+      assert.equal(i.headers.get("cache-control"), "no-store", app);
+      assert.doesNotMatch(html, /<script(?![^>]*\bsrc=)[^>]*>/i, `${app}: Inline-Script im index`);
+      const skripte = [...html.matchAll(/<script[^>]*\bsrc="([^"]+)"/g)].map((m) => m[1]);
+      assert.ok(skripte.length >= 1, `${app}: kein Script`);
+      for (const src of skripte) {
+        assert.match(src, /\.[0-9a-f]{8,}\.js$/, `${app}: ${src} ohne Hash`);
+        const a = await fetch(new URL(src, `${s.url}/${app}/`));
+        assert.equal(a.status, 200);
+        assert.match(a.headers.get("cache-control") || "", /immutable/);
+      }
+      const m = html.match(/<link[^>]*rel="manifest"[^>]*href="([^"]+)"/);
+      assert.ok(m, `${app}: Manifest-Link fehlt`);
+      assert.equal((await fetch(new URL(m[1], `${s.url}/${app}/`))).status, 200);
+    }
+  } finally { await s.ende(); fs.rmSync(web, { recursive: true, force: true }); }
 });

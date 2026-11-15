@@ -113,13 +113,19 @@ for (const app of Object.keys(APPS)) {
   });
 }
 
-test("KLICK-01 KLICK-02 KLICK-03 KLICK-06 beide Apps im Browser: Admin tief, Fachrollen mit Rechteprüfung", { timeout: 900000 }, async () => {
+test("KLICK-01 KLICK-02 KLICK-03 KLICK-04 KLICK-06 beide Apps im Browser: Admin tief, Fachrollen mit Rechteprüfung", { timeout: 900000 }, async () => {
   const b = await starteBrowser();
   try {
     for (const app of Object.keys(APPS)) {
       const seite = await b.neueSeite();
       await seite.goto(`${s.url}/${app}/`);
       for (const rolle of ROLLEN.filter((r) => r[1] !== "Lager-Arbeitsplatz")) await laufInApp(seite, app, "Browser", rolle, { tief: rolle[1] === "Administrator" });
+      // KLICK-04 auch im Browser: 1024×768
+      await seite.setViewportSize({ width: 1024, height: 768 });
+      await anmelden(seite, "beispiel-admin");
+      await schmal(seite, app, "Browser");
+      await screenshot(seite, `KLICK-${app}-browser-1024`);
+      await abmelden(seite);
       await seite.close();
     }
   } finally { await b.ende(); }

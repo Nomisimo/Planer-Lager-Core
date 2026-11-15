@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import { starteTestServer, PW } from "./helfer.js";
 import { configAusEnv } from "../src/config.js";
 import { pruefeTestKonfig } from "../src/testmodus.js";
+import { einmalZugang } from "../src/grunddaten.js";
 import { totpCode } from "@lager/domain";
 
 const TOKEN = "a".repeat(40) + "0123456789abcdef0123456789";
@@ -136,4 +137,18 @@ test("REMOTE-10 Einmal-Passwort: erst eigenes Passwort, dann 2FA; vorher ist all
   const bea = await testS.als("bea-test");
   assert.equal((await bea("POST", "/api/v1/ich/passwort", { neu: "Noch-ein-Passwort-8" })).status, 400);
   assert.equal((await bea("POST", "/api/v1/ich/passwort", { alt: PW, neu: "Noch-ein-Passwort-8" })).status, 200);
+});
+
+test("REMOTE-10 einmal-zugang: Admin mit Einmal-Passwort, erneut = neues Passwort, 2FA neu", async () => {
+  const pw1 = await einmalZugang(testS.db.pool, { benutzername: "sam" });
+  const l1 = await testS.api("POST", "/api/v1/anmelden", { benutzername: "sam", passwort: pw1 });
+  assert.equal(l1.status, 200, l1.text);
+  assert.equal(l1.json.passwortWechseln, true);
+  assert.equal(l1.json.nutzer.admin, true);
+  const pw2 = await einmalZugang(testS.db.pool, { benutzername: "sam" });
+  assert.notEqual(pw1, pw2);
+  assert.equal((await testS.api("POST", "/api/v1/anmelden", { benutzername: "sam", passwort: pw1 })).status, 401);
+  assert.equal((await testS.api("GET", "/api/v1/ich", undefined, { Authorization: `Bearer ${l1.json.token}` })).status, 401, "alte Sitzung beendet");
+  const { rows: [b] } = await testS.db.pool.query("SELECT totp_aktiv, passwort_wechsel FROM benutzer WHERE benutzername = 'sam'");
+  assert.deepEqual(b, { totp_aktiv: false, passwort_wechsel: true });
 });

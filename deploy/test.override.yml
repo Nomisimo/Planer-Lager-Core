@@ -1,0 +1,36 @@
+# Testserver (Phase S, Oracle Always Free): ergänzt docker-compose.yml um Testmodus, Beispieldaten, Speichergrenzen,
+# Log-Rotation und Healthchecks. Start: docker compose -p lager-test -f docker-compose.yml -f test.override.yml up -d
+# Speichergrenzen setzt deploy/oracle/server.sh je nach Maschine (AMD-Micro 1 GB knapp, A1 12 GB großzügig).
+x-logs: &logs
+  logging:
+    driver: json-file
+    options: { max-size: "10m", max-file: "3" }
+
+services:
+  caddy:
+    <<: *logs
+    mem_limit: ${CADDY_SPEICHER:-64m}
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:2019/config/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  server:
+    <<: *logs
+    mem_limit: ${SERVER_SPEICHER:-384m}
+    environment:
+      LAGER_MODUS: test
+      LAGER_TEST_TOKEN: ${LAGER_TEST_TOKEN:?LAGER_TEST_TOKEN fehlt in .env}
+      LAGER_SEED: demo
+      NODE_OPTIONS: --max-old-space-size=${SERVER_HEAP_MB:-256}
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8080/health').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      start_period: 60s
+      retries: 5
+
+  postgres:
+    <<: *logs
+    mem_limit: ${PG_SPEICHER:-256m}

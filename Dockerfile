@@ -1,7 +1,8 @@
 # syntax=docker/dockerfile:1
 # Lager-Server (FA-56): Node 22, ohne Entwicklungswerkzeuge, läuft als Benutzer „node“.
 # Bauen: docker build -t planer-lager-server .   Betrieb: siehe deploy/BETRIEB.md
-FROM node:22-bookworm-slim AS bau
+# Bau-Stufen laufen auf der Plattform des Builders (Ergebnis sind nur JS-/HTML-Dateien), nur die letzte Stufe je Zielplattform.
+FROM --platform=$BUILDPLATFORM node:22-bookworm-slim AS bau
 WORKDIR /app
 ENV ELECTRON_SKIP_BINARY_DOWNLOAD=1
 COPY package.json package-lock.json ./
@@ -10,7 +11,7 @@ COPY packages ./packages
 RUN --mount=type=secret,id=npm_ca,required=false sh -c '[ -f /run/secrets/npm_ca ] && export NODE_EXTRA_CA_CERTS=/run/secrets/npm_ca; npm ci --no-audit --no-fund' && node packages/station-web/build.js
 
 # Browser-Versionen beider Apps (ARCHITEKTUR §10): Apps klonen, mit diesem Core bauen (npm run build:web) → /web/<app>
-FROM node:22-bookworm AS web
+FROM --platform=$BUILDPLATFORM node:22-bookworm AS web
 ARG MATERIALPLANER_REF=main
 ARG PRODUCTIONPLANER_REF=main
 ARG APPS_GIT=https://github.com/Nomisimo
@@ -23,6 +24,10 @@ RUN --mount=type=secret,id=npm_ca,required=false sh -c 'set -e; [ -f /run/secret
     mkdir -p /web && cp -r dist-web /web/$k; done'
 
 FROM node:22-bookworm-slim
+ARG LAGER_VERSION=""
+ARG LAGER_COMMIT=""
+# /health meldet Version und Commit (Phase S: Bespielen prüft, dass das richtige Image läuft)
+ENV LAGER_VERSION=$LAGER_VERSION LAGER_COMMIT=$LAGER_COMMIT
 ENV NODE_ENV=production HOST=0.0.0.0 PORT=8080 DATA_DIR=/data ELECTRON_SKIP_BINARY_DOWNLOAD=1
 WORKDIR /app
 COPY package.json package-lock.json ./

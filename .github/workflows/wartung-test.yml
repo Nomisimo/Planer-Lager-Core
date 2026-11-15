@@ -1,0 +1,77 @@
+# Wartung des Oracle-Testservers (Phase S). Actions → „Wartung Testserver“ → Run workflow → Aktion wählen.
+#   pruefen     DNS zeigt auf die Instanz, SSH mit geprüftem Host-Schlüssel, Docker, Platz, Speicher
+#   status      Container, Platz, Speicher, Laufzeit, Zertifikat
+#   logs        letzte 300 Zeilen (Geheimnisse gefiltert)
+#   aufraeumen  alte Images und Caches löschen (Volumes bleiben)
+#   neustart    alle Container neu starten (Daten bleiben)
+#   sicherung   Sicherung im Container erstellen und prüfen
+#   zuruecksetzen  Beispieldaten neu laden (eigene Benutzer bleiben)
+#   sam-zugang  Admin „sam“ mit Einmal-Passwort; Passwort nur in /opt/planer-lager/sam-zugang.txt auf dem Server
+name: Wartung Testserver
+
+on:
+  workflow_dispatch:
+    inputs:
+      aktion:
+        type: choice
+        options: [pruefen, status, logs, aufraeumen, neustart, sicherung, zuruecksetzen, sam-zugang]
+        default: status
+
+permissions:
+  contents: read
+
+concurrency: { group: oracle, cancel-in-progress: false }
+
+jobs:
+  wartung:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      DOMAIN: ${{ vars.TEST_DOMAIN }}
+      AKTION: ${{ inputs.aktion }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: DNS prüfen (Instanz-IP über die OCI-CLI)
+        if: inputs.aktion == 'pruefen'
+        env:
+          OCI_CLI_USER: ${{ secrets.OCI_CLI_USER }}
+          OCI_CLI_TENANCY: ${{ secrets.OCI_CLI_TENANCY }}
+          OCI_CLI_FINGERPRINT: ${{ secrets.OCI_CLI_FINGERPRINT }}
+          OCI_CLI_REGION: ${{ secrets.OCI_CLI_REGION }}
+          OCI_CLI_KEY_CONTENT: ${{ secrets.OCI_CLI_KEY_CONTENT }}
+          OCI_CLI_SUPPRESS_FILE_PERMISSIONS_WARNING: "True"
+        run: |
+          dns=$(dig +short "$DOMAIN" A | tail -n1)
+          echo "DNS $DOMAIN → ${dns:-(nichts)}"
+          if [ -z "$OCI_CLI_USER" ]; then echo "Keine OCI-Secrets (schon gelöscht) – IP-Vergleich übersprungen."; [ -n "$dns" ]; exit $?; fi
+          echo "::add-mask::$OCI_CLI_USER"; echo "::add-mask::$OCI_CLI_TENANCY"; echo "::add-mask::$OCI_CLI_FINGERPRINT"
+          pipx install oci-cli >/dev/null 2>&1 || pip install --break-system-packages oci-cli >/dev/null
+          mkdir -p ~/.oci && (umask 077; printf '%s\n' "$OCI_CLI_KEY_CONTENT" > ~/.oci/schluessel.pem
+            printf '[DEFAULT]\nuser=%s\nfingerprint=%s\ntenancy=%s\nregion=%s\nkey_file=%s\n' "$OCI_CLI_USER" "$OCI_CLI_FINGERPRINT" "$OCI_CLI_TENANCY" "$OCI_CLI_REGION" "$HOME/.oci/schluessel.pem" > ~/.oci/config)
+          ip=$(TEN="$OCI_CLI_TENANCY" TAGS='{}' bash deploy/oracle/oracle.sh ip)
+          echo "Instanz-IP: $ip"
+          if [ "$dns" != "$ip" ]; then echo "::error::DNS zeigt auf ${dns:-nichts}, die Instanz hat $ip. A-Record prüfen."; exit 1; fi
+          echo "- DNS: $DOMAIN → $ip ✓" >> "$GITHUB_STEP_SUMMARY"
+      - name: SSH einrichten
+        env:
+          SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.ORACLE_KNOWN_HOSTS }}
+        run: bash deploy/oracle/ssh-einrichten.sh
+      - name: Skript kopieren
+        run: scp -q deploy/oracle/server.sh lager:/opt/planer-lager/server.sh
+      - name: Ausführen
+        if: inputs.aktion != 'zuruecksetzen'
+        run: ssh lager bash /opt/planer-lager/server.sh "$AKTION" | tee ausgabe.txt
+      - name: Zurücksetzen (Beispieldaten)
+        if: inputs.aktion == 'zuruecksetzen'
+        run: |
+          code=$(curl -sS -o antwort.json -w '%{http_code}' -X POST -H "Authorization: Bearer ${{ secrets.LAGER_TEST_TOKEN }}" -H 'Content-Type: application/json' -d '{}' "https://$DOMAIN/api/v1/test/zuruecksetzen")
+          jq -r '.text // .fehler' antwort.json | tee ausgabe.txt
+          [ "$code" = 200 ]
+      - name: Zertifikat
+        if: inputs.aktion == 'status' || inputs.aktion == 'pruefen'
+        run: echo | openssl s_client -servername "$DOMAIN" -connect "$DOMAIN:443" 2>/dev/null | openssl x509 -noout -issuer -enddate || echo "Noch kein Zertifikat (Server nicht bespielt?)"
+      - name: Zusammenfassung
+        if: always()
+        run: |
+          { echo "## Wartung: $AKTION"; echo '```'; tail -n 60 ausgabe.txt 2>/dev/null || true; echo '```'; } >> "$GITHUB_STEP_SUMMARY"

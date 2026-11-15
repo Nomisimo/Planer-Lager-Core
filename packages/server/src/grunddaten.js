@@ -32,3 +32,22 @@ export async function legeBenutzerAn(pool, { benutzername, passwort, rolle, name
     VALUES ($1, $2, $3, (SELECT id FROM rolle WHERE name = $4)) RETURNING id`, [benutzername, name || benutzername, await hashePasswort(passwort), rolle]);
   return rows[0].id;
 }
+
+/**
+ * Phase S: Einmal-Zugang (z. B. „sam“ auf dem Testserver). Legt den Benutzer an oder setzt ihn zurück:
+ * neues Zufallspasswort, das beim ersten Login geändert werden muss, 2FA neu einzurichten, alte Sitzungen beendet.
+ * @returns {Promise<string>} das Einmal-Passwort (nur einmal ausgeben)
+ */
+export async function einmalZugang(pool, { benutzername, rolle = ROLLE_ADMIN, name = "" }) {
+  const { randomBytes } = await import("node:crypto");
+  const passwort = `Einmal-${randomBytes(12).toString("base64url")}7`;
+  const hash = await hashePasswort(passwort);
+  const { rows: [b] } = await pool.query(`INSERT INTO benutzer (benutzername, name, passwort_hash, rolle_id, passwort_wechsel)
+    VALUES ($1, $2, $3, (SELECT id FROM rolle WHERE name = $4), true)
+    ON CONFLICT ((lower(benutzername))) DO UPDATE SET passwort_hash = EXCLUDED.passwort_hash, passwort_wechsel = true,
+      totp_aktiv = false, totp_geheimnis = NULL, aktiv = true RETURNING id`, [benutzername, name || benutzername, hash, rolle]);
+  if (!b) throw new Error(`Rolle „${rolle}“ gibt es nicht.`);
+  await pool.query("DELETE FROM sitzung WHERE benutzer_id = $1", [b.id]);
+  await pool.query("DELETE FROM anmelde_versuch WHERE lower(benutzername) = lower($1)", [benutzername]);
+  return passwort;
+}

@@ -74,3 +74,16 @@ READMEs aller drei Repos (Aufbau wie Netzwerkplaner, nur Fertiges, jeder Befehl 
 - REL-02 „Was ist neu?“ zeigt den CHANGELOG-Abschnitt der laufenden Version.
 - REL-03 Update-Hinweis erscheint, wenn auf GitHub eine neuere Version liegt.
 - REL-04 LICENSE, NOTICE und `"license": "Apache-2.0"` in allen drei Repos.
+
+## Phase S – Testserver (Oracle Cloud, Always Free)
+Echter Testserver unter `https://<TEST_DOMAIN>`: Instanz und Netz per `oracle-infrastruktur.yml`, Grundeinrichtung per cloud-init, Image für ARM + AMD (`image.yml`), Bespielen (`deploy-test.yml`), Wartung (`wartung-test.yml`). Testmodus nur mit `LAGER_MODUS=test`. Tests gegen den echten Server: `npm run e2e:remote` (`LAGER_REMOTE_URL`).
+- REMOTE-01 `/health`: Commit stimmt, gültiges Let's-Encrypt-Zertifikat, HSTS und alle Schutz-Header, HTTP → HTTPS.
+- REMOTE-02 API-Login mit Testbenutzer, `wss://…/ws` durch Caddy, ein Live-Event kommt in unter 2 s an.
+- REMOTE-03 `/`, `/materialplaner/`, `/productionplaner/`, `/station`, `/anzeige` werden ausgeliefert, Assets cachebar, CSP ohne Fehler.
+- REMOTE-04 Beide Electron-Apps gegen den echten Server: Login, jeder Menüpunkt einmal, NUTZER-02 Packtag.
+- REMOTE-05 Aktion `sicherung` → Prüfung ok; Wiederherstellung nach `zuruecksetzen` ergibt dieselben Zähler.
+- REMOTE-06 Last: 20 parallele Scans auf verschiedene Geräte, jede Antwort unter 1 s, keine Doppelbuchung.
+- REMOTE-07 Nach `zuruecksetzen` nur Demo-Daten, Band „TESTSYSTEM“ sichtbar.
+- REMOTE-08 Neustart über `wartung-test.yml` → Daten bleiben erhalten (Volumes).
+- REMOTE-09 Testmodus nur mit `LAGER_MODUS=test`: sonst Test-Token 401 und Test-Routen 404; ohne Token ≥ 32 Zeichen startet der Server nicht; Test-Token = Admin „claude-test“ (protokolliert), Benutzer-Cookie geht vor; noindex + robots.txt.
+- REMOTE-10 Einmal-Zugang (`sam-zugang`): Admin mit Einmal-Passwort, beim ersten Login eigenes Passwort und 2FA, erneut ausführen = neues Passwort.

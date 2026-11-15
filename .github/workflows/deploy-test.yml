@@ -1,0 +1,92 @@
+# Bespielt den Oracle-Testserver (Phase S) mit dem Server-Image: Dateien kopieren, .env beim ersten Mal erzeugen,
+# Image ziehen, starten, /health prüfen (Version + Commit). Automatisch nach jedem grünen Image-Lauf auf main.
+name: Testserver bespielen
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "Image-Tag (test, sha-<kurz>, v<version>)"
+        default: test
+      zuruecksetzen:
+        description: "Alle Daten löschen (Volumes) und mit Beispieldaten neu starten"
+        type: boolean
+        default: false
+  workflow_run:
+    workflows: [Image]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: read
+  packages: read
+
+concurrency: { group: oracle, cancel-in-progress: false }
+
+jobs:
+  bespielen:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      DOMAIN: ${{ vars.TEST_DOMAIN }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+      - name: Voraussetzungen
+        id: v
+        env:
+          KNOWN_HOSTS: ${{ secrets.ORACLE_KNOWN_HOSTS }}
+        run: |
+          # Automatischer Lauf vor der Einrichtung (DNS + Host-Schlüssel fehlen noch): überspringen statt rot
+          if [ -z "$KNOWN_HOSTS" ] || [ -z "$DOMAIN" ]; then
+            if [ "${{ github.event_name }}" = workflow_run ]; then echo "::notice::Testserver noch nicht eingerichtet (ORACLE_KNOWN_HOSTS oder TEST_DOMAIN fehlt) – übersprungen."; echo "ok=false" >> "$GITHUB_OUTPUT"; exit 0; fi
+          fi
+          echo "ok=true" >> "$GITHUB_OUTPUT"
+      - name: SSH einrichten
+        if: steps.v.outputs.ok == 'true'
+        env:
+          SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.ORACLE_KNOWN_HOSTS }}
+        run: bash deploy/oracle/ssh-einrichten.sh
+      - name: Image-Tag
+        if: steps.v.outputs.ok == 'true'
+        id: tag
+        run: |
+          if [ "${{ github.event_name }}" = workflow_run ]; then t="sha-$(git rev-parse --short=7 HEAD)"; else t="${{ inputs.image_tag }}"; fi
+          echo "tag=$t" >> "$GITHUB_OUTPUT"; echo "Image-Tag: $t"
+      - name: Dateien kopieren
+        if: steps.v.outputs.ok == 'true'
+        run: scp -q deploy/docker-compose.yml deploy/Caddyfile deploy/test.override.yml deploy/oracle/server.sh lager:/opt/planer-lager/
+      - name: Bespielen
+        if: steps.v.outputs.ok == 'true'
+        id: bespielen
+        env:
+          LAGER_TEST_TOKEN: ${{ secrets.LAGER_TEST_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          printf '%s\n%s\n' "$LAGER_TEST_TOKEN" "$GH_TOKEN" \
+            | ssh lager bash /opt/planer-lager/server.sh bespielen "${{ steps.tag.outputs.tag }}" "${{ inputs.zuruecksetzen || 'false' }}" "$DOMAIN" "${{ github.actor }}" | tee bespielen.txt
+          grep '^IMAGE_LAGER_' bespielen.txt | sed 's/^IMAGE_LAGER_\([A-Z]*\)=/\L\1=/' >> "$GITHUB_OUTPUT"
+      - name: Auf /health warten (höchstens 4 min)
+        if: steps.v.outputs.ok == 'true'
+        run: |
+          soll_commit="${{ steps.bespielen.outputs.commit }}"; soll_version="${{ steps.bespielen.outputs.version }}"
+          for i in $(seq 1 48); do
+            h=$(curl -fsS --max-time 5 "https://$DOMAIN/health" 2>/dev/null || true)
+            if [ -n "$h" ]; then
+              c=$(echo "$h" | jq -r '.commit // ""'); v=$(echo "$h" | jq -r '.version // ""')
+              if [ "$c" = "$soll_commit" ] && [ "$v" = "$soll_version" ]; then
+                echo "Läuft: Version $v, Commit $c"
+                echo "## Testserver bespielt: https://$DOMAIN/ – Version $v, Commit $c, Image ${{ steps.tag.outputs.tag }}" >> "$GITHUB_STEP_SUMMARY"
+                exit 0
+              fi
+              echo "Antwort $i: Version $v, Commit $c (erwartet $soll_version, $soll_commit)"
+            fi
+            sleep 5
+          done
+          echo "::error::/health meldet nicht die erwartete Version/den erwarteten Commit."; exit 1
+      - name: Bei Fehler – Container und Logs (gefiltert)
+        if: failure()
+        run: ssh lager bash /opt/planer-lager/server.sh fehler || true

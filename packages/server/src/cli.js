@@ -4,11 +4,13 @@
 //   restore <Datei>                   Sicherung wiederherstellen (vorher automatische Vorab-Sicherung)
 //   pruefen <Datei>                   Sicherung prüfen (ZIP lesbar, Datenbank vollständig)
 //   sicherheitscheck [--absichern]    Sicherheits-Check, mit --absichern Dateirechte des Datenordners setzen
+//   einmal-zugang <Benutzer> [Rolle]  Benutzer mit Einmal-Passwort (Wechsel + 2FA beim ersten Login); gibt nur das Passwort aus
 import path from "node:path";
 import { erstellePool } from "@lager/db";
 import { configAusEnv } from "./config.js";
 import { erstelleSicherung, stelleWiederHer, pruefeSicherung, sicherungsOrdner, gueltigerName } from "./sicherung.js";
 import { sicherheitsCheck, sichereDateirechte } from "./system.js";
+import { einmalZugang } from "./grunddaten.js";
 
 const [befehl, arg] = process.argv.slice(2);
 const config = configAusEnv();
@@ -32,7 +34,13 @@ async function main() {
     const p = pool();
     try { for (const z of await sicherheitsCheck(p, config)) console.log(`${z.level === "ok" ? "OK  " : z.level === "error" ? "FEHL" : "WARN"} ${z.titel}: ${z.text}`); return 0; } finally { await p.end(); }
   }
-  console.error("Befehle: sicherung | restore <Datei> | pruefen <Datei> | sicherheitscheck [--absichern]");
+  if (befehl === "einmal-zugang") {
+    if (!arg) { console.error("Gib den Benutzernamen an: npm run lager -- einmal-zugang sam"); return 2; }
+    const p = pool();
+    try { console.log(await einmalZugang(p, { benutzername: arg, rolle: process.argv[4] || undefined })); return 0; }
+    catch (e) { console.error(e.message); return 1; } finally { await p.end(); }
+  }
+  console.error("Befehle: sicherung | restore <Datei> | pruefen <Datei> | sicherheitscheck [--absichern] | einmal-zugang <Benutzer> [Rolle]");
   return 2;
 }
 process.exitCode = await main();

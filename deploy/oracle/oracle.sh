@@ -237,8 +237,11 @@ entfernen() {
   echo "Entfernt. Das Compartment planer-lager bleibt." | tee -a "$SUMMARY"
 }
 
+ip() { compartment; I=$(instanz_id); [ -n "$I" ] || { echo "Keine Instanz $NAME_INSTANZ" >&2; exit 1; }; oeffentliche_ip "$I"; }
+
 case "$AKTION" in
   anlegen) anlegen ;;
+  ip) ip ;;
   status) status ;;
   starten) starten ;;
   entfernen) entfernen ;;

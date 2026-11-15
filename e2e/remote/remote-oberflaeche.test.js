@@ -1,5 +1,5 @@
 // REMOTE (ZUSATZ.md Phase S): Oberflächen gegen den echten Testserver – Chromium (CSP, Band) und beide Electron-Apps.
-// Nur in der Claude-VM: Electron/Chromium über den Proxy (--proxy-server), der TLS aufbricht. Deshalb hier und nur hier
+// Im GitHub-Runner (remote-test.yml) direkt. In der Claude-VM über den Proxy (--proxy-server), der TLS aufbricht: nur dann
 // --ignore-certificate-errors; im Hauptprozess vertraut Node dem Proxy-Zertifikat über NODE_EXTRA_CA_CERTS. Nie in einem Build.
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -9,14 +9,15 @@ import { URL_REMOTE, OHNE, admin, testBenutzer } from "./remote-helfer.js";
 
 const require = createRequire(import.meta.url);
 const PROXY = process.env.HTTPS_PROXY || process.env.https_proxy || "";
-const OHNE_UI = OHNE || (process.env.LAGER_REMOTE_TLS === "direkt" ? "Oberflächen-Tests laufen in der Claude-VM" : false);
-const appArgs = [...(PROXY ? [`--proxy-server=${PROXY}`] : []), "--ignore-certificate-errors"];
+const OHNE_UI = OHNE;
+// Nur hinter dem aufbrechenden Proxy der Claude-VM; im GitHub-Runner gilt das echte Zertifikat.
+const appArgs = PROXY ? [`--proxy-server=${PROXY}`, "--ignore-certificate-errors"] : [];
 const appEnv = { NODE_EXTRA_CA_CERTS: process.env.NODE_EXTRA_CA_CERTS || `${process.env.HOME}/.ccr/ca-bundle.crt` };
 
 async function browser() {
   const { chromium } = require("playwright");
   const b = await chromium.launch({ ...(PROXY ? { proxy: { server: PROXY } } : {}), ...(process.env.E2E_CHROMIUM ? { executablePath: process.env.E2E_CHROMIUM } : {}) });
-  const k = await b.newContext({ ignoreHTTPSErrors: true, locale: "de-DE", timezoneId: "Europe/Berlin", viewport: { width: 1280, height: 800 } });
+  const k = await b.newContext({ ignoreHTTPSErrors: !!PROXY, locale: "de-DE", timezoneId: "Europe/Berlin", viewport: { width: 1280, height: 800 } });
   return { b, k };
 }
 const fehlerSammler = (seite) => {

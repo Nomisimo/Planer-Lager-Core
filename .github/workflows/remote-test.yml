@@ -1,5 +1,5 @@
-# REMOTE-Tests (Phase S) aus dem GitHub-Runner gegen den Testserver: echte TLS-Verbindung ohne aufbrechenden Proxy
-# (Let's-Encrypt-Zertifikat prüfbar). Die Oberflächen-Tests (Electron) laufen in der Claude-VM (npm run e2e:remote).
+# REMOTE-Tests (Phase S) aus dem GitHub-Runner gegen den Testserver: echte TLS-Verbindung (Let's-Encrypt-Zertifikat),
+# beide Electron-Apps und Chromium gegen https://<TEST_DOMAIN>, Neustart dazwischen (REMOTE-08).
 name: Testserver prüfen
 
 on:
@@ -8,6 +8,10 @@ on:
     workflows: [Testserver bespielen]
     types: [completed]
     branches: [main]
+
+defaults:
+  run:
+    shell: bash -eo pipefail {0}
 
 permissions:
   contents: read
@@ -18,24 +22,63 @@ jobs:
   remote:
     if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 40
+    env:
+      DOMAIN: ${{ vars.TEST_DOMAIN }}
+      LAGER_REMOTE_URL: https://${{ vars.TEST_DOMAIN }}
+      LAGER_REMOTE_TLS: direkt
+      LAGER_TEST_TOKEN: ${{ secrets.LAGER_TEST_TOKEN }}
+      E2E_CHROMIUM: /usr/bin/google-chrome
     steps:
-      - uses: actions/checkout@v4
       - name: Testserver bereit?
         id: v
         run: |
-          if [ -z "${{ vars.TEST_DOMAIN }}" ] || ! curl -fsS --max-time 10 "https://${{ vars.TEST_DOMAIN }}/health" >/dev/null 2>&1; then
+          if [ -z "$DOMAIN" ] || ! curl -fsS --max-time 10 "https://$DOMAIN/health" >/dev/null 2>&1; then
             echo "::notice::Testserver nicht erreichbar – übersprungen."; echo "ok=false" >> "$GITHUB_OUTPUT"
           else echo "ok=true" >> "$GITHUB_OUTPUT"; fi
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v6
         if: steps.v.outputs.ok == 'true'
-        with: { node-version: 22, cache: npm }
-      - run: npm ci --no-audit --no-fund --ignore-scripts
+        with: { path: Planer-Lager-Core }
+      - uses: actions/checkout@v6
         if: steps.v.outputs.ok == 'true'
-      - name: REMOTE-01, 02, 03, 05, 06, 07 (API)
+        with: { repository: Nomisimo/Materialplaner, path: Materialplaner, token: "${{ secrets.LAGER_REPO_TOKEN || github.token }}" }
+      - uses: actions/checkout@v6
+        if: steps.v.outputs.ok == 'true'
+        with: { repository: Nomisimo/Productionplaner, path: Productionplaner, token: "${{ secrets.LAGER_REPO_TOKEN || github.token }}" }
+      - uses: actions/setup-node@v6
+        if: steps.v.outputs.ok == 'true'
+        with: { node-version: 22 }
+      - name: Abhängigkeiten
+        if: steps.v.outputs.ok == 'true'
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq xvfb libnss3 libatk-bridge2.0-0t64 libgtk-3-0t64 libgbm1 libasound2t64
+          (cd Planer-Lager-Core && npm ci && npm i -g playwright@1.63.0)
+          (cd Materialplaner && npm ci)
+          (cd Productionplaner && npm ci)
+      - name: REMOTE-01 bis REMOTE-07 und REMOTE-08 Schritt 1
+        if: steps.v.outputs.ok == 'true'
+        working-directory: Planer-Lager-Core
+        run: npm run e2e:remote
+      - name: SSH einrichten
         if: steps.v.outputs.ok == 'true'
         env:
-          LAGER_REMOTE_URL: https://${{ vars.TEST_DOMAIN }}
-          LAGER_REMOTE_TLS: direkt
-          LAGER_TEST_TOKEN: ${{ secrets.LAGER_TEST_TOKEN }}
-        run: node --test --test-concurrency=1 --test-name-pattern="REMOTE-0[1235678]" e2e/remote/remote-api.test.js
+          SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.ORACLE_KNOWN_HOSTS }}
+        run: bash Planer-Lager-Core/deploy/oracle/ssh-einrichten.sh
+      - name: Neustart (wie wartung-test.yml neustart)
+        if: steps.v.outputs.ok == 'true'
+        run: |
+          scp -q Planer-Lager-Core/deploy/oracle/server.sh lager:/opt/planer-lager/server.sh
+          ssh lager bash /opt/planer-lager/server.sh neustart
+          for i in $(seq 1 36); do curl -fsS --max-time 5 "https://$DOMAIN/health" >/dev/null 2>&1 && break; sleep 5; done
+      - name: REMOTE-08 Schritt 2 (Daten nach dem Neustart)
+        if: steps.v.outputs.ok == 'true'
+        working-directory: Planer-Lager-Core
+        env: { LAGER_REMOTE_NACH_NEUSTART: "1" }
+        run: node --test --test-name-pattern="REMOTE-08" e2e/remote/remote-api.test.js
+      - uses: actions/upload-artifact@v6
+        if: always() && steps.v.outputs.ok == 'true'
+        with:
+          name: remote-artefakte
+          path: Planer-Lager-Core/e2e/artefakte
+          if-no-files-found: ignore

@@ -144,7 +144,7 @@ Hinter `[x]` kurz notieren: Datum, Repo(s), Testdatei(en). Max. 1 Zeile.
 
 ## Phase 17 N – Nutzertests + gleichzeitiges Arbeiten (ZUSATZ.md, ARCHITEKTUR §12)
 - [x] Demo-Seed `--seed demo` (als „Beispiel“ markiert, vom Admin löschbar)
-- [ ] KLICK-01–06 Klick-Durchlauf (App × Plattform × Rolle), `klick-bericht.json`
+- [x] KLICK-01–06 Klick-Durchlauf (App × Plattform × Rolle), `klick-bericht.json`
 - [ ] NUTZER-01–08 Arbeitstage (beide Apps gleichzeitig, eine im Browser)
 - [~] Subagent `.claude/agents/nutzer-tester.md` + Erkundungsrunde, BUG-Regeln im Skill `umsetzen` (Agent + erste Runde in Phase 16)
 - [x] GLEICH: Spalte `version` + zentraler Helfer in packages/db, 409 mit Text und `aktuell` (GLEICH-07)

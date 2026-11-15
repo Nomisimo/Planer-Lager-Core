@@ -345,7 +345,7 @@ export function AppHuelle({ app, seiten, onCode }) {
             <OnlineStatus live={live} />
             <Glocke />
             <button className="lp-btn lp-btn-geist lp-btn-klein" title="Darstellung" aria-label="Darstellung" onClick={() => setDarstellung(true)}><Icon name="Palette" size={14} /></button>
-            <span className="lp-meta" data-testid="benutzer">{nutzer.name || nutzer.benutzername} · {nutzer.rolle}</span>
+            <span className="lp-meta lp-nutzer" data-testid="benutzer" title={`${nutzer.name || nutzer.benutzername} · ${nutzer.rolle}`}>{nutzer.name || nutzer.benutzername} · {nutzer.rolle}</span>
             <button className="lp-btn lp-btn-geist lp-btn-klein" onClick={abmelden} title="Abmelden" aria-label="Abmelden"><Icon name="LogOut" size={14} /></button>
           </div>
         </header>

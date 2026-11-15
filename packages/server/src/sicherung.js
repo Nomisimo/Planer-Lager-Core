@@ -195,6 +195,10 @@ export async function stelleWiederHer(pool, config, datei) {
   await transaktion(pool, async (c) => {
     const reihe = await tabellen(c);
     await c.query(`TRUNCATE ${reihe.map(id).join(", ")}, sitzung RESTART IDENTITY CASCADE`);
+    // BUG-8: Eigene Trigger (Job erbt Kunden, Fassung, „nur anfügen“) gelten für neue Daten, nicht für den gesicherten Stand.
+    // Ohne Abschalten fand der Job-Trigger sein Projekt nicht, wenn die Projektzeile in der Sicherung hinter dem Job lag.
+    // Fremdschlüssel bleiben aktiv (Systemtrigger); Abschalten gilt nur in dieser Transaktion.
+    for (const t of reihe) await c.query(`ALTER TABLE ${id(t)} DISABLE TRIGGER USER`);
     for (const t of reihe) {
       const zeilen = daten[t] || [];
       if (zeilen.length) await c.query(`INSERT INTO ${id(t)} SELECT * FROM json_populate_recordset(NULL::${id(t)}, $1::json)`, [JSON.stringify(zeilen)]);
@@ -202,6 +206,7 @@ export async function stelleWiederHer(pool, config, datei) {
         WHERE a.attrelid = $1::regclass AND a.attnum > 0 AND NOT a.attisdropped`, [id(t)]);
       for (const sp of spalten.filter((x) => x.seq)) await c.query(`SELECT setval($1, coalesce((SELECT max(${id(sp.s)}) FROM ${id(t)}), 0) + 1, false)`, [sp.seq]);
     }
+    for (const t of reihe) await c.query(`ALTER TABLE ${id(t)} ENABLE TRIGGER USER`);
   });
   // Dateien ersetzen (Sicherungen bleiben)
   const basis = datenOrdner(config);

@@ -33,11 +33,14 @@ test("FA-49 ZIP-Helfer: schreiben, lesen, Prüfsumme erkennt Beschädigung", () 
 test("T-22 FA-49 NFA-04 Sicherung erstellen, prüfen, per Befehl restore wiederherstellen: Daten identisch, Vorab-Sicherung existiert", async () => {
   const k = (await buero("POST", "/api/v1/kunden", { name: "Anna Müller", firma: "Stadtwerke Köln" })).json.kunde;
   const p = (await buero("POST", "/api/v1/projekte", { name: "Stadtfest", kunde_id: k.id, beginn: "2027-05-01" })).json.projekt;
+  // BUG-8: Job (Kunde kommt per Trigger vom Projekt) muss die Wiederherstellung überstehen
+  assert.equal((await buero("POST", "/api/v1/projekte", { art: "job", name: "Stadtfest Ton", uebergeordnet_id: p.id, gewerk: "Ton" })).status, 200);
+  await q("UPDATE projekt SET ort = 'Marktplatz' WHERE id = $1", [p.id]); // Projektzeile liegt danach physisch hinter dem Job
   fs.mkdirSync(path.join(s.dataDir, "projekte", String(p.id)), { recursive: true });
   fs.writeFileSync(path.join(s.dataDir, "projekte", String(p.id), "plan.txt"), "Bühnenplan");
   const vorher = async () => ({
     kunden: (await q("SELECT id, name, firma FROM kunde ORDER BY id")).rows,
-    projekte: (await q("SELECT id, nummer, name, kunde_id, beginn::text FROM projekt ORDER BY id")).rows,
+    projekte: (await q("SELECT id, nummer, art, name, kunde_id, uebergeordnet_id, version, beginn::text FROM projekt ORDER BY id")).rows,
   });
   const stand = await vorher();
   assert.equal((await buero("POST", "/api/v1/verwaltung/sicherungen")).status, 403, "nur Admin");

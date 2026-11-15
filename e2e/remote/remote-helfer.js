@@ -23,9 +23,9 @@ export async function admin(methode, pfad, body) {
 }
 
 let testbenutzer = null;
-/** Testbenutzer je Rolle (einmal je Lauf neu, Passwörter nur im Speicher). */
-export async function testBenutzer() {
-  if (!testbenutzer) testbenutzer = (await admin("POST", "/api/v1/test/benutzer", {})).benutzer;
+/** Testbenutzer je Rolle (einmal je Lauf neu, Passwörter nur im Speicher). neu=true nach /test/zuruecksetzen, das sie löscht. */
+export async function testBenutzer(neu = false) {
+  if (!testbenutzer || neu) testbenutzer = (await admin("POST", "/api/v1/test/benutzer", {})).benutzer;
   return testbenutzer;
 }
 export const benutzerMitRolle = async (rolle) => (await testBenutzer()).find((b) => b.rolle === rolle);

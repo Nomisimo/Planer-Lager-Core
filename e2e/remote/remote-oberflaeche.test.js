@@ -81,7 +81,7 @@ async function menueDurchlauf(win, app) {
 
 test("REMOTE-04 Beide Electron-Apps gegen den echten Server: Login, jeder Menüpunkt, NUTZER-02 Packtag light", { skip: OHNE_UI, timeout: 600000 }, async () => {
   await admin("POST", "/api/v1/test/zuruecksetzen", {});
-  const tb = await testBenutzer();
+  const tb = await testBenutzer(true); // Zurücksetzen löscht die Testbenutzer aus REMOTE-03
   const tom = tb.find((x) => x.rolle === "Lager / Techniker"), paula = tb.find((x) => x.rolle === "Büro / Disposition"), lena = tb.find((x) => x.rolle === "Lagerleitung");
   const fest = (await admin("GET", "/api/v1/projekte?limit=500")).zeilen.find((p) => p.name === "Stadtfest Neustadt");
   const m = await starteApp("materialplaner", URL_REMOTE, { argv: appArgs, env: appEnv });

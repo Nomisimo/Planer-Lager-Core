@@ -16,9 +16,12 @@ const BB = 360, BH = 210, RAND = 12;
 export function lageDerBlase(loch, vw, vh) {
   const x = Math.max(RAND, Math.min(loch.left, vw - BB - RAND));
   const y = Math.max(RAND, Math.min(loch.top, vh - BH - RAND));
+  const rechts = loch.left + loch.width + RAND + BB <= vw;
+  // Menüeinträge links: Blase rechts daneben, damit die Einträge darunter sichtbar bleiben
+  if (rechts && loch.left < 280 && loch.width < 300) return { left: loch.left + loch.width + RAND, top: y };
   if (loch.top + loch.height + RAND + BH <= vh) return { left: x, top: loch.top + loch.height + RAND };
   if (loch.top - RAND - BH >= 0) return { left: x, top: loch.top - RAND - BH };
-  if (loch.left + loch.width + RAND + BB <= vw) return { left: loch.left + loch.width + RAND, top: y };
+  if (rechts) return { left: loch.left + loch.width + RAND, top: y };
   if (loch.left - RAND - BB >= 0) return { left: loch.left - RAND - BB, top: y };
   return { left: vw - BB - RAND - 8, top: vh - BH - RAND - 8 };
 }

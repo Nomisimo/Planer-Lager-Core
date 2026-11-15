@@ -95,6 +95,10 @@ test("WEB-04 Etikett drucken im Browser öffnet ein Druckfenster mit der Seiteng
     assert.equal(d.groesse, "62x29");
     assert.match(d.stil, /@page \{ size: 62mm 29mm/);
     assert.equal(d.seiten, 2);
+    // BUG-12: im Browser ehrlich „Druckfenster geöffnet“, nicht „an den Drucker gesendet“; Knopf wieder bereit
+    await seite.getByText(/Druckfenster mit 2 Etikett\(en\) 62 × 29 mm geöffnet/).waitFor();
+    assert.equal(await seite.getByText(/an den Drucker gesendet/).count(), 0);
+    await seite.locator("button:not([aria-busy])", { hasText: "2 drucken" }).waitFor();
     await screenshot(seite, "WEB-04-druck-browser");
   } finally { await b.ende(); await s.ende(); fs.rmSync(web, { recursive: true, force: true }); }
 });

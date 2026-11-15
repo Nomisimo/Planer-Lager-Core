@@ -1,0 +1,41 @@
+# REMOTE-Tests (Phase S) aus dem GitHub-Runner gegen den Testserver: echte TLS-Verbindung ohne aufbrechenden Proxy
+# (Let's-Encrypt-Zertifikat prüfbar). Die Oberflächen-Tests (Electron) laufen in der Claude-VM (npm run e2e:remote).
+name: Testserver prüfen
+
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: [Testserver bespielen]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency: { group: oracle, cancel-in-progress: false }
+
+jobs:
+  remote:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Testserver bereit?
+        id: v
+        run: |
+          if [ -z "${{ vars.TEST_DOMAIN }}" ] || ! curl -fsS --max-time 10 "https://${{ vars.TEST_DOMAIN }}/health" >/dev/null 2>&1; then
+            echo "::notice::Testserver nicht erreichbar – übersprungen."; echo "ok=false" >> "$GITHUB_OUTPUT"
+          else echo "ok=true" >> "$GITHUB_OUTPUT"; fi
+      - uses: actions/setup-node@v4
+        if: steps.v.outputs.ok == 'true'
+        with: { node-version: 22, cache: npm }
+      - run: npm ci --no-audit --no-fund --ignore-scripts
+        if: steps.v.outputs.ok == 'true'
+      - name: REMOTE-01, 02, 03, 05, 06, 07 (API)
+        if: steps.v.outputs.ok == 'true'
+        env:
+          LAGER_REMOTE_URL: https://${{ vars.TEST_DOMAIN }}
+          LAGER_REMOTE_TLS: direkt
+          LAGER_TEST_TOKEN: ${{ secrets.LAGER_TEST_TOKEN }}
+        run: node --test --test-concurrency=1 --test-name-pattern="REMOTE-0[1235678]" e2e/remote/remote-api.test.js

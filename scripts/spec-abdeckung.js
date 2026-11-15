@@ -12,7 +12,7 @@ const repos = (process.env.LAGER_REPOS || ["../Materialplaner", "../Productionpl
 repos.unshift(CORE);
 
 // Spec-IDs. E-x sind Entscheidungen, keine testbaren Anforderungen.
-const ID_RE = /\b(?:R-\d+[a-z]?|FA-\d+|NFA-\d+|T-\d+|UI-\d+|WEB-\d+|KLICK-\d+|NUTZER-\d+|GLEICH-\d+|TOUR-\d+|INT-\d+|REL-\d+|BUG-\d+)\b/g;
+const ID_RE = /\b(?:R-\d+[a-z]?|FA-\d+|NFA-\d+|T-\d+|UI-\d+|WEB-\d+|KLICK-\d+|NUTZER-\d+|GLEICH-\d+|TOUR-\d+|INT-\d+|REL-\d+|REMOTE-\d+|BUG-\d+)\b/g;
 const index = fs.readFileSync(path.join(CORE, "docs/spec/INDEX.md"), "utf8");
 // Zusatz-Anforderungen (Phasen 16–20) als eigene Liste, nicht in INDEX.md gemischt
 const zusatzDatei = path.join(CORE, "docs/spec/ZUSATZ.md");

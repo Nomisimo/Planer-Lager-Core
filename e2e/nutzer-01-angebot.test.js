@@ -3,7 +3,7 @@
 // Überbuchungshinweis, Rabatt, PDF, Fassung, annehmen.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { starteApp, starteBrowser } from "./helfer.js";
+import { starteApp, starteBrowser, warteBis } from "./helfer.js";
 import { arbeitstag, imBrowser, melde, menue, bild, JAHR, NAECHSTES } from "./nutzer-helfer.js";
 
 test("NUTZER-01 Vom Anruf zum Angebot: Kunde, Projekt + Job, Angebot mit Verfügbarkeit, Überbuchung, Rabatt, PDF, Fassung, annehmen", { timeout: 240000 }, async () => {
@@ -82,8 +82,8 @@ test("NUTZER-01 Vom Anruf zum Angebot: Kunde, Projekt + Job, Angebot mit Verfüg
     await bild(w, "NUTZER-01", "fassung");
     // Kunde sagt zu
     await w.getByRole("button", { name: "Angenommen", exact: true }).click();
-    await w.getByText("Angenommen").first().waitFor();
-    const { rows: [x] } = await s.q("SELECT a.status, p.status AS projekt FROM angebot a JOIN projekt p ON p.id = a.projekt_id WHERE a.nummer = $1", [angebotNr]);
+    // nicht auf den Text warten (der Knopf heißt genauso), sondern auf den gespeicherten Status
+    const x = await warteBis(async () => { const { rows: [r] } = await s.q("SELECT a.status, p.status AS projekt FROM angebot a JOIN projekt p ON p.id = a.projekt_id WHERE a.nummer = $1", [angebotNr]); return r.status === "angenommen" && r; });
     assert.equal(x.status, "angenommen");
     assert.notEqual(x.projekt, "anfrage");
     // Lena sieht das Projekt im Browser-Materialplaner zum Packen (live, ohne Neuladen)

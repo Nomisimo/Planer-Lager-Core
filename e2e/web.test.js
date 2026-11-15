@@ -246,6 +246,7 @@ test("INT-07 INT-04 INT-05 INT-06 Browser + Desktop: Codefeld im Browser-P öffn
     assert.equal(await w.getByLabel("Passwort").count(), 0);
     // INT-06: Browser-M offline packen (3 Scans), wieder online → alle gebucht, Desktop-P zeigt es live
     await w.evaluate((id) => { location.hash = `#/projekte/${id}/packen`; }, p.id);
+    await w.getByTestId("scanfeld").waitFor({ timeout: 15000 }).catch(async () => { await screenshot(w, "INT-06-packen-fehler"); throw new Error(`Packansicht ohne Scanfeld: ${w.url()} · ${(await w.locator("body").innerText()).replace(/\s+/g, " ").slice(0, 700)}`); });
     await w.route("**/api/v1/scan", (r) => r.abort("internetdisconnected"));
     const codes = ["LI-0003", "LI-0001", "LI-0002"];
     for (const [i, c] of codes.entries()) {

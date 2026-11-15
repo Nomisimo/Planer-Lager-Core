@@ -213,7 +213,8 @@ export function useFormular(start, opt = {}) {
   const werteRef = useRef(werte);
   werteRef.current = werte;
   const eigen = useRef(0);
-  const setze = (k) => (v) => { setWerte((w) => ({ ...w, [k]: v?.target ? (v.target.type === "checkbox" ? v.target.checked : v.target.value) : v })); setFehler((f) => ({ ...f, [k]: undefined })); };
+  const geaendert = useRef(new Set());
+  const setze = (k) => (v) => { geaendert.current.add(k); setWerte((w) => ({ ...w, [k]: v?.target ? (v.target.type === "checkbox" ? v.target.checked : v.target.value) : v })); setFehler((f) => ({ ...f, [k]: undefined })); };
   const lager = useLager();
   const live = opt.live;
   useEffect(() => {
@@ -260,7 +261,13 @@ export function useFormular(start, opt = {}) {
   const bandElement = band ? (band.geloescht
     ? <Meldung level="error" text={`${band.von ? `${band.von} hat` : "Jemand hat"} das gerade gelöscht.`}><div className="lp-zeile" style={{ marginTop: 8 }}><Knopf icon="ArrowLeft" onClick={opt.zurueck || (() => history.back())}>Zurück zur Liste</Knopf></div></Meldung>
     : <AenderungsBand von={band.von} onNeuLaden={neuLaden} onBehalten={() => setBand(null)} />) : null;
-  return { werte, setWerte, setze, fehler, setFehler, meldung, setMeldung, absenden, band: bandElement };
+  // Erstes Laden eines Datensatzes: Felder, die schon bearbeitet wurden, bleiben stehen (Laden kann später ankommen als die Eingabe)
+  const geladen = (daten) => setWerte((w) => {
+    const neu = { ...daten };
+    for (const k of geaendert.current) if (w && k in w) neu[k] = w[k];
+    return neu;
+  });
+  return { werte, setWerte, geladen, setze, fehler, setFehler, meldung, setMeldung, absenden, band: bandElement };
 }
 
 /** Geld-Eingabe: zeigt Euro, liefert Cent (Integer) oder null. */

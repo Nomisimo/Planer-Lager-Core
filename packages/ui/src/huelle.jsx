@@ -137,10 +137,10 @@ function PasswortWechseln({ api, nutzer, onFertig }) {
   return (
     <div className="lp-login">
       <Section titel="Eigenes Passwort vergeben" icon="ShieldCheck">
-        <p style={{ marginTop: 0 }}>Hallo {nutzer?.name || nutzer?.benutzername}, du hast dich mit einem Einmal-Passwort angemeldet. Vergib jetzt ein eigenes Passwort (mindestens 10 Zeichen).</p>
+        <p style={{ marginTop: 0 }}>Hallo {nutzer?.name || nutzer?.benutzername}, du hast dich mit einem Start- oder Einmal-Passwort angemeldet, das ein Admin vergeben hat. Vergib jetzt ein eigenes Passwort (mindestens 10 Zeichen), das nur du kennst.</p>
         <div>
-          <Feld label="Neues Passwort" pflicht><Eingabe type="password" autoComplete="new-password" value={w.neu} onChange={(e) => setW({ ...w, neu: e.target.value })} /></Feld>
-          <Feld label="Neues Passwort wiederholen" pflicht><Eingabe type="password" autoComplete="new-password" value={w.wieder} onChange={(e) => setW({ ...w, wieder: e.target.value })} /></Feld>
+          <Feld label="Neues Passwort" pflicht><Eingabe aria-label="Neues Passwort" type="password" autoComplete="new-password" value={w.neu} onChange={(e) => setW({ ...w, neu: e.target.value })} /></Feld>
+          <Feld label="Neues Passwort wiederholen" pflicht><Eingabe aria-label="Neues Passwort wiederholen" type="password" autoComplete="new-password" value={w.wieder} onChange={(e) => setW({ ...w, wieder: e.target.value })} /></Feld>
           {meldung && <div style={{ marginTop: 10 }}><Meldung {...meldung} /></div>}
           <div style={{ marginTop: 12 }}><Knopf art="primaer" icon="Check" onClick={speichern}>Passwort speichern</Knopf></div>
         </div>

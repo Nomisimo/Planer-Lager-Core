@@ -4,6 +4,7 @@ import { transaktion } from "@lager/db";
 import { HttpFehler } from "./router.js";
 import { sichereFassung } from "./fassung.js";
 import { protokolliere, clientIp } from "./sicherheit.js";
+import { randomBytes } from "node:crypto";
 import { hashePasswort } from "./passwort-hash.js";
 
 const V = { bereich: "verwaltung" };
@@ -87,7 +88,7 @@ export function verwaltungModul(router) {
 
   // Benutzer (FA-47 Grundteil; R-07, R-09)
   router.get("/api/v1/verwaltung/benutzer", V, async (ctx) =>
-    (await ctx.pool.query(`SELECT b.id, b.version, b.benutzername, b.name, b.email, b.aktiv, b.totp_aktiv, b.letzter_login, b.rolle_id, r.name AS rolle
+    (await ctx.pool.query(`SELECT b.id, b.version, b.benutzername, b.name, b.email, b.aktiv, b.totp_aktiv, b.letzter_login, b.passwort_wechsel, b.rolle_id, r.name AS rolle
       FROM benutzer b JOIN rolle r ON r.id = b.rolle_id ORDER BY lower(b.benutzername)`)).rows);
   router.post("/api/v1/verwaltung/benutzer", V, async (ctx) => {
     const { benutzername = "", name = "", email = "", passwort = "", rolle_id } = ctx.body || {};
@@ -98,8 +99,9 @@ export function verwaltungModul(router) {
     if (!Number.isInteger(rolle_id)) felder.rolle_id = "Wähle eine Rolle.";
     if (Object.keys(felder).length) throw fehler(400, "Bitte prüfe die markierten Felder.", { felder });
     try {
-      const { rows } = await ctx.pool.query(`INSERT INTO benutzer (benutzername, name, email, passwort_hash, rolle_id)
-        VALUES ($1, $2, $3, $4, $5) RETURNING id`, [benutzername, name || benutzername, email, await hashePasswort(passwort), rolle_id]);
+      // D-133: Das vom Admin vergebene Passwort ist ein Startpasswort – beim ersten Login muss der Benutzer ein eigenes setzen.
+      const { rows } = await ctx.pool.query(`INSERT INTO benutzer (benutzername, name, email, passwort_hash, rolle_id, passwort_wechsel)
+        VALUES ($1, $2, $3, $4, $5, true) RETURNING id`, [benutzername, name || benutzername, email, await hashePasswort(passwort), rolle_id]);
       await protokolliere(ctx.pool, "aktion", { benutzer: ctx.nutzer.benutzername, ip: clientIp(ctx), text: `Benutzer angelegt: ${benutzername}` });
       return { id: rows[0].id };
     } catch (e) {
@@ -124,11 +126,28 @@ export function verwaltungModul(router) {
       if (pf.length) throw fehler(400, "Bitte prüfe die markierten Felder.", { felder: { passwort: pf.join(" ") } });
       hash = await hashePasswort(ctx.body.passwort);
     }
-    await c.query("UPDATE benutzer SET name = $1, email = $2, aktiv = $3, rolle_id = $4, passwort_hash = $5 WHERE id = $6",
-      [neu.name, neu.email, !!neu.aktiv, neu.rolle_id, hash, id]);
+    // D-133: Setzt ein Admin das Passwort eines anderen, muss der Benutzer es beim nächsten Login ändern.
+    const wechsel = hash !== b.passwort_hash ? id !== ctx.nutzer.id : b.passwort_wechsel;
+    await c.query("UPDATE benutzer SET name = $1, email = $2, aktiv = $3, rolle_id = $4, passwort_hash = $5, passwort_wechsel = $6 WHERE id = $7",
+      [neu.name, neu.email, !!neu.aktiv, neu.rolle_id, hash, wechsel, id]);
+    if (hash !== b.passwort_hash) await c.query("DELETE FROM anmelde_versuch WHERE lower(benutzername) = lower($1)", [b.benutzername]);
     if (!neu.aktiv || hash !== b.passwort_hash) await c.query("DELETE FROM sitzung WHERE benutzer_id = $1", [id]);
     await protokolliere(c, "aktion", { benutzer: ctx.nutzer.benutzername, ip: clientIp(ctx), text: `Benutzer geändert: ${b.benutzername}` });
     return { ok: true };
+  }));
+  // D-133: Passwort zurücksetzen – Zufalls-Startpasswort (nur einmal in der Antwort), Wechsel beim nächsten Login,
+  // alle Sitzungen beendet, Sperre nach Fehlversuchen aufgehoben. Die Zwei-Faktor-Anmeldung bleibt bestehen.
+  router.post("/api/v1/verwaltung/benutzer/:id/passwort-zuruecksetzen", V, async (ctx) => transaktion(ctx.pool, async (c) => {
+    const id = Number(ctx.params.id);
+    if (id === ctx.nutzer.id) throw fehler(400, "Dein eigenes Passwort änderst du über dein Profil (Passwort ändern), nicht hier.");
+    const { rows: [b] } = await c.query("SELECT benutzername FROM benutzer WHERE id = $1 FOR UPDATE", [id]);
+    if (!b) throw fehler(404, "Diesen Benutzer gibt es nicht mehr. Lade die Liste neu.");
+    const passwort = `Start-${randomBytes(9).toString("base64url")}7`;
+    await c.query("UPDATE benutzer SET passwort_hash = $1, passwort_wechsel = true WHERE id = $2", [await hashePasswort(passwort), id]);
+    await c.query("DELETE FROM sitzung WHERE benutzer_id = $1", [id]);
+    await c.query("DELETE FROM anmelde_versuch WHERE lower(benutzername) = lower($1)", [b.benutzername]);
+    await protokolliere(c, "aktion", { benutzer: ctx.nutzer.benutzername, ip: clientIp(ctx), text: `Passwort zurückgesetzt: ${b.benutzername}` });
+    return { ok: true, passwort, text: `Neues Startpasswort für ${b.benutzername}. Gib es persönlich weiter; beim nächsten Login muss ${b.benutzername} ein eigenes Passwort wählen.` };
   }));
   router.delete("/api/v1/verwaltung/benutzer/:id", V, async (ctx) => transaktion(ctx.pool, async (c) => {
     const id = Number(ctx.params.id);

@@ -90,3 +90,48 @@ test("FA-48 Einstellungsgruppen: Etiketten, Zeiterfassung, Angebote, Sicherung (
   assert.deepEqual([e.etikett_format, e.zeit_prozent_planung, e.backup_behalten, e.backup_zweitordner, e.kleinunternehmer, e.zonen_auto], ["50x25", 40, 7, "/mnt/nas/lager", true, false]);
   assert.equal((await admin("PUT", "/api/v1/verwaltung/einstellungen", { unbekannt: 1 })).status, 400);
 });
+
+test("FA-47 Neuer Benutzer aus der Verwaltung muss beim ersten Login das Passwort ändern (D-133)", async () => {
+  const lager = (await admin("GET", "/api/v1/verwaltung/rollen")).json.find((x) => x.name === "Lager / Techniker");
+  const r = await admin("POST", "/api/v1/verwaltung/benutzer", { benutzername: "neu-nina", passwort: PW, rolle_id: lager.id });
+  assert.equal(r.status, 200, r.text);
+  assert.equal((await admin("GET", "/api/v1/verwaltung/benutzer")).json.find((b) => b.benutzername === "neu-nina").passwort_wechsel, true);
+  const l = await s.api("POST", "/api/v1/anmelden", { benutzername: "neu-nina", passwort: PW });
+  assert.equal(l.status, 200, l.text);
+  assert.equal(l.json.passwortWechseln, true);
+  const nina = (m, p, b) => s.api(m, p, b, { Authorization: `Bearer ${l.json.token}` });
+  const gesperrt = await nina("GET", "/api/v1/geraete");
+  assert.equal(gesperrt.status, 403);
+  assert.equal(gesperrt.json.passwortWechseln, true);
+  assert.equal((await nina("POST", "/api/v1/ich/passwort", { neu: "Ninas-eigenes-Passwort-3" })).status, 200, "Startpasswort: kein altes nötig");
+  assert.equal((await nina("GET", "/api/v1/geraete")).status, 200);
+  assert.equal((await nina("GET", "/api/v1/ich")).json.passwortWechseln, false);
+});
+
+test("FA-47 Admin setzt Passwort zurück: Startpasswort einmal, Sitzungen beendet, Wechsel beim nächsten Login (D-133)", async () => {
+  const lager = (await admin("GET", "/api/v1/verwaltung/rollen")).json.find((x) => x.name === "Lager / Techniker");
+  const { json: { id } } = await admin("POST", "/api/v1/verwaltung/benutzer", { benutzername: "neu-otto", passwort: PW, rolle_id: lager.id });
+  await s.db.pool.query("UPDATE benutzer SET passwort_wechsel = false WHERE id = $1", [id]);
+  const alt = await s.api("POST", "/api/v1/anmelden", { benutzername: "neu-otto", passwort: PW });
+  assert.equal(alt.json.passwortWechseln, false);
+  const z = await admin("POST", `/api/v1/verwaltung/benutzer/${id}/passwort-zuruecksetzen`, {});
+  assert.equal(z.status, 200, z.text);
+  assert.match(z.json.passwort, /^Start-/);
+  assert.equal((await s.api("GET", "/api/v1/ich", undefined, { Authorization: `Bearer ${alt.json.token}` })).status, 401, "alte Sitzung beendet");
+  assert.equal((await s.api("POST", "/api/v1/anmelden", { benutzername: "neu-otto", passwort: PW })).status, 401, "altes Passwort gilt nicht mehr");
+  const neu = await s.api("POST", "/api/v1/anmelden", { benutzername: "neu-otto", passwort: z.json.passwort });
+  assert.equal(neu.status, 200, neu.text);
+  assert.equal(neu.json.passwortWechseln, true);
+  const { rows: [p] } = await s.db.pool.query("SELECT text FROM sicherheit_ereignis WHERE text = 'Passwort zurückgesetzt: neu-otto'");
+  assert.ok(p, "im Sicherheitsprotokoll");
+  // Passwort im Bearbeiten-Dialog setzen wirkt genauso; eigenes Konto nicht über die Verwaltung zurücksetzen
+  await s.db.pool.query("UPDATE benutzer SET passwort_wechsel = false WHERE id = $1", [id]);
+  const v = (await admin("GET", "/api/v1/verwaltung/benutzer")).json.find((b) => b.id === id).version;
+  assert.equal((await admin("PUT", `/api/v1/verwaltung/benutzer/${id}`, { version: v, passwort: "Vom-Admin-gesetzt-9" })).status, 200);
+  assert.equal((await s.api("POST", "/api/v1/anmelden", { benutzername: "neu-otto", passwort: "Vom-Admin-gesetzt-9" })).json.passwortWechseln, true);
+  const ich = (await admin("GET", "/api/v1/ich")).json.nutzer;
+  assert.equal((await admin("POST", `/api/v1/verwaltung/benutzer/${ich.id}/passwort-zuruecksetzen`, {})).status, 400);
+  // Nur Admins
+  const bea = await s.als("bea-lager", "Lager / Techniker");
+  assert.equal((await bea("POST", `/api/v1/verwaltung/benutzer/${id}/passwort-zuruecksetzen`, {})).status, 403);
+});

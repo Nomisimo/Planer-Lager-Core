@@ -26,7 +26,13 @@ export function BenutzerVerwaltung() {
   const [form, setForm] = useState(null);
   const [m, setM] = useState(null);
   const [fragen, dialog] = useBestaetigung();
+  const [start, setStart] = useState(null);
   const fertig = (r) => { setForm(null); if (r) { setM(r); l.laden(); } };
+  // D-133: Passwort zurücksetzen – Startpasswort einmal anzeigen, Wechsel beim nächsten Login
+  const zuruecksetzen = async (b) => {
+    if (!(await fragen({ titel: "Passwort zurücksetzen?", text: `${b.benutzername} bekommt ein neues Startpasswort und wird überall abgemeldet. Beim nächsten Login muss ${b.benutzername} ein eigenes Passwort wählen.`, knopf: "Zurücksetzen" }))) return;
+    try { const r = await api.post(`/api/v1/verwaltung/benutzer/${b.id}/passwort-zuruecksetzen`, {}); setForm(null); setStart({ benutzername: b.benutzername, passwort: r.passwort }); l.laden(); } catch (e) { setM({ level: "error", text: fehlerText(e) }); }
+  };
   const loeschen = async (b) => {
     if (!(await fragen({ titel: "Benutzer löschen?", text: `${b.benutzername} wird gelöscht. Seine Buchungen behalten den Namen. Besser: deaktivieren.`, knopf: "Löschen" }))) return;
     try { await api.del(`/api/v1/verwaltung/benutzer/${b.id}`); fertig({ level: "success", text: `${b.benutzername} gelöscht.` }); } catch (e) { setM({ level: "error", text: fehlerText(e) }); }
@@ -39,12 +45,18 @@ export function BenutzerVerwaltung() {
       <Section>
         <Tabelle zeilen={l.daten} onZeile={(b) => setForm(b)} leer="Noch keine Benutzer." spalten={[
           { titel: "Benutzername", wert: (b) => <strong>{b.benutzername}</strong> }, { titel: "Name", feld: "name" }, { titel: "Rolle", feld: "rolle" },
-          { titel: "Status", wert: (b) => (b.aktiv ? <Badge farbe="var(--lp-ok)" text="#fff">aktiv</Badge> : <Badge>deaktiviert</Badge>) },
+          { titel: "Status", wert: (b) => (<>{b.aktiv ? <Badge farbe="var(--lp-ok)" text="#fff">aktiv</Badge> : <Badge>deaktiviert</Badge>}{b.passwort_wechsel && <> <Badge>muss Passwort ändern</Badge></>}</>) },
           { titel: "2FA", wert: (b) => (b.totp_aktiv ? "an" : "–") }, { titel: "Letzte Anmeldung", wert: (b) => zeitpunktAnzeige(b.letzter_login) || "nie" },
-          { titel: "", wert: (b) => b.id !== nutzer.id && <Knopf klein art="geist" icon="Trash2" aria-label={`${b.benutzername} löschen`} onClick={(e) => { e.stopPropagation(); loeschen(b); }} /> },
+          { titel: "", wert: (b) => b.id !== nutzer.id && <span style={{ whiteSpace: "nowrap" }}>
+            <Knopf klein art="geist" icon="Key" aria-label={`Passwort von ${b.benutzername} zurücksetzen`} title="Passwort zurücksetzen" onClick={(e) => { e.stopPropagation(); zuruecksetzen(b); }} />
+            <Knopf klein art="geist" icon="Trash2" aria-label={`${b.benutzername} löschen`} onClick={(e) => { e.stopPropagation(); loeschen(b); }} /></span> },
         ]} />
       </Section>
       {form && <BenutzerFormular b={form} rollen={rollen.daten || []} onFertig={fertig} />}
+      {start && <Modal titel={`Startpasswort für ${start.benutzername}`} onSchliessen={() => setStart(null)} fuss={<Knopf art="primaer" onClick={() => setStart(null)}>Notiert</Knopf>}>
+        <p style={{ marginTop: 0 }}>Gib das Passwort persönlich weiter. Es wird nur jetzt angezeigt. Beim nächsten Login muss {start.benutzername} ein eigenes Passwort wählen.</p>
+        <pre className="lp-code" data-testid="startpasswort" style={{ fontSize: "1.4rem", textAlign: "center", userSelect: "all" }}>{start.passwort}</pre>
+      </Modal>}
       {dialog}
     </Seite>
   );
@@ -58,7 +70,7 @@ function BenutzerFormular({ b, rollen, onFertig }) {
     const body = { name: w.name, email: w.email, rolle_id: Number(w.rolle_id) || undefined, aktiv: w.aktiv, version: w.version, ...(w.passwort ? { passwort: w.passwort } : {}) };
     if (neu) await api.post("/api/v1/verwaltung/benutzer", { ...body, benutzername: w.benutzername, passwort: w.passwort });
     else await api.put(`/api/v1/verwaltung/benutzer/${b.id}`, body);
-    onFertig({ level: "success", text: neu ? `${w.benutzername} angelegt.` : `${b.benutzername} gespeichert.${w.passwort ? " Neues Passwort gilt, alte Anmeldungen sind beendet." : ""}` });
+    onFertig({ level: "success", text: neu ? `${w.benutzername} angelegt. Beim ersten Login wählt ${w.benutzername} ein eigenes Passwort.` : `${b.benutzername} gespeichert.${w.passwort ? ` Alte Anmeldungen sind beendet; beim nächsten Login wählt ${b.benutzername} ein eigenes Passwort.` : ""}` });
   });
   return (
     <Modal titel={neu ? "Neuer Benutzer" : `Benutzer ${b.benutzername}`} onSchliessen={() => onFertig(null)} fuss={<>
@@ -68,7 +80,7 @@ function BenutzerFormular({ b, rollen, onFertig }) {
       <Feld label="Name" fehler={f.fehler.name}><Eingabe aria-label="Name" value={f.werte.name} onChange={f.setze("name")} /></Feld>
       <Feld label="E-Mail" fehler={f.fehler.email}><Eingabe aria-label="E-Mail" type="email" value={f.werte.email} onChange={f.setze("email")} /></Feld>
       <Feld label="Rolle" pflicht fehler={f.fehler.rolle_id}><Auswahl aria-label="Rolle" leer="Rolle wählen" value={f.werte.rolle_id} onChange={f.setze("rolle_id")} optionen={rollen.map((r) => ({ wert: String(r.id), titel: r.name }))} /></Feld>
-      <Feld label={neu ? "Passwort" : "Neues Passwort"} pflicht={neu} fehler={f.fehler.passwort} hinweis={neu ? "mindestens 10 Zeichen" : "leer lassen = unverändert"}>
+      <Feld label={neu ? "Passwort" : "Neues Passwort"} pflicht={neu} fehler={f.fehler.passwort} hinweis={neu ? "Startpasswort, mindestens 10 Zeichen – beim ersten Login wird es geändert" : "leer lassen = unverändert; sonst Startpasswort, beim nächsten Login wird es geändert"}>
         <Eingabe aria-label={neu ? "Passwort" : "Neues Passwort"} type="password" autoComplete="new-password" value={f.werte.passwort} onChange={f.setze("passwort")} /></Feld>
       {!neu && <Toggle label="Aktiv (darf sich anmelden)" checked={f.werte.aktiv} onChange={f.setze("aktiv")} />}
     </Modal>

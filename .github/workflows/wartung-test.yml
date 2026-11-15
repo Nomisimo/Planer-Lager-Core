@@ -17,6 +17,10 @@ on:
         options: [pruefen, status, logs, aufraeumen, neustart, sicherung, zuruecksetzen, sam-zugang]
         default: status
 
+defaults:
+  run:
+    shell: bash -eo pipefail {0}
+
 permissions:
   contents: read
 

@@ -17,6 +17,10 @@ on:
     types: [completed]
     branches: [main]
 
+defaults:
+  run:
+    shell: bash -eo pipefail {0}
+
 permissions:
   contents: read
   packages: read

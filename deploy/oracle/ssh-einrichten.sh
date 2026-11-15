@@ -19,5 +19,14 @@ Host lager
   StrictHostKeyChecking yes
   ServerAliveInterval 30
   ConnectTimeout 20
+  ConnectionAttempts 3
+  # Eine Verbindung für alle Schritte (schnelle Neuverbindungen setzt sshd sonst zurück)
+  ControlMaster auto
+  ControlPath ~/.ssh/lager-%C
+  ControlPersist 15m
 KONF
-ssh lager true && echo "SSH zu deploy@$DOMAIN ok (Host-Schlüssel geprüft)."
+for i in 1 2 3 4 5; do
+  if ssh lager true; then echo "SSH zu deploy@$DOMAIN ok (Host-Schlüssel geprüft)."; exit 0; fi
+  echo "SSH-Versuch $i fehlgeschlagen, neuer Versuch in $((i * 5)) s"; sleep $((i * 5))
+done
+exit 1

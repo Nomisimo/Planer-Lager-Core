@@ -247,7 +247,15 @@ export function scanModul(router) {
     const notizen = `${g.notizen ? `${g.notizen}\n` : ""}${heute}: Mangel bei Rückgabe: ${notiz}`;
     await c.query("UPDATE geraet SET status = 'defekt', notizen = $1, version = version + 1 WHERE id = $2", [notizen, g.id]);
     await bucheBewegung(c, { geraetId: g.id, projektId: g.projekt_id, aktion: `Mangel bei Rückgabe: ${notiz}`, ...wer(ctx) });
+    // BUG-6: Der Mangel landet als offene Reparatur in der Werkstatt (FA-07), sonst ist das defekte Gerät dort unsichtbar.
+    const { rows: [offen] } = await c.query("SELECT id FROM reparatur WHERE geraet_id = $1 AND status IN ('gemeldet', 'in_reparatur')", [g.id]);
+    if (!offen) {
+      const { rows: [p] } = g.projekt_id ? await c.query("SELECT nummer FROM projekt WHERE id = $1", [g.projekt_id]) : { rows: [] };
+      await c.query("INSERT INTO reparatur (geraet_id, beschreibung, gemeldet_von) VALUES ($1, $2, $3)",
+        [g.id, `Mangel bei Rückgabe${p ? ` ${p.nummer}` : ""}: ${notiz}`, wer(ctx).mitarbeiter || ctx.nutzer?.name || ctx.nutzer?.benutzername || ""]);
+    }
     ctx.hub?.sende({ typ: "geraet.geaendert", id: g.id, bereich: "geraete" });
+    ctx.hub?.sende({ typ: "reparatur.geaendert", id: g.id, bereich: "geraete" });
     return { ok: true, status: "defekt", text: `${g.code} ist jetzt „Defekt“ und kann nicht gepackt werden, bis es repariert ist.` };
   }));
 

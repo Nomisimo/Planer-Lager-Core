@@ -29,6 +29,7 @@ Funde:
 - KLICK-01–06: Klick-Durchlauf über Materialplaner und Productionplaner (Electron und Browser, 5 Rollen) und station-web mit Demo-Daten. 77 Knöpfe/Dialoge ausgelöst, 13 Formulare leer abgeschickt, alle Menüeinträge besucht, keine Konsolen-/Serverfehler, alle Seiten unter 1 s, Rechte stimmen. Bericht: `e2e/artefakte/klick-bericht.json`.
 - BUG-4 Bei 1024×768 war die Kopfleiste breiter als das Fenster (waagerechter Rollbalken, Name abgeschnitten). Behoben: Rasterspalte `minmax(0,1fr)`, Codefeld schmaler, Name mit Auslassung. Roter Test KLICK-04 zuerst.
 - BUG-5 Material-, Geräte- und Kunden-Detail zeigten beim Laden eine leere Seite. Behoben: „Lädt …“ wie bei Projekten. Roter Test KLICK-03 zuerst.
+- BUG-6 Mangel beim Funktionstest der Rückgabe setzte das Gerät auf „Defekt“, legte aber keine Reparatur an; in Reparatur › Offen war es unsichtbar. Behoben: offene Reparatur mit Mangeltext und Projekt, Live-Ereignis an die Werkstatt. Roter Test NUTZER-03 zuerst.
 Annahmen: D-118, D-119, D-120
 Annahmen: D-114, D-115, D-116
 

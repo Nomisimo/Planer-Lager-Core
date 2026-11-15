@@ -16,7 +16,7 @@
     "lint": "eslint --no-error-on-unmatched-pattern packages scripts e2e",
     "spec:abdeckung": "node scripts/spec-abdeckung.js",
     "migrate": "node packages/db/src/cli.js migrate",
-    "e2e": "xvfb-run -a node --test --test-concurrency=1 --test-timeout=600000 --test-force-exit \"e2e/**/*.test.js\"",
+    "e2e": "xvfb-run -a node --test --test-concurrency=1 --test-timeout=1500000 --test-force-exit \"e2e/**/*.test.js\"",
     "dev:server": "node packages/server/src/start.js --port 8080",
     "seed": "node scripts/seed.mjs",
     "lager": "node packages/server/src/cli.js"

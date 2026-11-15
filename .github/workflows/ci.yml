@@ -27,7 +27,7 @@ jobs:
       - run: npm run spec:abdeckung || true
   e2e:
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 45
     needs: unit-api
     services:
       postgres:

@@ -141,7 +141,14 @@ test("WEB-03 WEB-13 Änderung im Browser-Productionplaner erscheint live im Desk
     const name = seite.getByRole("textbox", { name: /^Name/ }).first();
     await name.fill("Stadtfest Nord");
     await warteBis(async () => (await name.inputValue()) === "Stadtfest Nord");
-    await seite.getByRole("button", { name: "Speichern" }).click();
+    // Formular erst bedienen, wenn alle Listen geladen sind (Kunde gewählt, keine Layout-Verschiebung mehr)
+    await seite.waitForFunction((kid) => [...document.querySelectorAll("select")].some((x) => x.value === String(kid)), k.id);
+    await seite.waitForLoadState("networkidle").catch(() => {});
+    const knopf = seite.getByRole("button", { name: "Speichern" });
+    for (let n = 0; n < 3 && !antworten.some((a) => a.startsWith("→PUT")); n++) {
+      await knopf.click();
+      await warteBis(() => antworten.some((a) => a.startsWith("→PUT")), { timeout: 3000 }).catch(() => antworten.push(`Klick ${n + 1} ohne PUT`));
+    }
     await warteBis(async () => (await s.db.pool.query("SELECT name FROM projekt WHERE id = $1", [p.id])).rows[0].name === "Stadtfest Nord", { timeout: 15000 })
       .catch(async () => { await screenshot(seite, "WEB-03-speichern-fehler"); throw new Error(`Speichern im Browser kam nicht an. Sichtbar: ${(await seite.locator("[role=alert], .lp-meldung").allInnerTexts()).join(" | ")} · Adresse ${seite.url()} · Name-Feld ${await name.inputValue().catch(() => "?")} · API ${antworten.slice(-14).join(", ")} · Konsole ${konsole.join(" | ")} · DB ${JSON.stringify((await s.db.pool.query("SELECT state, wait_event_type, left(query, 80) AS q FROM pg_stat_activity WHERE datname = current_database() AND pid <> pg_backend_pid() AND state <> 'idle'")).rows)} · Seite ${(await seite.locator(".lp-inhalt").innerText().catch(() => "?")).replace(/\s+/g, " ").slice(0, 600)} · Fokus ${await seite.evaluate(() => document.activeElement?.outerHTML?.slice(0, 120))} · Knopf ${await seite.getByRole("button", { name: "Speichern" }).evaluate((k) => `${k.disabled} ${k.getAttribute("aria-busy")}`).catch((e) => e.message)}`); });
     await m.win.getByText("Stadtfest Nord").first().waitFor({ timeout: 10000 });

@@ -3,11 +3,9 @@
 // --ignore-certificate-errors; im Hauptprozess vertraut Node dem Proxy-Zertifikat über NODE_EXTRA_CA_CERTS. Nie in einem Build.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { createRequire } from "node:module";
-import { starteApp, screenshot } from "../helfer.js";
+import { starteApp, screenshot, playwright } from "../helfer.js";
 import { URL_REMOTE, OHNE, admin, testBenutzer } from "./remote-helfer.js";
 
-const require = createRequire(import.meta.url);
 const PROXY = process.env.HTTPS_PROXY || process.env.https_proxy || "";
 const OHNE_UI = OHNE;
 // Nur hinter dem aufbrechenden Proxy der Claude-VM; im GitHub-Runner gilt das echte Zertifikat.
@@ -15,7 +13,7 @@ const appArgs = PROXY ? [`--proxy-server=${PROXY}`, "--ignore-certificate-errors
 const appEnv = { NODE_EXTRA_CA_CERTS: process.env.NODE_EXTRA_CA_CERTS || `${process.env.HOME}/.ccr/ca-bundle.crt` };
 
 async function browser() {
-  const { chromium } = require("playwright");
+  const { chromium } = playwright();
   const b = await chromium.launch({ ...(PROXY ? { proxy: { server: PROXY } } : {}), ...(process.env.E2E_CHROMIUM ? { executablePath: process.env.E2E_CHROMIUM } : {}) });
   const k = await b.newContext({ ignoreHTTPSErrors: !!PROXY, locale: "de-DE", timezoneId: "Europe/Berlin", viewport: { width: 1280, height: 800 } });
   return { b, k };

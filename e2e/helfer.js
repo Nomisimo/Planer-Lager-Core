@@ -23,7 +23,7 @@ const HIER = path.dirname(fileURLToPath(import.meta.url));
 export const ARTEFAKTE = path.join(HIER, "artefakte");
 const CORE = path.join(HIER, "..");
 
-function playwright() {
+export function playwright() {
   try { return require("playwright"); } catch {
     return require(path.join(execSync("npm root -g").toString().trim(), "playwright"));
   }

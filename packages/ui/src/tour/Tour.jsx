@@ -11,6 +11,18 @@ const suche = (anker) => {
   return r.width || r.height ? el : null;
 };
 
+const BB = 360, BH = 210, RAND = 12;
+/** Blase dort, wo sie den Anker nicht verdeckt: unten, oben, rechts, links; sonst unten rechts im Fenster. */
+export function lageDerBlase(loch, vw, vh) {
+  const x = Math.max(RAND, Math.min(loch.left, vw - BB - RAND));
+  const y = Math.max(RAND, Math.min(loch.top, vh - BH - RAND));
+  if (loch.top + loch.height + RAND + BH <= vh) return { left: x, top: loch.top + loch.height + RAND };
+  if (loch.top - RAND - BH >= 0) return { left: x, top: loch.top - RAND - BH };
+  if (loch.left + loch.width + RAND + BB <= vw) return { left: loch.left + loch.width + RAND, top: y };
+  if (loch.left - RAND - BB >= 0) return { left: loch.left - RAND - BB, top: y };
+  return { left: vw - BB - RAND - 8, top: vh - BH - RAND - 8 };
+}
+
 /**
  * @param {{ titel: string, schritte: object[], navigiere: (p: string) => void, pfad: string, onEnde: (fertig: boolean) => void }} props
  */
@@ -80,8 +92,7 @@ export function Tour({ titel, schritte, navigiere, pfad, onEnde }) {
   if (!s || !rect) return <div className="lp-tour-sperre" data-testid="tour-laedt" />;
   const loch = { top: rect.top - ABSTAND, left: rect.left - ABSTAND, width: rect.width + 2 * ABSTAND, height: rect.height + 2 * ABSTAND };
   const vw = window.innerWidth, vh = window.innerHeight;
-  const unten = loch.top + loch.height + 220 < vh;
-  const blase = { left: Math.max(12, Math.min(loch.left, vw - 372)), ...(unten ? { top: loch.top + loch.height + 12 } : { top: Math.max(12, loch.top - 12 - 200) }) };
+  const blase = lageDerBlase(loch, vw, vh);
   const offen = s.art === "klick" || s.art === "eingabe";
   return (
     <div className="lp-tour" data-testid="tour" data-anker={s.anker}>

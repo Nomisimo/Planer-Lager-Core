@@ -32,6 +32,8 @@ Funde:
 - BUG-6 Mangel beim Funktionstest der Rückgabe setzte das Gerät auf „Defekt“, legte aber keine Reparatur an; in Reparatur › Offen war es unsichtbar. Behoben: offene Reparatur mit Mangeltext und Projekt, Live-Ereignis an die Werkstatt. Roter Test NUTZER-03 zuerst.
 - BUG-7 Denselben Code im Codefeld ein zweites Mal scannen (z. B. nach gebuchter Etiketten-Lieferung) tat nichts, die alte Fehlermeldung blieb stehen. Ursache: gleiche Adresse löst kein `hashchange` aus. Behoben: Navigation zur offenen Adresse lädt die Seite neu. Roter Test NUTZER-04 zuerst.
 - BUG-8 Wiederherstellung einer Sicherung brach mit Serverfehler ab („kunde_id darf nicht leer sein“), sobald ein Projekt nach dem Anlegen seiner Jobs geändert worden war. Ursache: Der Job-Trigger suchte beim Einspielen sein Projekt, das in der Sicherung erst später kam. Behoben: Beim Wiederherstellen laufen eigene Trigger nicht (Fremdschlüssel bleiben). Roter Test T-22 (Job + geändertes Projekt) und NUTZER-06 zuerst.
+- BUG-9 (Erkundung „Nina“) Hilfe nannte „in 8 Schritten“, Büro-Konten sahen 7 (Admin-Schritt fällt weg). Behoben: Kurztexte ohne feste Zahl. Roter Test TOUR-07 zuerst.
+- BUG-10 (Erkundung „Nina“) Tour-Blase verdeckte beim Schritt „Das Menü“ die obersten Menüeinträge, weil sie bei hohen Ankern einfach oben links landete. Behoben: Blase unten, oben, rechts oder links vom Anker, nur bei sehr großen Ankern (Kalender) unten rechts im Fenster. Roter Test TOUR-02 (Überdeckung je Schritt) zuerst.
 Annahmen: D-118, D-119, D-120
 Annahmen: D-114, D-115, D-116
 

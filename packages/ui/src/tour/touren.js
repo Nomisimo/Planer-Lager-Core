@@ -15,7 +15,7 @@ const schluss = [
 export const TOUREN = [
   {
     id: "materialplaner", app: "m", titel: "Materialplaner kennenlernen",
-    text: "Material, Geräte, Etiketten, Scannen und Packen – in 8 Schritten.",
+    text: "Material, Geräte, Etiketten, Scannen und Packen – Schritt für Schritt.",
     schritte: [
       ...kopf,
       { anker: "material-aufnehmen", vor: "/material", recht: ["material", "w"], titel: "Material aufnehmen", text: "Neue Artikel legst du hier an. Mit Anzahl und Kennzeichnung „QR“ entstehen die Geräte samt Etiketten gleich mit." },
@@ -27,7 +27,7 @@ export const TOUREN = [
   },
   {
     id: "productionplaner", app: "p", titel: "Productionplaner kennenlernen",
-    text: "Kunden, Projekte, Kalender, Angebote und Planungszeit – in 8 Schritten.",
+    text: "Kunden, Projekte, Kalender, Angebote und Planungszeit – Schritt für Schritt.",
     schritte: [
       ...kopf,
       { anker: "projekt-neu", vor: "/projekte", recht: ["projekte", "w"], titel: "Projekte", text: "Hier legst du Projekte an. Jobs je Gewerk hängen am Projekt und übernehmen Kunde und Termin." },
@@ -42,9 +42,9 @@ export const TOUREN = [
     text: "Wechsel zwischen Materialplaner und Productionplaner, Browser und Desktop, Live-Stand.",
     schritte: [
       { anker: "app-schalter", titel: "App wechseln", text: "Ein Klick öffnet die andere App an der passenden Stelle – ohne neue Anmeldung." },
-      { anker: "im-browser", nurDesktop: true, titel: "Im Browser öffnen", text: "Dieselbe Ansicht im Browser, z. B. am Tablet im Lager. Die Anmeldung wird mitgenommen." },
+      { anker: "im-browser", nurDesktop: true, titel: "Im Browser öffnen", text: "Öffnet dieselbe Ansicht im Browser – praktisch, um einen Link weiterzugeben oder am Tablet im Lager weiterzuarbeiten. Die Anmeldung wird mitgenommen." },
       { anker: "in-desktop", nurWeb: true, titel: "In der Desktop-App öffnen", text: "Öffnet diese Ansicht in der installierten App, ohne neue Anmeldung." },
-      { anker: "online-status", titel: "Live-Verbindung", text: "Solange hier „Online“ steht, siehst du Änderungen der Kollegen sofort, ohne neu zu laden." },
+      { anker: "online-status", titel: "Live-Verbindung", text: "Solange hier „Online“ steht, siehst du Änderungen der Kollegen sofort, ohne neu zu laden. Steht hier „Offline“, merkt sich die App deine Scans und bucht sie nach." },
       { anker: "glocke", titel: "Benachrichtigungen", text: "Fällige Aufgaben und Hinweise aus beiden Apps landen hier." },
       { anker: "benutzer", titel: "Ein Konto für alles", text: "Du bist in beiden Apps mit demselben Konto angemeldet; Rechte gelten überall gleich." },
     ],

@@ -36,6 +36,15 @@ async function laufe(seite, tour, { bild } = {}) {
     if (titel[titel.length - 1] !== t) titel.push(t);
     if (bild && titel.length === 2) await screenshot(seite, bild);
     const anker = await seite.getByTestId("tour").getAttribute("data-anker");
+    // BUG-10: Blase verdeckt den Anker nicht, wenn daneben, darüber oder darunter Platz ist
+    const lage = await seite.evaluate(() => {
+      const l = document.querySelector(".lp-tour-loch").getBoundingClientRect(), b = document.querySelector(".lp-tour-blase").getBoundingClientRect();
+      const vw = innerWidth, vh = innerHeight;
+      const platz = l.bottom + b.height + 12 <= vh || l.top - b.height - 12 >= 0 || l.right + b.width + 12 <= vw || l.left - b.width - 12 >= 0;
+      const ueber = Math.max(0, Math.min(l.right, b.right) - Math.max(l.left, b.left)) * Math.max(0, Math.min(l.bottom, b.bottom) - Math.max(l.top, b.top));
+      return { platz, ueber };
+    });
+    if (lage.platz) assert.equal(lage.ueber, 0, `${tour.id}/${t}: Blase verdeckt den Anker`);
     const weiter = b.getByRole("button", { name: /^(Weiter|Fertig)$/ });
     if (await weiter.count()) await weiter.click();
     else await seite.locator(`[data-tour="${anker}"]`).first().click();
@@ -179,4 +188,6 @@ test("TOUR-07 Alle Anker aus touren.js kommen als tour=\"…\" / data-tour=\"…
     return !code.includes(`tour="${a}"`);
   });
   assert.deepEqual(fehlt, []);
+  // BUG-9: Kurztexte nennen keine feste Schrittzahl (sie hängt von Rolle und Plattform ab)
+  assert.deepEqual(TOUREN.filter((t) => /\d+\s*Schritt/.test(t.text)).map((t) => t.id), []);
 });

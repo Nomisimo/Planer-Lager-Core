@@ -24,6 +24,14 @@ test("UI-8 station-web: Asset mit Hash im Namen (dauerhaft cachebar), Seite ohne
   } finally { await s.ende(); }
 });
 
+test("REMOTE-03 /favicon.ico antwortet ohne Fehler (keine 404 in der Browser-Konsole)", async () => {
+  const s = await starteTestServer();
+  try {
+    const r = await fetch(s.url + "/favicon.ico");
+    assert.equal(r.status, 204);
+  } finally { await s.ende(); }
+});
+
 test("R-11 /admin/login/ leitet auf die gesicherte Anmeldeseite um", async () => {
   const s = await starteTestServer();
   try {

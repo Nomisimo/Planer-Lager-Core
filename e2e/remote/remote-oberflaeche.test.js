@@ -22,6 +22,7 @@ const fehlerSammler = (seite) => {
   const f = [];
   seite.on("console", (m) => { if (m.type() === "error") f.push(m.text()); });
   seite.on("pageerror", (e) => f.push(String(e?.message || e)));
+  seite.on("response", (r) => { if (r.status() >= 400 && r.status() !== 401) f.push(`HTTP ${r.status()} ${new URL(r.url()).pathname}`); });
   return f;
 };
 const ohneTestToken = (f) => f.filter((t) => !/401|Unauthorized/.test(t));

@@ -59,6 +59,8 @@ export function statischModul(router, { config }) {
     ctx.res.end(fs.readFileSync(datei));
   };
   router.get("/", { oeffentlich: true }, (ctx) => html(ctx, portalHtml(ctx.nutzer, !!config?.testModus)));
+  // Browser fragen von selbst nach /favicon.ico; ohne Antwort stünde ein 404 in der Konsole (REMOTE-03).
+  router.get("/favicon.ico", { oeffentlich: true }, (ctx) => { ctx.res.writeHead(204, { "Cache-Control": "public, max-age=86400" }); ctx.res.end(); });
   router.get("/station", { oeffentlich: true }, seite);
   router.get("/anzeige", { oeffentlich: true }, seite);
   router.get("/login", { oeffentlich: true }, seite);

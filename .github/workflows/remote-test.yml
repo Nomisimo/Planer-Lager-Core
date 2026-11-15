@@ -55,10 +55,14 @@ jobs:
           (cd Planer-Lager-Core && npm ci && npm i -g playwright@1.63.0)
           (cd Materialplaner && npm ci)
           (cd Productionplaner && npm ci)
-      - name: REMOTE-01 bis REMOTE-07 und REMOTE-08 Schritt 1
+      - name: REMOTE-01 bis REMOTE-07
         if: steps.v.outputs.ok == 'true'
         working-directory: Planer-Lager-Core
         run: npm run e2e:remote
+      - name: REMOTE-08 Schritt 1 (Merker direkt vor dem Neustart; REMOTE-04 setzt vorher zurück)
+        if: steps.v.outputs.ok == 'true'
+        working-directory: Planer-Lager-Core
+        run: node --test --test-name-pattern="REMOTE-08" e2e/remote/remote-api.test.js
       - name: SSH einrichten
         if: steps.v.outputs.ok == 'true'
         env:

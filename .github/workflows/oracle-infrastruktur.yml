@@ -1,0 +1,56 @@
+# Oracle-Testserver (Phase S, Always Free): Netz und Instanz „lager-test“ anlegen, Zustand zeigen, starten oder entfernen.
+# Actions → „Oracle Infrastruktur“ → Run workflow. Alle Ressourcen tragen den Freeform-Tag projekt=planer-lager.
+# Always Free: 1× VM.Standard.A1.Flex (2 OCPU / 12 GB), Ersatz 1× VM.Standard.E2.1.Micro, Boot-Volume 50 GB, sonst nichts.
+name: Oracle Infrastruktur
+
+on:
+  workflow_dispatch:
+    inputs:
+      aktion:
+        description: "anlegen | status | starten | entfernen"
+        type: choice
+        options: [anlegen, status, starten, entfernen]
+        default: anlegen
+      bestaetigung:
+        description: "Nur für „entfernen“: ENTFERNEN eintragen"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+concurrency: { group: oracle, cancel-in-progress: false }
+
+jobs:
+  oracle:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      OCI_CLI_SUPPRESS_FILE_PERMISSIONS_WARNING: "True"
+      AKTION: ${{ inputs.aktion }}
+      TAGS: '{"projekt":"planer-lager"}'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: OCI-CLI einrichten
+        env:
+          OCI_CLI_USER: ${{ secrets.OCI_CLI_USER }}
+          OCI_CLI_TENANCY: ${{ secrets.OCI_CLI_TENANCY }}
+          OCI_CLI_FINGERPRINT: ${{ secrets.OCI_CLI_FINGERPRINT }}
+          OCI_CLI_REGION: ${{ secrets.OCI_CLI_REGION }}
+          OCI_CLI_KEY_CONTENT: ${{ secrets.OCI_CLI_KEY_CONTENT }}
+        run: |
+          echo "::add-mask::$OCI_CLI_USER"; echo "::add-mask::$OCI_CLI_TENANCY"; echo "::add-mask::$OCI_CLI_FINGERPRINT"
+          pipx install oci-cli >/dev/null 2>&1 || pip install --break-system-packages oci-cli >/dev/null
+          mkdir -p ~/.oci && umask 077
+          printf '%s\n' "$OCI_CLI_KEY_CONTENT" > ~/.oci/schluessel.pem
+          printf '[DEFAULT]\nuser=%s\nfingerprint=%s\ntenancy=%s\nregion=%s\nkey_file=%s\n' \
+            "$OCI_CLI_USER" "$OCI_CLI_FINGERPRINT" "$OCI_CLI_TENANCY" "$OCI_CLI_REGION" "$HOME/.oci/schluessel.pem" > ~/.oci/config
+          echo "TEN=$OCI_CLI_TENANCY" >> "$GITHUB_ENV"
+          oci --version
+
+      - name: Ausführen
+        env:
+          SSH_PUBKEY: ${{ secrets.ORACLE_SSH_PUBKEY }}
+          BESTAETIGUNG: ${{ inputs.bestaetigung }}
+        run: bash deploy/oracle/oracle.sh "$AKTION"

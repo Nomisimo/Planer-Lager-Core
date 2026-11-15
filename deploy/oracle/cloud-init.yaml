@@ -1,0 +1,60 @@
+#cloud-config
+# Grundeinrichtung des Oracle-Testservers (Phase S). Wird von .github/workflows/oracle-infrastruktur.yml
+# als user_data übergeben; __SSH_PUBKEY__ ersetzt der Workflow durch den öffentlichen Schlüssel (ORACLE_SSH_PUBKEY).
+# Ausgabe: /var/log/lager-bootstrap.log und serielle Konsole (Konsolen-Verlauf in der OCI-CLI).
+timezone: Europe/Berlin
+
+write_files:
+  - path: /usr/local/sbin/lager-bootstrap.sh
+    permissions: "0755"
+    content: |
+      #!/bin/bash
+      set -euo pipefail
+      trap 'echo "LAGER-BOOTSTRAP-FEHLER in Zeile $LINENO" > /dev/console' ERR
+      export DEBIAN_FRONTEND=noninteractive
+      echo "== 1. Zeitzone, Pakete, Sicherheitsupdates"
+      timedatectl set-timezone Europe/Berlin || ln -sf /usr/share/zoneinfo/Europe/Berlin /etc/localtime
+      echo iptables-persistent iptables-persistent/autosave_v4 boolean false | debconf-set-selections
+      echo iptables-persistent iptables-persistent/autosave_v6 boolean false | debconf-set-selections
+      apt-get update
+      apt-get install -y ca-certificates curl unattended-upgrades iptables-persistent
+      printf 'APT::Periodic::Update-Package-Lists "1";\nAPT::Periodic::Unattended-Upgrade "1";\n' > /etc/apt/apt.conf.d/20auto-upgrades
+      systemctl enable --now unattended-upgrades
+
+      echo "== 2. Firewall: Ports 80 und 443 freigeben (vor Docker speichern)"
+      for p in 443 80; do
+        iptables -C INPUT -p tcp -m state --state NEW --dport "$p" -j ACCEPT 2>/dev/null || iptables -I INPUT 1 -p tcp -m state --state NEW --dport "$p" -j ACCEPT
+      done
+      netfilter-persistent save
+
+      echo "== 3. Docker"
+      if ! command -v docker >/dev/null; then curl -fsSL https://get.docker.com | sh; fi
+      systemctl enable --now docker
+      docker compose version
+
+      echo "== 4. Benutzer deploy"
+      id deploy >/dev/null 2>&1 || useradd -m -s /bin/bash -G docker deploy
+      usermod -aG docker deploy
+      usermod -p '*' deploy
+      install -d -m 700 -o deploy -g deploy /home/deploy/.ssh
+      echo '__SSH_PUBKEY__' > /home/deploy/.ssh/authorized_keys
+      chown deploy:deploy /home/deploy/.ssh/authorized_keys
+      chmod 600 /home/deploy/.ssh/authorized_keys
+      install -d -m 750 -o deploy -g deploy /opt/planer-lager
+
+      echo "== 5. SSH absichern"
+      printf 'PasswordAuthentication no\nKbdInteractiveAuthentication no\nPermitRootLogin no\n' > /etc/ssh/sshd_config.d/10-lager.conf
+      sshd -t
+      systemctl reload ssh || systemctl reload sshd
+
+      echo "== 6. Swap bei wenig Speicher"
+      if [ "$(awk '/MemTotal/ {print $2}' /proc/meminfo)" -lt 3000000 ] && [ ! -f /swapfile ]; then
+        fallocate -l 2G /swapfile && chmod 600 /swapfile && mkswap /swapfile && swapon /swapfile
+        echo '/swapfile none swap sw 0 0' >> /etc/fstab
+      fi
+      free -m
+      echo LAGER-BOOTSTRAP-FERTIG > /dev/console
+      echo LAGER-BOOTSTRAP-FERTIG
+
+runcmd:
+  - [bash, -c, "/usr/local/sbin/lager-bootstrap.sh 2>&1 | tee -a /var/log/lager-bootstrap.log > /dev/console"]

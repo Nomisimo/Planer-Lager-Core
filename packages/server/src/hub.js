@@ -2,6 +2,7 @@
 // Anmeldung: Cookie beim Verbindungsaufbau (Web) oder erste Nachricht {typ:"anmelden", token} (Apps).
 import { WebSocketServer } from "ws";
 import { darf } from "@lager/domain";
+import { nachCommit } from "@lager/db";
 import { ladeSitzung, leseCookies, COOKIE } from "./auth.js";
 
 const ANMELDE_FRIST_MS = 5000;
@@ -85,6 +86,11 @@ export class Hub {
    * @param {(ws: any) => boolean} [filter] zusätzliche Auswahl (z. B. nur ein Arbeitsplatz)
    */
   sende(ev, filter) {
+    // innerhalb einer Transaktion erst nach dem COMMIT, sonst lesen Clients beim Nachladen noch den alten Stand
+    nachCommit(() => this.sendeJetzt(ev, filter));
+  }
+
+  sendeJetzt(ev, filter) {
     for (const fn of this.beobachter || []) { try { fn(ev); } catch (e) { console.error(`Hub-Beobachter: ${e.message}`); } }
     const text = JSON.stringify({ ...ev, nr: ++this.zaehler });
     for (const ws of this.clients) {

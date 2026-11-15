@@ -2,7 +2,7 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import { neueTestDb } from "../src/testdb.js";
-import { transaktion } from "../src/pool.js";
+import { transaktion, nachCommit } from "../src/pool.js";
 
 let db;
 before(async () => { db = await neueTestDb(); });
@@ -49,4 +49,21 @@ test("NFA-06 Buchung in Transaktion: Fehler mitten in der Buchung lässt keinen 
   const { rows: [{ n }] } = await db.pool.query("SELECT count(*)::int AS n FROM bewegung WHERE geraet_id = $1", [g.id]);
   assert.equal(nach.status, g.status);
   assert.equal(n, 1);
+});
+
+test("BUG-14 Live-Ereignisse aus einer Transaktion erst nach COMMIT (Nachladen sieht den neuen Stand), bei ROLLBACK nie", async () => {
+  const gesehen = [];
+  const { rows: [g] } = await db.pool.query("SELECT id FROM geraet WHERE code = 'IN-0001'");
+  await transaktion(db.pool, async (c) => {
+    await c.query("UPDATE geraet SET notizen = 'nach commit' WHERE id = $1", [g.id]);
+    nachCommit(async () => gesehen.push((await db.pool.query("SELECT notizen FROM geraet WHERE id = $1", [g.id])).rows[0].notizen));
+    assert.deepEqual(gesehen, [], "nicht vor dem COMMIT");
+  });
+  await new Promise((r) => setTimeout(r, 50));
+  assert.deepEqual(gesehen, ["nach commit"]);
+  await assert.rejects(transaktion(db.pool, async () => { nachCommit(() => gesehen.push("rollback")); throw new Error("weg"); }), /weg/);
+  let sofort = false;
+  nachCommit(() => { sofort = true; });
+  assert.ok(sofort, "ohne Transaktion sofort");
+  assert.deepEqual(gesehen, ["nach commit"]);
 });

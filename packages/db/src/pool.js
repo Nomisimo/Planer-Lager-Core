@@ -1,5 +1,14 @@
 // Verbindungspool zu PostgreSQL. Optional mit eigenem Schema (Tests laufen je Datei in einem frischen Schema).
 import pg from "pg";
+import { AsyncLocalStorage } from "node:async_hooks";
+
+// Live-Ereignisse aus einer Transaktion erst nach COMMIT senden (BUG-14: Clients luden sonst den alten Stand nach)
+const offeneTx = new AsyncLocalStorage();
+/** Führt fn nach dem COMMIT der laufenden Transaktion aus (ohne Transaktion sofort); bei ROLLBACK nie. */
+export function nachCommit(fn) {
+  const liste = offeneTx.getStore();
+  if (liste) liste.push(fn); else fn();
+}
 
 // BIGINT (Zählwerte, Cent-Summen) als Zahl statt String liefern. Beträge bleiben weit unter 2^53.
 pg.types.setTypeParser(20, (v) => Number(v));
@@ -30,10 +39,12 @@ export function erstellePool(opt = {}) {
  */
 export async function transaktion(pool, fn) {
   const c = await pool.connect();
+  const danach = [];
   try {
     await c.query("BEGIN");
-    const r = await fn(c);
+    const r = await offeneTx.run(danach, () => fn(c));
     await c.query("COMMIT");
+    for (const f of danach) { try { f(); } catch (e) { console.error(`Nach COMMIT: ${e.message}`); } }
     return r;
   } catch (e) {
     await c.query("ROLLBACK").catch(() => {});

@@ -37,6 +37,7 @@ Funde:
 - BUG-11 (Erkundung „Lena“, 1024 px) Ladezonen-Karte: Zeile „… seit <Zeitpunkt>“ ragte über den Kartenrand. Behoben: Zeile bricht um. Ohne eigenen Test (reines Layout), im Screenshot geprüft.
 - BUG-12 (Erkundung „Lena“) Etikettendruck im Browser meldete „an den Drucker gesendet“, obwohl nur das Druckfenster des Browsers aufgeht. Behoben: „Druckfenster mit … geöffnet. Wähle dort den Etikettendrucker.“ Roter Test WEB-04 zuerst.
 - BUG-13 (CI) Kam das Laden eines Formulars (Artikel, Projekt) später an als die erste Eingabe, überschrieb es die Eingabe; gespeichert wurde dann der alte Wert (Lagerort fehlte). Behoben: `useFormular().geladen()` behält bereits bearbeitete Felder; `Knopf` ruft immer den aktuellen Handler auf. Roter Test FA-08 in CI zuerst.
+- BUG-14 (CI, INT-03) Live-Ereignisse wurden innerhalb der Datenbank-Transaktion verschickt, also vor dem COMMIT. Lud ein Client sofort nach, sah er manchmal noch den alten Stand (Packfortschritt blieb bei 1/2). Behoben: Der Hub sendet Ereignisse aus einer Transaktion erst nach dem COMMIT, bei ROLLBACK gar nicht (`nachCommit` in packages/db). Roter Test BUG-14 zuerst.
 - Stolpersteine Runde 2 (offen, bewusst so): Tour-Schritt „Scannen“ verlangt einen Klick auf den Menüeintrag (Blase sagt es, steht jetzt rechts daneben); nach „Verladen“ bleibt das Scanfeld aktiv, damit nachgepackt werden kann; „App wechseln“ ohne installierte Gegen-App zeigt das Band erst, wenn das System den Link ablehnt.
 Annahmen: D-118, D-119, D-120
 Annahmen: D-114, D-115, D-116

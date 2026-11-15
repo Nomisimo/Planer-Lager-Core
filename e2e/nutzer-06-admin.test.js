@@ -28,6 +28,7 @@ test("NUTZER-06 Admin-Tag: Benutzer + Rolle, 2FA, Sperre, Sicherung + Wiederhers
     await w.getByLabel("Code").fill(totpCode(geheimnis));
     await w.getByRole("button", { name: "Bestätigen" }).click();
     await w.getByTestId("benutzer").waitFor();
+    await w.getByRole("dialog", { name: "Willkommen im Productionplaner" }).getByRole("button", { name: "Nicht mehr anzeigen" }).click();
     // Rolle „Aushilfe“ und Benutzerin Nina
     await oeffne("Rollen");
     await w.getByRole("button", { name: "Neue Rolle" }).click();

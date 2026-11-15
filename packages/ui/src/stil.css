@@ -176,3 +176,10 @@ a{color:var(--lp-link)}
 /* Planungszeit-Timer in der Kopfleiste (R-63) */
 .lp-timer { display: inline-flex; gap: 4px; align-items: center; }
 .lp-timer .lp-btn:first-child { border-color: var(--lp-accent); }
+/* Tour (ARCHITEKTUR §11) */
+.lp-tour,.lp-tour-sperre{position:fixed;inset:0;z-index:200}
+.lp-tour{pointer-events:none}
+.lp-tour-sperre{background:transparent}
+.lp-tour-block{position:fixed;background:rgba(0,0,0,.55);pointer-events:auto}
+.lp-tour-loch{position:fixed;border-radius:8px;box-shadow:0 0 0 2px var(--lp-accent);background:transparent}
+.lp-tour-blase{position:fixed;pointer-events:auto;width:360px;max-width:calc(100vw - 24px);background:var(--lp-card);color:var(--lp-text);border:1px solid var(--lp-line);border-radius:10px;padding:14px 16px;box-shadow:0 12px 32px rgba(0,0,0,.35)}

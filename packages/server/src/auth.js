@@ -49,11 +49,11 @@ function tokenAus(ctx) {
 }
 
 const NUTZER_SQL = `SELECT s.token_hash, s.art, s.csrf, s.letzte_aktivitaet, b.id, b.benutzername, b.name, b.aktiv, b.totp_aktiv,
-  b.design, r.name AS rolle, r.rechte FROM sitzung s JOIN benutzer b ON b.id = s.benutzer_id JOIN rolle r ON r.id = b.rolle_id
+  b.design, b.tour, r.name AS rolle, r.rechte FROM sitzung s JOIN benutzer b ON b.id = s.benutzer_id JOIN rolle r ON r.id = b.rolle_id
   WHERE s.token_hash = $1`;
 
 const nutzerAus = (z) => ({ id: z.id, benutzername: z.benutzername, name: z.name, rolle: z.rolle, rechte: z.rechte,
-  admin: istAdminRechte(z.rechte), totpAktiv: z.totp_aktiv, design: z.design, sitzungArt: z.art });
+  admin: istAdminRechte(z.rechte), totpAktiv: z.totp_aktiv, design: z.design, tour: z.tour || {}, sitzungArt: z.art });
 
 /** Lädt die Sitzung zum Token (oder null, wenn ungültig/abgelaufen). Abgelaufene werden gelöscht. */
 export async function ladeSitzung(pool, token) {
@@ -219,6 +219,18 @@ export function authModul(router) {
     const d = { thema: String(thema || "planer").slice(0, 20), dichte: String(dichte || "normal").slice(0, 20), modus: String(modus || "system").slice(0, 20) };
     await ctx.pool.query("UPDATE benutzer SET design = $1 WHERE id = $2", [JSON.stringify(d), ctx.nutzer.id]);
     return { ok: true, design: d };
+  });
+
+  // Phase 18 Tour: „Willkommen gesehen“ und erledigte Touren (gilt in beiden Apps, ARCHITEKTUR §11)
+  router.put("/api/v1/ich/tour", { bereich: "start", nurAngemeldet: true, ohneVersion: "eigener Tour-Stand, nur der Nutzer selbst" }, async (ctx) => {
+    const b = ctx.body || {};
+    const { rows: [alt] } = await ctx.pool.query("SELECT tour FROM benutzer WHERE id = $1", [ctx.nutzer.id]);
+    const t = { willkommen: !!alt?.tour?.willkommen, erledigt: Array.isArray(alt?.tour?.erledigt) ? alt.tour.erledigt : [] };
+    if (b.willkommen === true) t.willkommen = true;
+    if (typeof b.erledigt === "string" && /^[a-z0-9-]{1,40}$/.test(b.erledigt) && !t.erledigt.includes(b.erledigt)) t.erledigt = [...t.erledigt, b.erledigt].slice(-20);
+    if (b.zuruecksetzen === true) { t.willkommen = false; t.erledigt = []; }
+    await ctx.pool.query("UPDATE benutzer SET tour = $1 WHERE id = $2", [JSON.stringify(t), ctx.nutzer.id]);
+    return { ok: true, tour: t };
   });
 
   // FA-54: Einrichtung. Schritt 1 liefert Geheimnis + otpauth-URI, Schritt 2 bestätigt mit Code.

@@ -10,8 +10,9 @@ import { euro, centAusText } from "@lager/domain/geld.js";
 
 export const Icon = ({ name, size = 16, ...p }) => { const C = ICONS[name] || ICONS.Circle; return <C size={size} aria-hidden="true" {...p} />; };
 
-export const Section = ({ titel, icon, aktionen, children, ...p }) => (
-  <section className="lp-section" {...p}>
+/** `tour` = Anker für die Einführungs-Tour (data-tour, ARCHITEKTUR §11). */
+export const Section = ({ titel, icon, aktionen, children, tour, ...p }) => (
+  <section className="lp-section" data-tour={tour} {...p}>
     {(titel || aktionen) && <div className="lp-titelzeile" style={{ marginBottom: 12 }}>
       {titel && <h2 className="lp-h2" style={{ margin: 0 }}>{icon && <Icon name={icon} />}{titel}</h2>}
       {aktionen && <div className="lp-aktionen">{aktionen}</div>}
@@ -20,8 +21,8 @@ export const Section = ({ titel, icon, aktionen, children, ...p }) => (
   </section>
 );
 
-export const Seite = ({ titel, untertitel, aktionen, children }) => (
-  <div className="lp-main">
+export const Seite = ({ titel, untertitel, aktionen, children, tour }) => (
+  <div className="lp-main" data-tour={tour}>
     <div className="lp-titelzeile">
       <div><h1 className="lp-h1">{titel}</h1>{untertitel && <div className="lp-meta">{untertitel}</div>}</div>
       {aktionen && <div className="lp-aktionen">{aktionen}</div>}
@@ -31,14 +32,14 @@ export const Seite = ({ titel, untertitel, aktionen, children }) => (
 );
 
 /** Knopf. art: primaer | normal | geist | gefahr. onClick darf async sein → sperrt bis Antwort (UI-4). */
-export function Knopf({ art = "normal", icon, klein, onClick, disabled, children, ...p }) {
+export function Knopf({ art = "normal", icon, klein, onClick, disabled, children, tour, ...p }) {
   const [laeuft, setLaeuft] = useState(false);
   const ref = useRef(null);
   if (!ref.current) ref.current = einmalig(async (e) => { const r = onClick?.(e); if (r && typeof r.then === "function") { setLaeuft(true); try { await r; } finally { setLaeuft(false); } } });
   useEffect(() => { ref.current = einmalig(async (e) => { const r = onClick?.(e); if (r && typeof r.then === "function") { setLaeuft(true); try { await r; } finally { setLaeuft(false); } } }); }, [onClick]);
   const cls = ["lp-btn", art === "primaer" && "lp-btn-primaer", art === "geist" && "lp-btn-geist", art === "gefahr" && "lp-btn-gefahr", klein && "lp-btn-klein"].filter(Boolean).join(" ");
   return (
-    <button type={p.type || "button"} className={cls} disabled={disabled || laeuft} aria-busy={laeuft || undefined} onClick={(e) => ref.current(e)} {...p}>
+    <button type={p.type || "button"} className={cls} disabled={disabled || laeuft} aria-busy={laeuft || undefined} data-tour={tour} onClick={(e) => ref.current(e)} {...p}>
       {icon && <Icon name={laeuft ? "Loader2" : icon} size={klein ? 14 : 16} />}{children}
     </button>
   );

@@ -26,10 +26,14 @@ async function anmelden(seite, benutzer) {
   await seite.getByLabel("Benutzername").fill(benutzer);
   await seite.getByLabel("Passwort").fill(BEISPIEL_PASSWORT);
   await seite.getByRole("button", { name: "Anmelden" }).click();
-  return Promise.race([
+  const drin = await Promise.race([
     seite.getByTestId("benutzer").waitFor({ timeout: 10000 }).then(() => true),
     seite.locator(".lp-meldung[data-level=error]").first().waitFor({ timeout: 10000 }).then(() => false),
   ]);
+  // TOUR-01: erste Anmeldung zeigt das Willkommen; „Später“, damit es beim nächsten Lauf wieder geprüft wird
+  const w = seite.getByRole("dialog", { name: /^Willkommen im / });
+  if (drin && await w.waitFor({ timeout: 1500 }).then(() => true, () => false)) await w.getByRole("button", { name: "Später" }).click();
+  return drin;
 }
 async function abmelden(seite) {
   await seite.getByRole("button", { name: "Abmelden" }).click();

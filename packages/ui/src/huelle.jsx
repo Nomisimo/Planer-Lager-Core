@@ -13,6 +13,9 @@ import { Icon, Knopf, Feld, Eingabe, Meldung, Modal, Section, Auswahl, Seite } f
 import STIL from "./stil.css";
 import { hidErkenner, pruefeHid } from "@lager/domain/scannen.js";
 import { planungsKontext, HERZSCHLAG_S, dauerText } from "@lager/domain/planung.js";
+import { darf as darfRecht } from "@lager/domain/rechte.js";
+import { Tour } from "./tour/Tour.jsx";
+import { tourenFuer, schritteFuer } from "./tour/touren.js";
 
 /** Handscanner-Einstellungen dieses Geräts (ARCHITEKTUR §5), localStorage. */
 export const HID_KEY = "lager-hid";
@@ -147,7 +150,7 @@ function OnlineStatus({ live }) {
   useEffect(() => live?.onStatus(setS), [live]);
   const farbe = s === "verbunden" ? "var(--lp-ok)" : s === "verbinde" ? "var(--lp-warn)" : "var(--lp-err)";
   const text = s === "verbunden" ? "Online" : s === "verbinde" ? "Verbinde …" : "Offline";
-  return <span className="lp-online" data-testid="online-status" title={s === "verbunden" ? "Live-Verbindung zum Lager-Server steht." : "Keine Live-Verbindung. Änderungen anderer erscheinen erst nach dem Wiederverbinden."}>
+  return <span className="lp-online" data-tour="online-status" data-testid="online-status" title={s === "verbunden" ? "Live-Verbindung zum Lager-Server steht." : "Keine Live-Verbindung. Änderungen anderer erscheinen erst nach dem Wiederverbinden."}>
     <span className="lp-punkt" style={{ background: farbe }} aria-hidden="true" />{text}</span>;
 }
 
@@ -179,6 +182,10 @@ export function AppHuelle({ app, seiten, onCode }) {
   const [design, setDesign] = useState(() => leseDesign() || {});
   const [darstellung, setDarstellung] = useState(false);
   const [menueOffen, setMenueOffen] = useState(false);
+  const [tourId, setTourId] = useState(null);
+  const [willkommenZu, setWillkommenZu] = useState(false);
+  // „Später“ gilt bis zur nächsten Anmeldung
+  useEffect(() => { if (!nutzer) { setWillkommenZu(false); setTourId(null); } }, [nutzer]);
   const tokenRef = useRef(null); // Desktop: Sitzungs-Token; Browser: "cookie" als Merker (Sitzung im HttpOnly-Cookie)
   const csrfRef = useRef(null);
   const scanZiel = useRef(null);
@@ -333,7 +340,12 @@ export function AppHuelle({ app, seiten, onCode }) {
   // R-05: Seite eines Bereichs ohne Recht → „Zugriff verweigert“ mit Rolle (statt leerer Seite).
   const pfadEintrag = aktiverEintrag(pfad, MENUE.flatMap((g) => g.eintraege));
   const verweigert = pfadEintrag && !alle.some((e) => e.pfad === pfadEintrag.pfad);
-  const kontext = { api, live, nutzer, info, pfad, query, navigiere, oeffneAndereApp, app, firma, setBanner, scanZiel, zeit };
+  // Phase 18 Tour: Willkommen nach der ersten Anmeldung, Touren aus der Hilfe; Stand am Benutzer (gilt in beiden Apps)
+  const touren = tourenFuer(app);
+  const merkeTour = (body) => api.put("/api/v1/ich/tour", body).then((r) => setNutzer((n) => (n ? { ...n, tour: r.tour } : n)), () => {});
+  const tour = { touren, starte: (id) => { setWillkommenZu(true); setTourId(id); } };
+  const laufend = tourId && touren.find((t) => t.id === tourId);
+  const kontext = { api, live, nutzer, info, pfad, query, navigiere, oeffneAndereApp, app, firma, setBanner, scanZiel, zeit, tour };
   kontextRef.current = kontext;
 
   return (
@@ -345,25 +357,25 @@ export function AppHuelle({ app, seiten, onCode }) {
           <span className="lp-meta">{firma ? firma + " · " : ""}Version {info.version}</span>
           <div className="lp-kopf-rechts">
             <CodeFeld onCode={(c) => onCode?.(c, kontext)} />
-            <button className="lp-btn lp-btn-klein" data-testid="app-schalter" title={`Zum ${andere.titel} wechseln (gleiche Stelle, ohne neue Anmeldung)`} onClick={() => oeffneAndereApp(zielInAndererApp(pfad, app === "m" ? "p" : "m"))}>
+            <button className="lp-btn lp-btn-klein" data-testid="app-schalter" data-tour="app-schalter" title={`Zum ${andere.titel} wechseln (gleiche Stelle, ohne neue Anmeldung)`} onClick={() => oeffneAndereApp(zielInAndererApp(pfad, app === "m" ? "p" : "m"))}>
               <Icon name="ArrowLeftRight" size={14} />{andere.titel}
             </button>
-            {web && <button className="lp-btn lp-btn-geist lp-btn-klein" data-testid="in-desktop" title={`In der Desktop-App öffnen (${self.titel} muss installiert sein)`} aria-label="In Desktop-App öffnen" onClick={inDesktopOeffnen}><Icon name="Monitor" size={14} /></button>}
-            {!web && <button className="lp-btn lp-btn-geist lp-btn-klein" data-testid="im-browser" title="Diese Ansicht im Browser öffnen (ohne neue Anmeldung)" aria-label="Im Browser öffnen" onClick={imBrowserOeffnen}><Icon name="Globe" size={14} /></button>}
+            {web && <button className="lp-btn lp-btn-geist lp-btn-klein" data-testid="in-desktop" data-tour="in-desktop" title={`In der Desktop-App öffnen (${self.titel} muss installiert sein)`} aria-label="In Desktop-App öffnen" onClick={inDesktopOeffnen}><Icon name="Monitor" size={14} /></button>}
+            {!web && <button className="lp-btn lp-btn-geist lp-btn-klein" data-testid="im-browser" data-tour="im-browser" title="Diese Ansicht im Browser öffnen (ohne neue Anmeldung)" aria-label="Im Browser öffnen" onClick={imBrowserOeffnen}><Icon name="Globe" size={14} /></button>}
             {zeit.timer && <TimerAnzeige zeit={zeit} navigiere={(p) => (app === "p" ? navigiere(p) : oeffneAndereApp(p))} />}
             <OnlineStatus live={live} />
             <Glocke />
             <button className="lp-btn lp-btn-geist lp-btn-klein" title="Darstellung" aria-label="Darstellung" onClick={() => setDarstellung(true)}><Icon name="Palette" size={14} /></button>
-            <span className="lp-meta lp-nutzer" data-testid="benutzer" title={`${nutzer.name || nutzer.benutzername} · ${nutzer.rolle}`}>{nutzer.name || nutzer.benutzername} · {nutzer.rolle}</span>
+            <span className="lp-meta lp-nutzer" data-testid="benutzer" data-tour="benutzer" title={`${nutzer.name || nutzer.benutzername} · ${nutzer.rolle}`}>{nutzer.name || nutzer.benutzername} · {nutzer.rolle}</span>
             <button className="lp-btn lp-btn-geist lp-btn-klein" onClick={abmelden} title="Abmelden" aria-label="Abmelden"><Icon name="LogOut" size={14} /></button>
           </div>
         </header>
-        <nav className={"lp-menue" + (menueOffen ? " lp-offen" : "")} aria-label="Hauptmenü">
+        <nav className={"lp-menue" + (menueOffen ? " lp-offen" : "")} aria-label="Hauptmenü" data-tour="menue">
           {menue.map((g) => (
             <div key={g.gruppe}>
               <div className="lp-menue-gruppe">{g.gruppe}</div>
               {g.eintraege.map((e) => (
-                <button key={e.pfad} className="lp-menue-eintrag" aria-current={aktiv?.pfad === e.pfad ? "page" : undefined}
+                <button key={e.pfad} className="lp-menue-eintrag" data-tour={`menue-${e.pfad}`} aria-current={aktiv?.pfad === e.pfad ? "page" : undefined}
                   title={e.fremd ? `Öffnet im ${andere.titel}` : undefined}
                   onClick={() => { setMenueOffen(false); e.fremd ? oeffneAndereApp(e.pfad) : navigiere(e.pfad); }}>
                   <Icon name={e.icon} />{e.titel}{e.fremd && <Icon name="ExternalLink" size={13} className="lp-fremd" />}
@@ -379,6 +391,15 @@ export function AppHuelle({ app, seiten, onCode }) {
             : treffer ? <treffer.Komponente params={treffer.params} query={query} key={`${pfad}#${neu}`} />
             : <Seite titel="Seite nicht gefunden"><Meldung level="error" text="Diese Seite gibt es in dieser App nicht. Wähle links einen Menüpunkt." /></Seite>}
         </main>
+        {laufend && <Tour key={tourId} titel={laufend.titel} schritte={schritteFuer(laufend, nutzer, web, darfRecht)} navigiere={navigiere} pfad={pfad}
+          onEnde={(fertig) => { setTourId(null); if (fertig) merkeTour({ erledigt: laufend.id, willkommen: true }); }} />}
+        {!nutzer.tour?.willkommen && !willkommenZu && !laufend && <Modal titel={`Willkommen im ${self.titel}`} onSchliessen={() => setWillkommenZu(true)} fuss={<>
+          <Knopf art="geist" onClick={() => { setWillkommenZu(true); merkeTour({ willkommen: true }); }}>Nicht mehr anzeigen</Knopf>
+          <Knopf onClick={() => setWillkommenZu(true)}>Später</Knopf>
+          <Knopf art="primaer" icon="Play" onClick={() => { merkeTour({ willkommen: true }); tour.starte(app === "m" ? "materialplaner" : "productionplaner"); }}>Tour starten</Knopf></>}>
+          <p style={{ marginTop: 0 }}>Schön, dass du da bist, {nutzer.name || nutzer.benutzername}! Eine kurze Tour zeigt dir in wenigen Schritten, wo du was findest. Sie ändert keine Daten.</p>
+          <p className="lp-hinweis" style={{ marginBottom: 0 }}>Alle Touren findest du später unter System › Hilfe.</p>
+        </Modal>}
         {darstellung && <DarstellungDialog design={design} onAendern={designAendern} onSchliessen={() => setDarstellung(false)} />}
       </div>
     </Ctx.Provider>
@@ -389,7 +410,7 @@ export function AppHuelle({ app, seiten, onCode }) {
 export function CodeFeld({ onCode }) {
   const [w, setW] = useState("");
   return (
-    <form onSubmit={(e) => { e.preventDefault(); if (w.trim()) { onCode?.(w.trim()); setW(""); } }} role="search">
+    <form data-tour="codefeld" onSubmit={(e) => { e.preventDefault(); if (w.trim()) { onCode?.(w.trim()); setW(""); } }} role="search">
       <input className="lp-input lp-codefeld" placeholder="Code / Nummer …" aria-label="Code oder Nummer öffnen" value={w} onChange={(e) => setW(e.target.value)} data-testid="codefeld" />
     </form>
   );

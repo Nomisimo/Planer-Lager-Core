@@ -12,6 +12,8 @@ import { TaschenKarte, FunktionstestKarte } from "@lager/ui/rueckgabe.jsx";
 import { fehlerText } from "@lager/ui/texte.js";
 import { datumAnzeige } from "@lager/domain/zeit.js";
 import STIL from "@lager/ui/stil.css";
+import { Tour } from "@lager/ui/tour/Tour.jsx";
+import { TOUREN } from "@lager/ui/tour/touren.js";
 
 const s = document.createElement("style"); s.textContent = STIL; document.head.appendChild(s);
 wendeDesignAn({ dichte: "gross" });
@@ -192,6 +194,7 @@ function App() {
   const live = useMemo(() => (eingerichtet ? new Live({ basis }) : null), [eingerichtet, basis]);
   useEffect(() => { if (!live) return; live.start(); return () => live.stopp(); }, [live]);
   const scanZiel = useRef(null);
+  const [tourAn, setTourAn] = useState(false);
   useHandscanner(scanZiel, () => {});
   // R-11b: ohne Eingabe nach sperrzeit_minuten sperren (der Server prüft das zusätzlich bei jeder Anfrage)
   const aktiv = !!zustand && !zustand.gesperrt && zustand.arbeitsplatz.art !== "anzeige";
@@ -217,9 +220,11 @@ function App() {
               <strong>{ap.name}</strong>
               <span className="lp-meta">{ap.art === "packen" ? `Ladezone ${ap.ladezone || "–"}` : "Rückgabe / Prüfung"}</span>
               <span style={{ flex: 1 }} />
-              <span data-testid="mitarbeiter"><Icon name="Users" size={18} /> {zustand.mitarbeiter?.name}</span>
-              <Knopf icon="Lock" onClick={() => api.post("/api/v1/station/sperren", {}).then(setZustand)}>Sperren</Knopf>
+              <span data-testid="mitarbeiter" data-tour="station-mitarbeiter"><Icon name="Users" size={18} /> {zustand.mitarbeiter?.name}</span>
+              <Knopf icon="Info" art="geist" onClick={() => setTourAn(true)}>Kurze Einführung</Knopf>
+              <Knopf icon="Lock" tour="station-sperren" onClick={() => api.post("/api/v1/station/sperren", {}).then(setZustand)}>Sperren</Knopf>
             </header>
+            {tourAn && <Tour titel={TOUREN.find((t) => t.id === "arbeitsplatz").titel} schritte={TOUREN.find((t) => t.id === "arbeitsplatz").schritte} navigiere={() => {}} pfad="" onEnde={() => setTourAn(false)} />}
             {hinweis && <Meldung level="warning" text={hinweis} onSchliessen={() => setHinweis(null)} />}
             <main className="lp-station-inhalt">{ap.art === "packen" ? <PackPlatz zustand={zustand} /> : <RueckgabePlatz zustand={zustand} />}</main>
           </div>}

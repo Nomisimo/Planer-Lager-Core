@@ -23,7 +23,7 @@ const BEREICHE = [
 export function VerwaltungStart() {
   const { navigiere } = useLager();
   return (
-    <Seite titel="Verwaltung" untertitel="Nur für Administratoren">
+    <Seite titel="Verwaltung" untertitel="Nur für Administratoren" tour="verwaltung">
       <div className="lp-raster">
         {BEREICHE.map((b) => (
           <Section key={b.pfad} titel={b.titel} icon={b.icon} aktionen={<Knopf klein onClick={() => navigiere(b.pfad)}>Öffnen</Knopf>}>

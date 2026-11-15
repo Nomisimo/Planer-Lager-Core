@@ -35,6 +35,7 @@ export const MENUE = [
   ] },
   { gruppe: "System", eintraege: [
     { titel: "Verwaltung", pfad: "/verwaltung", bereich: "verwaltung", app: "beide", icon: "Settings" },
+    { titel: "Hilfe", pfad: "/hilfe", bereich: "start", app: "beide", icon: "LifeBuoy" },
   ] },
 ];
 

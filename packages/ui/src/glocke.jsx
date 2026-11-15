@@ -28,7 +28,7 @@ export function Glocke() {
   };
   return (
     <span ref={box} style={{ position: "relative" }}>
-      <button className="lp-btn lp-btn-geist lp-btn-klein" data-testid="glocke" aria-label={n ? `Benachrichtigungen, ${n} neu` : "Benachrichtigungen"} aria-expanded={offen} title="Benachrichtigungen" onClick={() => setOffen(!offen)}>
+      <button className="lp-btn lp-btn-geist lp-btn-klein" data-testid="glocke" data-tour="glocke" aria-label={n ? `Benachrichtigungen, ${n} neu` : "Benachrichtigungen"} aria-expanded={offen} title="Benachrichtigungen" onClick={() => setOffen(!offen)}>
         <Icon name="Bell" size={14} />{n > 0 && <span className="lp-badge" data-testid="glocke-zahl" style={{ background: "var(--lp-err)", color: "#fff", marginLeft: 4, padding: "0 6px", borderRadius: 9, fontSize: 11 }}>{n}</span>}
       </button>
       {offen && <div className="lp-section" role="dialog" aria-label="Benachrichtigungen" style={{ position: "absolute", right: 0, top: "calc(100% + 6px)", width: 360, maxWidth: "90vw", maxHeight: 460, overflow: "auto", zIndex: 50, padding: 12, boxShadow: "0 8px 24px rgba(0,0,0,.18)" }}>

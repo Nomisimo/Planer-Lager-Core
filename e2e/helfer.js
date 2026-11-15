@@ -41,7 +41,12 @@ export async function starteServer(extra = {}) {
   const app = await erstelleLagerServer({ pool: db.pool, config: { dataDir, ...(extra.config || {}) } });
   await new Promise((r) => app.server.listen(0, "127.0.0.1", r));
   const url = `http://127.0.0.1:${app.server.address().port}`;
-  const benutzer = (benutzername, rolle = "Administrator", name) => legeBenutzerAn(db.pool, { benutzername, passwort: PW, rolle, name });
+  // Test-Konten haben das Willkommen schon gesehen (sonst läge es über jeder Seite); TOUR-01 prüft es mit eigenem Konto.
+  const benutzer = async (benutzername, rolle = "Administrator", name) => {
+    const r = await legeBenutzerAn(db.pool, { benutzername, passwort: PW, rolle, name });
+    await db.pool.query("UPDATE benutzer SET tour = '{\"willkommen\": true}' WHERE benutzername = $1", [benutzername]);
+    return r;
+  };
   return merke({ ...app, db, url, benutzer, async ende() { app.server.closeAllConnections?.(); await new Promise((r) => app.server.close(r)); await db.ende(); fs.rmSync(dataDir, { recursive: true, force: true }); }, dataDir });
 }
 

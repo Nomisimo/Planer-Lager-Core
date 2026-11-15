@@ -25,6 +25,9 @@ export async function melde(win, benutzer) {
   await win.getByLabel("Passwort").fill(BEISPIEL_PASSWORT);
   await win.getByRole("button", { name: "Anmelden" }).click();
   await win.getByTestId("benutzer").waitFor({ timeout: 15000 });
+  // Erste Anmeldung der Demo-Konten: Willkommen (TOUR-01) wegklicken, wie es ein eiliger Nutzer tut
+  const w = win.getByRole("dialog", { name: /^Willkommen im / });
+  if (await w.waitFor({ timeout: 1500 }).then(() => true, () => false)) await w.getByRole("button", { name: "Nicht mehr anzeigen" }).click();
 }
 
 /** Öffnet eine App im Browser und meldet an. */

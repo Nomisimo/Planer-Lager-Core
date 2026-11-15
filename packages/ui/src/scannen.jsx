@@ -89,7 +89,7 @@ export function ScanPanel({ modus, projektId = null, angebotId = null, tasche = 
     <div className={"lp-scan" + (gross ? " lp-scan-gross" : "")}>
       <label className="lp-label" htmlFor="lp-scanfeld">Code</label>
       <form className="lp-zeile" style={{ alignItems: "stretch" }} onSubmit={(e) => { e.preventDefault(); buche(code); setCode(""); feld.current?.focus(); }}>
-        <input ref={feld} id="lp-scanfeld" className="lp-input lp-scanfeld" data-scanfeld="1" data-testid="scanfeld" aria-label="Code scannen oder eingeben" placeholder={deaktiviert || "Code scannen oder eintippen, Enter bucht"}
+        <input ref={feld} id="lp-scanfeld" className="lp-input lp-scanfeld" data-scanfeld="1" data-testid="scanfeld" data-tour="scanfeld" aria-label="Code scannen oder eingeben" placeholder={deaktiviert || "Code scannen oder eintippen, Enter bucht"}
           value={code} disabled={!!deaktiviert} onChange={(e) => setCode(e.target.value)} autoComplete="off" autoFocus
           onBlur={() => { if (!deaktiviert) setTimeout(() => { if (!document.activeElement || document.activeElement === document.body) feld.current?.focus(); }, 0); }} />
         <Knopf art="primaer" type="submit" icon="ScanLine" disabled={!!deaktiviert || !code.trim()}>Buchen</Knopf>
